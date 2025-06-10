@@ -49,6 +49,7 @@ interface PredictionCardProps {
       league: string;
       time: string;
     }>;
+    is_liked?: boolean;
   };
 }
 
@@ -58,7 +59,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const { likePost } = useOptimizedPosts();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
   const [likesCount, setLikesCount] = useState(prediction.likes);
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -109,7 +110,8 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     try {
       await likePost(prediction.id.toString());
       
-      // Update local state optimistically
+      // La mise à jour locale est maintenant gérée dans useOptimizedPosts
+      // mais on garde la logique locale pour une meilleure UX
       if (isLiked) {
         setLikesCount(prev => prev - 1);
         setIsLiked(false);
@@ -485,7 +487,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                 <span className="text-sm">{prediction.comments}</span>
               </button>
             }>
-              <CommentsBottomSheet commentsCount={prediction.comments}>
+              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={prediction.comments}>
                 <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
                   <MessageCircle className="w-5 h-5" />
                   <span className="text-sm">{prediction.comments}</span>
@@ -535,3 +537,5 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
 };
 
 export default PredictionCard;
+
+}

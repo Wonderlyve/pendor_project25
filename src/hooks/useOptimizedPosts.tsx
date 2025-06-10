@@ -26,6 +26,7 @@ export interface Post {
   badge?: string;
   like_count?: number;
   comment_count?: number;
+  is_liked?: boolean;
 }
 
 const POSTS_PER_PAGE = 10;
@@ -72,6 +73,22 @@ export const useOptimizedPosts = () => {
         comment_count: post.comments
       })) || [];
 
+      // Vérifier les likes de l'utilisateur si connecté
+      if (user && transformedPosts.length > 0) {
+        const postIds = transformedPosts.map(post => post.id);
+        const { data: userLikes } = await supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+
+        const likedPostIds = new Set(userLikes?.map(like => like.post_id) || []);
+        
+        transformedPosts.forEach(post => {
+          post.is_liked = likedPostIds.has(post.id);
+        });
+      }
+
       return transformedPosts;
     } catch (error) {
       console.error('Error:', error);
@@ -80,7 +97,7 @@ export const useOptimizedPosts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const loadInitialPosts = useCallback(async () => {
     setInitialLoading(true);
@@ -231,8 +248,24 @@ export const useOptimizedPosts = () => {
 
         if (error) {
           console.error('Error unliking post:', error);
+          // Si l'erreur est due à la contrainte unique, l'utilisateur a déjà liké
+          if (error.code === '23505') {
+            toast.error('Vous avez déjà liké ce post');
+          }
           return;
         }
+
+        // Mise à jour locale optimiste
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likes: post.likes - 1,
+                like_count: post.like_count! - 1,
+                is_liked: false
+              }
+            : post
+        ));
       } else {
         const { error } = await supabase
           .from('post_likes')
@@ -243,23 +276,57 @@ export const useOptimizedPosts = () => {
 
         if (error) {
           console.error('Error liking post:', error);
+          // Si l'erreur est due à la contrainte unique, l'utilisateur a déjà liké
+          if (error.code === '23505') {
+            toast.error('Vous avez déjà liké ce post');
+          }
           return;
         }
-      }
 
-      setPosts(prev => prev.map(post => 
-        post.id === postId 
-          ? { 
-              ...post, 
-              likes: existingLike ? post.likes - 1 : post.likes + 1,
-              like_count: existingLike ? post.like_count! - 1 : post.like_count! + 1
-            }
-          : post
-      ));
+        // Mise à jour locale optimiste
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likes: post.likes + 1,
+                like_count: post.like_count! + 1,
+                is_liked: true
+              }
+            : post
+        ));
+      }
     } catch (error) {
       console.error('Error:', error);
     }
   };
+
+  // Écouter les mises à jour en temps réel des posts
+  useEffect(() => {
+    const channel = supabase
+      .channel('posts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'posts'
+        },
+        (payload) => {
+          console.log('Post updated:', payload);
+          // Mettre à jour le post spécifique dans la liste
+          setPosts(prev => prev.map(post => 
+            post.id === payload.new.id 
+              ? { ...post, ...payload.new }
+              : post
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {

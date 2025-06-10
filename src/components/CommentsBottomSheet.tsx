@@ -11,90 +11,60 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-interface Comment {
-  id: number;
-  user: {
-    name: string;
-    avatar: string;
-  };
-  content: string;
-  timeAgo: string;
-  likes: number;
-  replies: Comment[];
-}
+import { useComments } from '@/hooks/useComments';
+import { useAuth } from '@/hooks/useAuth';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface CommentsBottomSheetProps {
   children: React.ReactNode;
+  postId: string;
   commentsCount: number;
 }
 
-const CommentsBottomSheet = ({ children, commentsCount }: CommentsBottomSheetProps) => {
+const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottomSheetProps) => {
   const [newComment, setNewComment] = useState('');
-  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const { comments, loading, createComment, likeComment } = useComments(postId);
+  const { user } = useAuth();
 
-  const mockComments: Comment[] = [
-    {
-      id: 1,
-      user: {
-        name: 'Dizainer Kône',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-      },
-      content: 'Gaaaaa',
-      timeAgo: '1h',
-      likes: 0,
-      replies: []
-    },
-    {
-      id: 2,
-      user: {
-        name: 'Karole Tajeute',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b332c3c3?w=100&h=100&fit=crop&crop=face'
-      },
-      content: 'Moi je ne retourne plus dans cette maison jamais jamais, je suit une fois le gars on part vivre ensemble même by force',
-      timeAgo: '1h',
-      likes: 4,
-      replies: [
-        {
-          id: 3,
-          user: {
-            name: 'Elvis Essama',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-          },
-          content: 'Karole Tajeute pourquoi c\'es...',
-          timeAgo: '45min',
-          likes: 1,
-          replies: []
-        }
-      ]
-    }
-  ];
-
-  const handleSendComment = () => {
+  const handleSendComment = async () => {
     if (newComment.trim()) {
-      console.log('Sending comment:', newComment);
+      await createComment(newComment, replyingTo || undefined);
       setNewComment('');
       setReplyingTo(null);
     }
   };
 
-  const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
+  const CommentItem = ({ comment, isReply = false }: { comment: any; isReply?: boolean }) => (
     <div className={`${isReply ? 'ml-12 mt-3' : 'mb-4'}`}>
       <div className="flex space-x-3">
         <img
-          src={comment.user.avatar}
-          alt={comment.user.name}
+          src={comment.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`}
+          alt={comment.display_name || comment.username}
           className="w-8 h-8 rounded-full flex-shrink-0"
         />
         <div className="flex-1">
           <div className="bg-gray-100 rounded-2xl px-3 py-2">
-            <p className="font-semibold text-sm text-gray-900">{comment.user.name}</p>
+            <p className="font-semibold text-sm text-gray-900">
+              {comment.display_name || comment.username}
+            </p>
             <p className="text-gray-800 text-sm mt-1">{comment.content}</p>
           </div>
           
           <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-            <span>{comment.timeAgo}</span>
-            <button className="hover:text-gray-700">J'aime</button>
+            <span>
+              {formatDistanceToNow(new Date(comment.created_at), { 
+                addSuffix: true, 
+                locale: fr 
+              })}
+            </span>
+            <button 
+              className="hover:text-gray-700"
+              onClick={() => likeComment(comment.id)}
+            >
+              J'aime
+            </button>
             <button 
               className="hover:text-gray-700"
               onClick={() => setReplyingTo(comment.id)}
@@ -115,7 +85,7 @@ const CommentsBottomSheet = ({ children, commentsCount }: CommentsBottomSheetPro
       </div>
       
       {/* Replies */}
-      {comment.replies.map(reply => (
+      {comment.replies?.map((reply: any) => (
         <CommentItem key={reply.id} comment={reply} isReply={true} />
       ))}
     </div>
@@ -136,11 +106,22 @@ const CommentsBottomSheet = ({ children, commentsCount }: CommentsBottomSheetPro
         <div className="flex flex-col h-full">
           {/* Comments List */}
           <ScrollArea className="flex-1 px-4">
-            <div className="space-y-1">
-              {mockComments.map(comment => (
-                <CommentItem key={comment.id} comment={comment} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">Chargement des commentaires...</p>
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-1">
+                {comments.map(comment => (
+                  <CommentItem key={comment.id} comment={comment} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Aucun commentaire pour le moment</p>
+                <p className="text-gray-400 text-sm mt-1">Soyez le premier à commenter !</p>
+              </div>
+            )}
           </ScrollArea>
           
           {/* Comment Input */}
@@ -158,7 +139,7 @@ const CommentsBottomSheet = ({ children, commentsCount }: CommentsBottomSheetPro
             )}
             <div className="flex items-center space-x-2">
               <img
-                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face"
+                src={user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`}
                 alt="Your avatar"
                 className="w-8 h-8 rounded-full"
               />
@@ -173,7 +154,7 @@ const CommentsBottomSheet = ({ children, commentsCount }: CommentsBottomSheetPro
                 <Button
                   size="sm"
                   onClick={handleSendComment}
-                  disabled={!newComment.trim()}
+                  disabled={!newComment.trim() || !user}
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full p-0 bg-blue-500 hover:bg-blue-600"
                 >
                   <Send className="w-4 h-4" />
