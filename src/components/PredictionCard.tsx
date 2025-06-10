@@ -537,5 +537,3 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
 };
 
 export default PredictionCard;
-
-}
