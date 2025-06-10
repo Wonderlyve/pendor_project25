@@ -104,8 +104,8 @@ export const useComments = (postId: string) => {
         return null;
       }
 
-      // Rafraîchir les commentaires
-      fetchComments();
+      // Rafraîchir les commentaires après création
+      await fetchComments();
       return data;
     } catch (error) {
       console.error('Error:', error);
@@ -153,11 +153,16 @@ export const useComments = (postId: string) => {
         }
       }
 
-      fetchComments();
+      await fetchComments();
     } catch (error) {
       console.error('Error:', error);
     }
   };
+
+  // Charger les commentaires au montage
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   // Gestion simplifiée des mises à jour en temps réel
   useEffect(() => {
@@ -172,9 +177,8 @@ export const useComments = (postId: string) => {
       }
     }
 
-    // Créer un nouveau canal avec un nom unique
-    const uniqueId = Math.random().toString(36).substring(2, 15);
-    const channelName = `comments_${postId}_${uniqueId}`;
+    // Créer un nouveau canal avec un nom simple
+    const channelName = `comments-${postId}`;
     
     console.log('Setting up comments realtime for:', channelName);
     
@@ -191,7 +195,10 @@ export const useComments = (postId: string) => {
           },
           (payload) => {
             console.log('Comment realtime update:', payload);
-            fetchComments();
+            // Attendre un peu avant de rafraîchir pour éviter les conflits
+            setTimeout(() => {
+              fetchComments();
+            }, 100);
           }
         )
         .subscribe((status) => {
@@ -214,11 +221,7 @@ export const useComments = (postId: string) => {
         }
       }
     };
-  }, [postId]);
-
-  useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+  }, [postId, fetchComments]);
 
   return {
     comments,
