@@ -158,14 +158,22 @@ export const useComments = (postId: string) => {
     }
   };
 
-  // Écouter les mises à jour en temps réel avec un nom de canal unique
+  // Écouter les mises à jour en temps réel avec un nom de canal unique et contrôle strict
   useEffect(() => {
     if (!postId) return;
 
-    const channelName = `comments-${postId}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
+    // Créer un nom de canal unique avec un identifiant de session
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    const channelName = `comments-${postId}-${sessionId}`;
+    
+    console.log('Creating comments channel:', channelName);
+    
+    let channel: any = null;
+    
+    try {
+      channel = supabase.channel(channelName);
+      
+      channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -173,18 +181,30 @@ export const useComments = (postId: string) => {
           table: 'comments',
           filter: `post_id=eq.${postId}`
         },
-        (payload) => {
+        (payload: any) => {
           console.log('Comment change:', payload);
           fetchComments();
         }
-      )
-      .subscribe();
+      );
+
+      channel.subscribe((status: string) => {
+        console.log('Comments subscription status:', status);
+      });
+    } catch (error) {
+      console.error('Error setting up comments channel:', error);
+    }
 
     return () => {
-      console.log('Unsubscribing from channel:', channelName);
-      supabase.removeChannel(channel);
+      if (channel) {
+        console.log('Unsubscribing from comments channel:', channelName);
+        try {
+          supabase.removeChannel(channel);
+        } catch (error) {
+          console.error('Error removing comments channel:', error);
+        }
+      }
     };
-  }, [postId]); // Removed fetchComments from dependencies
+  }, [postId]);
 
   useEffect(() => {
     fetchComments();

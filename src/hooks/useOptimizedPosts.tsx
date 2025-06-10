@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -301,19 +300,27 @@ export const useOptimizedPosts = () => {
     }
   };
 
-  // Écouter les mises à jour en temps réel des posts avec un nom de canal unique
+  // Écouter les mises à jour en temps réel des posts avec un contrôle strict
   useEffect(() => {
-    const channelName = `posts-changes-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
+    // Créer un nom de canal unique avec un identifiant de session
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    const channelName = `posts-changes-${sessionId}`;
+    
+    console.log('Creating posts channel:', channelName);
+    
+    let channel: any = null;
+    
+    try {
+      channel = supabase.channel(channelName);
+      
+      channel.on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'posts'
         },
-        (payload) => {
+        (payload: any) => {
           console.log('Post updated:', payload);
           // Mettre à jour le post spécifique dans la liste
           setPosts(prev => prev.map(post => 
@@ -322,12 +329,24 @@ export const useOptimizedPosts = () => {
               : post
           ));
         }
-      )
-      .subscribe();
+      );
+
+      channel.subscribe((status: string) => {
+        console.log('Posts subscription status:', status);
+      });
+    } catch (error) {
+      console.error('Error setting up posts channel:', error);
+    }
 
     return () => {
-      console.log('Unsubscribing from channel:', channelName);
-      supabase.removeChannel(channel);
+      if (channel) {
+        console.log('Unsubscribing from posts channel:', channelName);
+        try {
+          supabase.removeChannel(channel);
+        } catch (error) {
+          console.error('Error removing posts channel:', error);
+        }
+      }
     };
   }, []);
 
