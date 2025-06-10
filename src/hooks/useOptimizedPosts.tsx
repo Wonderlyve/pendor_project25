@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -300,10 +301,11 @@ export const useOptimizedPosts = () => {
     }
   };
 
-  // Écouter les mises à jour en temps réel des posts
+  // Écouter les mises à jour en temps réel des posts avec un nom de canal unique
   useEffect(() => {
+    const channelName = `posts-changes-${Date.now()}`;
     const channel = supabase
-      .channel('posts-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -324,6 +326,7 @@ export const useOptimizedPosts = () => {
       .subscribe();
 
     return () => {
+      console.log('Unsubscribing from channel:', channelName);
       supabase.removeChannel(channel);
     };
   }, []);
