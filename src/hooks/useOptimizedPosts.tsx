@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -63,7 +62,6 @@ export const useOptimizedPosts = () => {
         return [];
       }
 
-      // Transform data to match Post interface
       const transformedPosts = data?.map((post: any) => ({
         ...post,
         username: post.profiles?.username,
@@ -113,7 +111,6 @@ export const useOptimizedPosts = () => {
     try {
       let optimizedFile = file;
 
-      // Optimize image
       if (file.type.startsWith('image/')) {
         optimizedFile = await ImageOptimizer.compressImage(file, {
           maxWidth: 1200,
@@ -167,12 +164,10 @@ export const useOptimizedPosts = () => {
       let image_url = null;
       let video_url = null;
 
-      // Upload optimized image if provided
       if (postData.image_file) {
         image_url = await uploadOptimizedFile(postData.image_file, 'post-images');
       }
 
-      // Upload video if provided
       if (postData.video_file) {
         video_url = await uploadOptimizedFile(postData.video_file, 'post-videos');
       }
@@ -204,7 +199,7 @@ export const useOptimizedPosts = () => {
       }
 
       toast.success('Post créé avec succès !');
-      loadInitialPosts(); // Refresh posts
+      loadInitialPosts();
       return data;
     } catch (error) {
       console.error('Error:', error);
@@ -220,7 +215,6 @@ export const useOptimizedPosts = () => {
     }
 
     try {
-      // Check if already liked
       const { data: existingLike } = await supabase
         .from('post_likes')
         .select('*')
@@ -229,7 +223,6 @@ export const useOptimizedPosts = () => {
         .single();
 
       if (existingLike) {
-        // Unlike
         const { error } = await supabase
           .from('post_likes')
           .delete()
@@ -241,7 +234,6 @@ export const useOptimizedPosts = () => {
           return;
         }
       } else {
-        // Like
         const { error } = await supabase
           .from('post_likes')
           .insert({
@@ -255,7 +247,6 @@ export const useOptimizedPosts = () => {
         }
       }
 
-      // Update local state optimistically
       setPosts(prev => prev.map(post => 
         post.id === postId 
           ? { 
@@ -270,7 +261,6 @@ export const useOptimizedPosts = () => {
     }
   };
 
-  // Scroll detection for infinite loading
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.pageYOffset;
