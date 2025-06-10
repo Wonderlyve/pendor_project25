@@ -184,7 +184,7 @@ export const useComments = (postId: string) => {
       console.log('Unsubscribing from channel:', channelName);
       supabase.removeChannel(channel);
     };
-  }, [postId, fetchComments]);
+  }, [postId]); // Removed fetchComments from dependencies
 
   useEffect(() => {
     fetchComments();
