@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ export const useComments = (postId: string) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const channelRef = useRef<any>(null);
 
   const fetchComments = useCallback(async () => {
     if (!postId) return;
@@ -158,49 +159,58 @@ export const useComments = (postId: string) => {
     }
   };
 
-  // Écouter les mises à jour en temps réel avec un nom de canal unique et contrôle strict
+  // Gestion simplifiée des mises à jour en temps réel
   useEffect(() => {
     if (!postId) return;
 
-    // Créer un nom de canal unique avec un identifiant de session
-    const sessionId = Math.random().toString(36).substring(2, 15);
-    const channelName = `comments-${postId}-${sessionId}`;
+    // Nettoyer le canal précédent s'il existe
+    if (channelRef.current) {
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.error('Error removing previous channel:', error);
+      }
+    }
+
+    // Créer un nouveau canal avec un nom unique
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    const channelName = `comments_${postId}_${uniqueId}`;
     
-    console.log('Creating comments channel:', channelName);
-    
-    let channel: any = null;
+    console.log('Setting up comments realtime for:', channelName);
     
     try {
-      channel = supabase.channel(channelName);
-      
-      channel.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comments',
-          filter: `post_id=eq.${postId}`
-        },
-        (payload: any) => {
-          console.log('Comment change:', payload);
-          fetchComments();
-        }
-      );
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'comments',
+            filter: `post_id=eq.${postId}`
+          },
+          (payload) => {
+            console.log('Comment realtime update:', payload);
+            fetchComments();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Comments subscription status:', status);
+        });
 
-      channel.subscribe((status: string) => {
-        console.log('Comments subscription status:', status);
-      });
+      channelRef.current = channel;
     } catch (error) {
-      console.error('Error setting up comments channel:', error);
+      console.error('Error setting up realtime:', error);
     }
 
     return () => {
-      if (channel) {
-        console.log('Unsubscribing from comments channel:', channelName);
+      if (channelRef.current) {
+        console.log('Cleaning up comments channel');
         try {
-          supabase.removeChannel(channel);
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
         } catch (error) {
-          console.error('Error removing comments channel:', error);
+          console.error('Error cleaning up channel:', error);
         }
       }
     };
