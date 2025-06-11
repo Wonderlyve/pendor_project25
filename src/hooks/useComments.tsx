@@ -84,6 +84,33 @@ export const useComments = (postId: string) => {
     }
 
     try {
+      // Mise à jour optimiste de l'interface
+      const optimisticComment: Comment = {
+        id: 'temp-' + Date.now(),
+        user_id: user.id,
+        post_id: postId,
+        content: content.trim(),
+        created_at: new Date().toISOString(),
+        parent_id: parentId,
+        likes: 0,
+        username: user.user_metadata?.username || user.email?.split('@')[0],
+        display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
+        avatar_url: user.user_metadata?.avatar_url,
+        badge: 'Novice'
+      };
+
+      if (parentId) {
+        // Ajouter la réponse à un commentaire existant
+        setComments(prev => prev.map(comment => 
+          comment.id === parentId 
+            ? { ...comment, replies: [...(comment.replies || []), optimisticComment] }
+            : comment
+        ));
+      } else {
+        // Ajouter un nouveau commentaire racine
+        setComments(prev => [...prev, { ...optimisticComment, replies: [] }]);
+      }
+
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -99,16 +126,35 @@ export const useComments = (postId: string) => {
       if (error) {
         console.error('Error creating comment:', error);
         toast.error('Erreur lors de la création du commentaire');
+        // Annuler la mise à jour optimiste
+        fetchComments();
         return null;
       }
 
-      // Rafraîchir les commentaires après création
-      await fetchComments();
+      // Remplacer le commentaire temporaire par le vrai
+      if (parentId) {
+        setComments(prev => prev.map(comment => 
+          comment.id === parentId 
+            ? { 
+                ...comment, 
+                replies: comment.replies?.map(reply => 
+                  reply.id === optimisticComment.id ? { ...optimisticComment, id: data.id } : reply
+                ) || []
+              }
+            : comment
+        ));
+      } else {
+        setComments(prev => prev.map(comment => 
+          comment.id === optimisticComment.id ? { ...optimisticComment, id: data.id } : comment
+        ));
+      }
+
       toast.success('Commentaire ajouté avec succès');
       return data;
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors de la création du commentaire');
+      fetchComments();
       return null;
     }
   };
@@ -167,60 +213,30 @@ export const useComments = (postId: string) => {
   useEffect(() => {
     if (!postId) return;
 
-    // Nettoyer le canal précédent s'il existe
-    if (channelRef.current) {
-      try {
-        supabase.removeChannel(channelRef.current);
-      } catch (error) {
-        console.error('Error removing previous channel:', error);
-      }
-    }
+    const channel = supabase
+      .channel(`comments_${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments',
+          filter: `post_id=eq.${postId}`
+        },
+        () => {
+          fetchComments();
+        }
+      )
+      .subscribe();
 
-    // Créer un nouveau canal avec un nom unique pour éviter les conflits
-    const channelName = `comments_${postId}_${Date.now()}`;
-    
-    console.log('Setting up comments realtime for:', channelName);
-    
-    try {
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'comments',
-            filter: `post_id=eq.${postId}`
-          },
-          (payload) => {
-            console.log('Comment realtime update:', payload);
-            // Attendre un peu avant de rafraîchir pour éviter les conflits
-            setTimeout(() => {
-              fetchComments();
-            }, 500);
-          }
-        )
-        .subscribe((status) => {
-          console.log('Comments subscription status:', status);
-        });
-
-      channelRef.current = channel;
-    } catch (error) {
-      console.error('Error setting up realtime:', error);
-    }
+    channelRef.current = channel;
 
     return () => {
       if (channelRef.current) {
-        console.log('Cleaning up comments channel');
-        try {
-          supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
-        } catch (error) {
-          console.error('Error cleaning up channel:', error);
-        }
+        supabase.removeChannel(channelRef.current);
       }
     };
-  }, [postId]);
+  }, [postId, fetchComments]);
 
   return {
     comments,

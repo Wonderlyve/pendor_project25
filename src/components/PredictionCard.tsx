@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
+import { usePostActions } from '@/hooks/usePostActions';
 
 interface PredictionCardProps {
   prediction: {
@@ -57,6 +58,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const navigate = useNavigate();
   const { requireAuth } = useAuth();
   const { likePost } = useOptimizedPosts();
+  const { followUser, savePost, reportPost, hidePost, blockUser } = usePostActions();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
@@ -69,9 +71,28 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
-  const handleMenuAction = (action: string) => {
+  const handleMenuAction = async (action: string) => {
     if (!requireAuth()) return;
-    console.log(`Action: ${action} on prediction ${prediction.id}`);
+    
+    switch (action) {
+      case 'follow':
+        await followUser(prediction.user.username); // Note: il faudrait l'ID utilisateur réel
+        break;
+      case 'save':
+        await savePost(prediction.id.toString());
+        break;
+      case 'report':
+        await reportPost(prediction.id.toString());
+        break;
+      case 'hide':
+        await hidePost(prediction.id.toString());
+        break;
+      case 'block':
+        await blockUser(prediction.user.username); // Note: il faudrait l'ID utilisateur réel
+        break;
+      default:
+        console.log(`Action: ${action} on prediction ${prediction.id}`);
+    }
   };
 
   const handleProfileClick = () => {

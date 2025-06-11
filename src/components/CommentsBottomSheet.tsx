@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, Heart, Reply, MoreVertical } from 'lucide-react';
 import { 
   Sheet,
@@ -26,8 +26,17 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [actualCommentsCount, setActualCommentsCount] = useState(commentsCount);
   const { comments, loading, createComment, likeComment } = useComments(postId);
   const { user } = useAuth();
+
+  // Mettre à jour le décompte en temps réel
+  useEffect(() => {
+    const totalComments = comments.reduce((total, comment) => {
+      return total + 1 + (comment.replies?.length || 0);
+    }, 0);
+    setActualCommentsCount(totalComments);
+  }, [comments]);
 
   const handleSendComment = async () => {
     if (newComment.trim() && !submitting) {
@@ -116,7 +125,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
       <SheetContent side="bottom" className="h-[80vh] rounded-t-xl">
         <SheetHeader className="pb-4">
           <SheetTitle className="text-center">
-            {commentsCount} commentaire{commentsCount !== 1 ? 's' : ''}
+            {actualCommentsCount} commentaire{actualCommentsCount !== 1 ? 's' : ''}
           </SheetTitle>
         </SheetHeader>
         
