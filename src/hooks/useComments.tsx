@@ -46,7 +46,6 @@ export const useComments = (postId: string) => {
 
       if (error) {
         console.error('Error fetching comments:', error);
-        toast.error('Erreur lors du chargement des commentaires');
         return;
       }
 
@@ -68,7 +67,6 @@ export const useComments = (postId: string) => {
       setComments(commentsWithReplies);
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erreur lors du chargement des commentaires');
     } finally {
       setLoading(false);
     }
@@ -106,6 +104,7 @@ export const useComments = (postId: string) => {
 
       // Rafraîchir les commentaires après création
       await fetchComments();
+      toast.success('Commentaire ajouté avec succès');
       return data;
     } catch (error) {
       console.error('Error:', error);
@@ -162,9 +161,9 @@ export const useComments = (postId: string) => {
   // Charger les commentaires au montage
   useEffect(() => {
     fetchComments();
-  }, [fetchComments]);
+  }, [postId]);
 
-  // Gestion simplifiée des mises à jour en temps réel
+  // Gestion des mises à jour en temps réel
   useEffect(() => {
     if (!postId) return;
 
@@ -177,8 +176,8 @@ export const useComments = (postId: string) => {
       }
     }
 
-    // Créer un nouveau canal avec un nom simple
-    const channelName = `comments-${postId}`;
+    // Créer un nouveau canal avec un nom unique pour éviter les conflits
+    const channelName = `comments_${postId}_${Date.now()}`;
     
     console.log('Setting up comments realtime for:', channelName);
     
@@ -198,7 +197,7 @@ export const useComments = (postId: string) => {
             // Attendre un peu avant de rafraîchir pour éviter les conflits
             setTimeout(() => {
               fetchComments();
-            }, 100);
+            }, 500);
           }
         )
         .subscribe((status) => {
@@ -221,7 +220,7 @@ export const useComments = (postId: string) => {
         }
       }
     };
-  }, [postId, fetchComments]);
+  }, [postId]);
 
   return {
     comments,

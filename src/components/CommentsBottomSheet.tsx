@@ -25,14 +25,24 @@ interface CommentsBottomSheetProps {
 const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottomSheetProps) => {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { comments, loading, createComment, likeComment } = useComments(postId);
   const { user } = useAuth();
 
   const handleSendComment = async () => {
-    if (newComment.trim()) {
-      await createComment(newComment, replyingTo || undefined);
-      setNewComment('');
-      setReplyingTo(null);
+    if (newComment.trim() && !submitting) {
+      setSubmitting(true);
+      try {
+        const result = await createComment(newComment, replyingTo || undefined);
+        if (result) {
+          setNewComment('');
+          setReplyingTo(null);
+        }
+      } catch (error) {
+        console.error('Error sending comment:', error);
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -48,6 +58,11 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
           <div className="bg-gray-100 rounded-2xl px-3 py-2">
             <p className="font-semibold text-sm text-gray-900">
               {comment.display_name || comment.username}
+              {comment.badge && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+                  {comment.badge}
+                </span>
+              )}
             </p>
             <p className="text-gray-800 text-sm mt-1">{comment.content}</p>
           </div>
@@ -62,12 +77,14 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
             <button 
               className="hover:text-gray-700"
               onClick={() => likeComment(comment.id)}
+              disabled={!user}
             >
               J'aime
             </button>
             <button 
               className="hover:text-gray-700"
               onClick={() => setReplyingTo(comment.id)}
+              disabled={!user}
             >
               Répondre
             </button>
@@ -150,17 +167,23 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
                   className="pr-10 rounded-full border-gray-300"
+                  disabled={!user || submitting}
                 />
                 <Button
                   size="sm"
                   onClick={handleSendComment}
-                  disabled={!newComment.trim() || !user}
+                  disabled={!newComment.trim() || !user || submitting}
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full p-0 bg-blue-500 hover:bg-blue-600"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
             </div>
+            {!user && (
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Connectez-vous pour commenter
+              </p>
+            )}
           </div>
         </div>
       </SheetContent>
