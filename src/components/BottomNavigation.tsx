@@ -1,5 +1,5 @@
 
-import { Home, Search, Video, User, Plus } from 'lucide-react';
+import { Home, Video, User, Plus, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,7 +26,7 @@ const BottomNavigation = () => {
   
   const navItems = [
     { icon: Home, label: 'Accueil', active: true, action: () => navigate('/') },
-    { icon: Search, label: 'Explorer', active: false, action: () => {} },
+    { icon: Crown, label: 'Canaux', active: false, action: () => navigate('/channels') },
     { icon: Plus, label: '', active: false, action: handleCreateClick, isCenter: true },
     { icon: Video, label: 'Lives', active: false, action: () => navigate('/lives') },
     { icon: User, label: user ? 'Profil' : 'Connexion', active: false, action: handleProfileClick },

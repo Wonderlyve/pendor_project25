@@ -9,6 +9,7 @@ import SideMenu from '@/components/SideMenu';
 import PostSkeleton from '@/optimization/PostSkeleton';
 import useScrollToTop from '@/hooks/useScrollToTop';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   useScrollToTop();
@@ -16,6 +17,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('trending');
   const [showSideMenu, setShowSideMenu] = useState(false);
   const { posts, loading, initialLoading, hasMore } = useOptimizedPosts();
+  const { user } = useAuth();
 
   // Convert posts from database to the format expected by PredictionCard
   const convertPostToPrediction = (post: any) => ({
@@ -48,18 +50,28 @@ const Index = () => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-                <span className="text-yellow-800 text-lg">🏆</span>
-              </div>
+              <img
+                src="/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png"
+                alt="Logo"
+                className="w-8 h-8"
+              />
               <h1 className="text-2xl font-bold text-white">PENDOR</h1>
             </div>
             <div className="flex items-center space-x-3">
               <button className="p-2 hover:bg-green-700 rounded-full transition-colors">
                 <span className="text-white text-xl">🔔</span>
               </button>
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">P</span>
-              </div>
+              {user ? (
+                <img
+                  src={user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full border-2 border-white"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">P</span>
+                </div>
+              )}
               <button 
                 onClick={() => setShowSideMenu(true)}
                 className="text-white hover:bg-green-700 p-1 rounded"

@@ -12,6 +12,7 @@ import LiveStream from "./pages/LiveStream";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
 import Auth from "./pages/Auth";
+import Channels from "./pages/Channels";
 import NotFound from "./pages/NotFound";
 
 // Create QueryClient with proper configuration
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/channels" element={<Channels />} />
             <Route path="/lives" element={<LiveStreams />} />
             <Route path="/live/:id" element={<LiveStream />} />
             <Route path="/privacy" element={<Privacy />} />
