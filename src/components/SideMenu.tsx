@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { X, User, Home, Video, TrendingUp, Settings, HelpCircle, LogOut, Bell, Bookmark, Shield, Info } from 'lucide-react';
+import { X, User, Home, Search, Video, TrendingUp, Settings, HelpCircle, LogOut, Bell, Bookmark, Shield, Info } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -19,15 +19,16 @@ const SideMenu = ({ open, onOpenChange }: SideMenuProps) => {
   const menuItems = [
     { icon: Home, label: 'Accueil', action: () => { navigate('/'); onOpenChange(false); } },
     { icon: User, label: 'Mon Profil', action: () => { navigate('/profile'); onOpenChange(false); } },
+    { icon: Search, label: 'Explorer', action: () => {} },
     { icon: Video, label: 'Lives', action: () => { navigate('/lives'); onOpenChange(false); } },
     { icon: TrendingUp, label: 'Classements', action: () => {} },
-    { icon: Bell, label: 'Notifications', action: () => { navigate('/notifications'); onOpenChange(false); } },
-    { icon: Bookmark, label: 'Favoris', action: () => { navigate('/favorites'); onOpenChange(false); } },
+    { icon: Bookmark, label: 'Favoris', action: () => {} },
+    { icon: Bell, label: 'Notifications', action: () => {} },
   ];
 
   const settingsItems = [
-    { icon: Settings, label: 'Paramètres', action: () => { navigate('/settings'); onOpenChange(false); } },
-    { icon: HelpCircle, label: 'Aide & Support', action: () => { navigate('/help'); onOpenChange(false); } },
+    { icon: Settings, label: 'Paramètres', action: () => {} },
+    { icon: HelpCircle, label: 'Aide & Support', action: () => {} },
     { icon: Shield, label: 'Politique de confidentialité', action: () => { navigate('/privacy'); onOpenChange(false); } },
     { icon: Info, label: 'À propos', action: () => { navigate('/about'); onOpenChange(false); } },
   ];
@@ -42,14 +43,12 @@ const SideMenu = ({ open, onOpenChange }: SideMenuProps) => {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-80 p-0">
         <div className="flex flex-col h-full">
-          {/* Header avec logo */}
+          {/* Header */}
           <SheetHeader className="p-6 pb-4 bg-gradient-to-r from-green-500 to-green-600 text-white">
             <div className="flex items-center space-x-3">
-              <img 
-                src="/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png" 
-                alt="PENDOR Logo" 
-                className="w-12 h-12 rounded-full bg-white/20 p-1"
-              />
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-2xl">🏆</span>
+              </div>
               <div>
                 <SheetTitle className="text-white text-xl">PENDOR</SheetTitle>
                 <p className="text-green-100 text-sm">Vos pronostics gagnants</p>
