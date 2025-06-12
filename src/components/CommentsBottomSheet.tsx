@@ -122,8 +122,8 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[80vh] rounded-t-xl">
-        <SheetHeader className="pb-4">
+      <SheetContent side="bottom" className="h-[80vh] rounded-t-xl p-0">
+        <SheetHeader className="pb-4 px-6 pt-6">
           <SheetTitle className="text-center">
             {actualCommentsCount} commentaire{actualCommentsCount !== 1 ? 's' : ''}
           </SheetTitle>
@@ -131,13 +131,13 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
         
         <div className="flex flex-col h-full">
           {/* Comments List */}
-          <ScrollArea className="flex-1 px-4">
+          <ScrollArea className="flex-1 px-6">
             {loading ? (
               <div className="text-center py-4">
                 <p className="text-gray-500">Chargement des commentaires...</p>
               </div>
             ) : comments.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-1 pb-4">
                 {comments.map(comment => (
                   <CommentItem key={comment.id} comment={comment} />
                 ))}
@@ -150,10 +150,10 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
             )}
           </ScrollArea>
           
-          {/* Comment Input */}
-          <div className="border-t bg-white p-4">
+          {/* Comment Input - Fixed at bottom with proper padding */}
+          <div className="border-t bg-white px-6 py-4 pb-8">
             {replyingTo && (
-              <div className="mb-2 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+              <div className="mb-3 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
                 Réponse à un commentaire...
                 <button 
                   onClick={() => setReplyingTo(null)}
@@ -163,11 +163,11 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
                 </button>
               </div>
             )}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-end space-x-3">
               <img
                 src={user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`}
                 alt="Your avatar"
-                className="w-8 h-8 rounded-full"
+                className="w-10 h-10 rounded-full flex-shrink-0"
               />
               <div className="flex-1 relative">
                 <Input
@@ -175,21 +175,21 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
-                  className="pr-10 rounded-full border-gray-300"
+                  className="pr-12 rounded-full border-gray-300 min-h-[44px] py-3"
                   disabled={!user || submitting}
                 />
                 <Button
                   size="sm"
                   onClick={handleSendComment}
                   disabled={!newComment.trim() || !user || submitting}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full p-0 bg-blue-500 hover:bg-blue-600"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full p-0 bg-blue-500 hover:bg-blue-600"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
             </div>
             {!user && (
-              <p className="text-xs text-gray-500 text-center mt-2">
+              <p className="text-xs text-gray-500 text-center mt-3">
                 Connectez-vous pour commenter
               </p>
             )}

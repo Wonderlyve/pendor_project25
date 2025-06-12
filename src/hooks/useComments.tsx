@@ -30,17 +30,10 @@ export const useComments = (postId: string) => {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch comments with profile data using a proper join
+      const { data: commentsData, error } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            display_name,
-            avatar_url,
-            badge
-          )
-        `)
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
@@ -49,13 +42,28 @@ export const useComments = (postId: string) => {
         return;
       }
 
-      const transformedComments = data?.map((comment: any) => ({
-        ...comment,
-        username: comment.profiles?.username,
-        display_name: comment.profiles?.display_name,
-        avatar_url: comment.profiles?.avatar_url,
-        badge: comment.profiles?.badge,
-      })) || [];
+      // Fetch profile data separately for each unique user_id
+      const userIds = [...new Set(commentsData?.map(comment => comment.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, badge')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      // Map profile data to comments
+      const transformedComments = commentsData?.map((comment: any) => {
+        const profile = profilesData?.find(p => p.id === comment.user_id);
+        return {
+          ...comment,
+          username: profile?.username,
+          display_name: profile?.display_name,
+          avatar_url: profile?.avatar_url,
+          badge: profile?.badge,
+        };
+      }) || [];
 
       // Organiser les commentaires avec leurs réponses
       const rootComments = transformedComments.filter((comment: Comment) => !comment.parent_id);
@@ -84,33 +92,6 @@ export const useComments = (postId: string) => {
     }
 
     try {
-      // Mise à jour optimiste de l'interface
-      const optimisticComment: Comment = {
-        id: 'temp-' + Date.now(),
-        user_id: user.id,
-        post_id: postId,
-        content: content.trim(),
-        created_at: new Date().toISOString(),
-        parent_id: parentId,
-        likes: 0,
-        username: user.user_metadata?.username || user.email?.split('@')[0],
-        display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
-        avatar_url: user.user_metadata?.avatar_url,
-        badge: 'Novice'
-      };
-
-      if (parentId) {
-        // Ajouter la réponse à un commentaire existant
-        setComments(prev => prev.map(comment => 
-          comment.id === parentId 
-            ? { ...comment, replies: [...(comment.replies || []), optimisticComment] }
-            : comment
-        ));
-      } else {
-        // Ajouter un nouveau commentaire racine
-        setComments(prev => [...prev, { ...optimisticComment, replies: [] }]);
-      }
-
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -126,35 +107,16 @@ export const useComments = (postId: string) => {
       if (error) {
         console.error('Error creating comment:', error);
         toast.error('Erreur lors de la création du commentaire');
-        // Annuler la mise à jour optimiste
-        fetchComments();
         return null;
       }
 
-      // Remplacer le commentaire temporaire par le vrai
-      if (parentId) {
-        setComments(prev => prev.map(comment => 
-          comment.id === parentId 
-            ? { 
-                ...comment, 
-                replies: comment.replies?.map(reply => 
-                  reply.id === optimisticComment.id ? { ...optimisticComment, id: data.id } : reply
-                ) || []
-              }
-            : comment
-        ));
-      } else {
-        setComments(prev => prev.map(comment => 
-          comment.id === optimisticComment.id ? { ...optimisticComment, id: data.id } : comment
-        ));
-      }
-
       toast.success('Commentaire ajouté avec succès');
+      // Refresh comments after successful creation
+      await fetchComments();
       return data;
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors de la création du commentaire');
-      fetchComments();
       return null;
     }
   };

@@ -59,8 +59,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header avec logo et photo de profil */}
-      <div className="bg-white border-b sticky top-0 z-40">
+      {/* Header avec logo et photo de profil - couleur verte restaurée */}
+      <div className="bg-gradient-to-r from-green-500 to-green-600 border-b sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -68,7 +68,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSideMenuOpen(true)}
-                className="lg:hidden"
+                className="lg:hidden text-white hover:bg-white/20"
               >
                 <Menu className="h-6 w-6" />
               </Button>
@@ -78,7 +78,7 @@ const Index = () => {
                   alt="PENDOR Logo" 
                   className="w-8 h-8 rounded-full"
                 />
-                <h1 className="text-xl font-bold text-green-600">PENDOR</h1>
+                <h1 className="text-xl font-bold text-white">PENDOR</h1>
               </div>
             </div>
             
@@ -87,9 +87,10 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={handleProfileClick}
+                className="text-white hover:bg-white/20"
               >
                 {user ? (
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">
                       {user.email?.charAt(0).toUpperCase()}
                     </span>
