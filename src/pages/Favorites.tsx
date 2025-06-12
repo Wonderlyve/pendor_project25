@@ -51,7 +51,7 @@ const Favorites = () => {
         like_count: fav.posts.likes,
         comment_count: fav.posts.comments,
         saved_at: fav.created_at,
-        status: fav.status
+        status: fav.status || 'pending'
       })) || [];
 
       setFavorites(transformedFavorites);
@@ -140,7 +140,7 @@ const Favorites = () => {
                         <p className="font-medium text-sm">{post.display_name}</p>
                         <div className="flex items-center space-x-2 text-xs text-gray-500">
                           <Calendar className="w-3 h-3" />
-                          <span>Sauvé le {formatDate(post.saved_at)}</span>
+                          <span>Sauvé le {post.saved_at ? formatDate(post.saved_at) : formatDate(post.created_at)}</span>
                         </div>
                       </div>
                     </div>
@@ -197,8 +197,8 @@ const Favorites = () => {
                   {/* Stats */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{post.like_count} likes</span>
-                      <span>{post.comment_count} commentaires</span>
+                      <span>{post.like_count || post.likes} likes</span>
+                      <span>{post.comment_count || post.comments} commentaires</span>
                     </div>
                     <p className="text-xs text-gray-400">
                       {formatDate(post.created_at)}

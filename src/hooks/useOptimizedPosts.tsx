@@ -28,6 +28,8 @@ export interface Post {
   like_count?: number;
   comment_count?: number;
   is_liked?: boolean;
+  saved_at?: string;
+  status?: 'won' | 'lost' | 'pending';
 }
 
 const POSTS_PER_PAGE = 10;

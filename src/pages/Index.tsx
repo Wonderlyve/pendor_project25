@@ -9,7 +9,7 @@ import SideMenu from '@/components/SideMenu';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { PostSkeleton } from '@/optimization/PostSkeleton';
+import PostSkeleton from '@/optimization/PostSkeleton';
 
 const Index = () => {
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
@@ -109,7 +109,7 @@ const Index = () => {
           </div>
         ) : (
           filteredPosts.map((post) => (
-            <PredictionCard key={post.id} post={post} />
+            <PredictionCard key={post.id} {...post} />
           ))
         )}
 
