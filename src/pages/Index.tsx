@@ -32,6 +32,31 @@ const Index = () => {
     }
   };
 
+  // Transform Post to PredictionCard format
+  const transformPostToPrediction = (post: any) => ({
+    id: parseInt(post.id),
+    user: {
+      username: post.display_name || post.username || 'Utilisateur',
+      avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,
+      badge: post.badge || 'Nouveau',
+      badgeColor: post.badge === 'Pro' ? 'bg-purple-500' : post.badge === 'Confirmé' ? 'bg-blue-500' : 'bg-gray-500'
+    },
+    match: post.match_teams || 'Match non spécifié',
+    prediction: post.prediction_text || 'Pronostic non spécifié',
+    odds: post.odds?.toString() || '1.00',
+    confidence: post.confidence || 0,
+    analysis: post.analysis || post.content || '',
+    likes: post.likes || 0,
+    comments: post.comments || 0,
+    shares: post.shares || 0,
+    successRate: 75, // Default value, should come from user stats
+    timeAgo: new Date(post.created_at).toLocaleDateString('fr-FR'),
+    sport: post.sport || 'Sport',
+    image: post.image_url,
+    video: post.video_url,
+    is_liked: post.is_liked || false
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header avec logo et photo de profil */}
@@ -109,7 +134,7 @@ const Index = () => {
           </div>
         ) : (
           filteredPosts.map((post) => (
-            <PredictionCard key={post.id} {...post} />
+            <PredictionCard key={post.id} prediction={transformPostToPrediction(post)} />
           ))
         )}
 
