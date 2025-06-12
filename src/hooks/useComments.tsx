@@ -11,12 +11,13 @@ export interface Comment {
   content: string;
   created_at: string;
   parent_id?: string;
-  likes: number;
+  likes_count: number;
   username?: string;
   display_name?: string;
   avatar_url?: string;
   badge?: string;
   replies?: Comment[];
+  is_liked?: boolean;
 }
 
 export const useComments = (postId: string) => {
@@ -30,10 +31,18 @@ export const useComments = (postId: string) => {
     
     setLoading(true);
     try {
-      // Fetch comments with profile data using a proper join
+      // Récupérer les commentaires avec les informations de profil
       const { data: commentsData, error } = await supabase
         .from('comments')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            username,
+            display_name,
+            avatar_url,
+            badge
+          )
+        `)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
@@ -42,28 +51,26 @@ export const useComments = (postId: string) => {
         return;
       }
 
-      // Fetch profile data separately for each unique user_id
-      const userIds = [...new Set(commentsData?.map(comment => comment.user_id) || [])];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, badge')
-        .in('id', userIds);
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
+      // Récupérer les likes de l'utilisateur actuel
+      let userLikes: string[] = [];
+      if (user) {
+        const { data: likesData } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .eq('user_id', user.id);
+        
+        userLikes = likesData?.map(like => like.comment_id) || [];
       }
 
-      // Map profile data to comments
-      const transformedComments = commentsData?.map((comment: any) => {
-        const profile = profilesData?.find(p => p.id === comment.user_id);
-        return {
-          ...comment,
-          username: profile?.username,
-          display_name: profile?.display_name,
-          avatar_url: profile?.avatar_url,
-          badge: profile?.badge,
-        };
-      }) || [];
+      // Transformer les données des commentaires
+      const transformedComments = commentsData?.map((comment: any) => ({
+        ...comment,
+        username: comment.profiles?.username,
+        display_name: comment.profiles?.display_name,
+        avatar_url: comment.profiles?.avatar_url,
+        badge: comment.profiles?.badge,
+        is_liked: userLikes.includes(comment.id),
+      })) || [];
 
       // Organiser les commentaires avec leurs réponses
       const rootComments = transformedComments.filter((comment: Comment) => !comment.parent_id);
@@ -78,7 +85,7 @@ export const useComments = (postId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [postId, user]);
 
   const createComment = async (content: string, parentId?: string) => {
     if (!user) {
@@ -99,7 +106,6 @@ export const useComments = (postId: string) => {
           post_id: postId,
           content: content.trim(),
           parent_id: parentId,
-          likes: 0
         })
         .select()
         .single();
@@ -169,7 +175,7 @@ export const useComments = (postId: string) => {
   // Charger les commentaires au montage
   useEffect(() => {
     fetchComments();
-  }, [postId]);
+  }, [fetchComments]);
 
   // Gestion des mises à jour en temps réel
   useEffect(() => {
@@ -184,6 +190,17 @@ export const useComments = (postId: string) => {
           schema: 'public',
           table: 'comments',
           filter: `post_id=eq.${postId}`
+        },
+        () => {
+          fetchComments();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comment_likes'
         },
         () => {
           fetchComments();

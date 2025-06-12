@@ -84,7 +84,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
               })}
             </span>
             <button 
-              className="hover:text-gray-700"
+              className={`hover:text-gray-700 ${comment.is_liked ? 'text-red-500' : ''}`}
               onClick={() => likeComment(comment.id)}
               disabled={!user}
             >
@@ -97,10 +97,10 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
             >
               Répondre
             </button>
-            {comment.likes > 0 && (
+            {comment.likes_count > 0 && (
               <span className="flex items-center space-x-1">
                 <Heart className="w-3 h-3 text-red-500 fill-current" />
-                <span>{comment.likes}</span>
+                <span>{comment.likes_count}</span>
               </span>
             )}
             <button className="hover:text-gray-700">
@@ -150,8 +150,8 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
             )}
           </ScrollArea>
           
-          {/* Comment Input - Fixed at bottom with proper padding */}
-          <div className="border-t bg-white px-6 py-4 pb-8">
+          {/* Comment Input - Fixed at bottom with 6rem padding */}
+          <div className="border-t bg-white px-6 py-4 pb-24">
             {replyingTo && (
               <div className="mb-3 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
                 Réponse à un commentaire...

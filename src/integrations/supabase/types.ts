@@ -172,27 +172,23 @@ export type Database = {
       comment_likes: {
         Row: {
           comment_id: string
-          created_at: string | null
+          created_at: string
+          id: string
           user_id: string
         }
         Insert: {
           comment_id: string
-          created_at?: string | null
+          created_at?: string
+          id?: string
           user_id: string
         }
         Update: {
           comment_id?: string
-          created_at?: string | null
+          created_at?: string
+          id?: string
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "comment_likes_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "comment_details"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "comment_likes_comment_id_fkey"
             columns: ["comment_id"]
@@ -205,39 +201,35 @@ export type Database = {
       comments: {
         Row: {
           content: string
-          created_at: string | null
+          created_at: string
           id: string
-          likes: number | null
+          likes_count: number | null
           parent_id: string | null
           post_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           content: string
-          created_at?: string | null
+          created_at?: string
           id?: string
-          likes?: number | null
+          likes_count?: number | null
           parent_id?: string | null
           post_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           content?: string
-          created_at?: string | null
+          created_at?: string
           id?: string
-          likes?: number | null
+          likes_count?: number | null
           parent_id?: string | null
           post_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "comment_details"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "comments_parent_id_fkey"
             columns: ["parent_id"]
@@ -643,44 +635,7 @@ export type Database = {
       }
     }
     Views: {
-      comment_details: {
-        Row: {
-          avatar_url: string | null
-          badge: string | null
-          content: string | null
-          created_at: string | null
-          id: string | null
-          likes: number | null
-          parent_id: string | null
-          post_id: string | null
-          reply_count: number | null
-          user_id: string | null
-          username: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "comment_details"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       decrement_followers_count: {
