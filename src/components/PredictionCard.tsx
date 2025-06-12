@@ -56,9 +56,20 @@ interface PredictionCardProps {
 
 const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const navigate = useNavigate();
-  const { requireAuth } = useAuth();
+  const { requireAuth, user } = useAuth();
   const { likePost } = useOptimizedPosts();
-  const { followUser, savePost, reportPost, hidePost, blockUser } = usePostActions();
+  const { 
+    followUser, 
+    savePost, 
+    sharePost, 
+    reportPost, 
+    hidePost, 
+    blockUser,
+    checkIfUserFollowed,
+    checkIfPostSaved,
+    checkIfUserBlocked
+  } = usePostActions();
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
@@ -68,8 +79,29 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    const loadActionStates = async () => {
+      if (user) {
+        const [followed, saved, blocked] = await Promise.all([
+          checkIfUserFollowed(prediction.user.username), // Note: il faudrait l'ID utilisateur réel
+          checkIfPostSaved(prediction.id.toString()),
+          checkIfUserBlocked(prediction.user.username) // Note: il faudrait l'ID utilisateur réel
+        ]);
+        
+        setIsFollowed(followed);
+        setIsSaved(saved);
+        setIsBlocked(blocked);
+      }
+    };
+
+    loadActionStates();
+  }, [user, prediction.id, prediction.user.username]);
 
   const handleMenuAction = async (action: string) => {
     if (!requireAuth()) return;
@@ -77,18 +109,21 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     switch (action) {
       case 'follow':
         await followUser(prediction.user.username); // Note: il faudrait l'ID utilisateur réel
+        setIsFollowed(!isFollowed);
         break;
       case 'save':
         await savePost(prediction.id.toString());
+        setIsSaved(!isSaved);
         break;
       case 'report':
-        await reportPost(prediction.id.toString());
+        await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié');
         break;
       case 'hide':
         await hidePost(prediction.id.toString());
         break;
       case 'block':
         await blockUser(prediction.user.username); // Note: il faudrait l'ID utilisateur réel
+        setIsBlocked(true);
         break;
       default:
         console.log(`Action: ${action} on prediction ${prediction.id}`);
@@ -112,6 +147,8 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
           text: `${prediction.match} - ${prediction.prediction}`,
           url: postUrl,
         });
+        // Enregistrer le partage en base
+        await sharePost(prediction.id.toString(), 'social');
       } catch (error) {
         console.log('Partage annulé');
       }
@@ -119,6 +156,8 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
       try {
         await navigator.clipboard.writeText(postUrl);
         toast.success('Lien copié dans le presse-papier !');
+        // Enregistrer le partage en base
+        await sharePost(prediction.id.toString(), 'link');
       } catch (error) {
         toast.error('Impossible de copier le lien');
       }
@@ -239,6 +278,10 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     };
   }, []);
 
+  if (isBlocked) {
+    return null;
+  }
+
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -290,7 +333,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                   <MoreVertical className="w-4 h-4 text-gray-500" />
                 </button>
               </DrawerTrigger>
-              <DrawerContent className="h-[75vh]">
+              <DrawerContent className="h-[75vh] pb-8">
                 <DrawerHeader>
                   <DrawerTitle>Options du post</DrawerTitle>
                 </DrawerHeader>
@@ -300,14 +343,14 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                     className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
                   >
                     <span className="text-2xl">👤</span>
-                    <span>Suivre cet utilisateur</span>
+                    <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
                   </button>
                   <button 
                     onClick={() => handleMenuAction('save')}
                     className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
                   >
                     <span className="text-2xl">🔖</span>
-                    <span>Sauvegarder</span>
+                    <span>{isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder'}</span>
                   </button>
                   <button 
                     onClick={handleShare}
@@ -360,8 +403,13 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                 Se connecter
               </Button>
             }>
-              <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
-                Suivre
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7 px-2 text-xs"
+                onClick={() => handleMenuAction('follow')}
+              >
+                {isFollowed ? 'Suivi' : 'Suivre'}
               </Button>
             </ProtectedComponent>
           </div>
