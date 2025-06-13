@@ -37,6 +37,19 @@ export const useNotifications = () => {
     oscillator.stop(audioContext.currentTime + 0.5);
   };
 
+  const showBrowserNotification = (notification: Notification) => {
+    // Vérifier les paramètres des notifications push
+    const pushNotificationsEnabled = localStorage.getItem('pushNotifications');
+    
+    if (pushNotificationsEnabled === 'true' && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification('Nouveau pronostic', {
+        body: notification.content,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
+    }
+  };
+
   const fetchNotifications = async () => {
     if (!user) {
       setNotifications([]);
@@ -138,6 +151,9 @@ export const useNotifications = () => {
           
           // Jouer le son de notification
           playNotificationSound();
+          
+          // Afficher la notification du navigateur
+          showBrowserNotification(newNotification);
         }
       )
       .subscribe();

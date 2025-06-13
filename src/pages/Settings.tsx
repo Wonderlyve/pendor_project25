@@ -1,18 +1,24 @@
 
-import { useState } from 'react';
 import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 const Settings = () => {
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [publicProfile, setPublicProfile] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(false);
   const { user } = useAuth();
+  const { isDarkMode, setDarkMode } = useTheme();
+  const { 
+    pushNotifications, 
+    emailNotifications, 
+    togglePushNotifications, 
+    toggleEmailNotifications 
+  } = useNotificationSettings();
 
   const settingSections = [
     {
@@ -34,25 +40,25 @@ const Settings = () => {
         {
           label: 'Notifications push',
           description: 'Recevoir des notifications sur votre appareil',
-          value: notifications,
-          onChange: setNotifications
+          value: pushNotifications,
+          onChange: togglePushNotifications
         },
         {
           label: 'Notifications par email',
           description: 'Recevoir des notifications par email',
-          value: emailNotifs,
-          onChange: setEmailNotifs
+          value: emailNotifications,
+          onChange: toggleEmailNotifications
         }
       ]
     },
     {
       title: 'Apparence',
-      icon: darkMode ? Moon : Sun,
+      icon: isDarkMode ? Moon : Sun,
       items: [
         {
           label: 'Mode sombre',
           description: 'Utiliser le thème sombre de l\'application',
-          value: darkMode,
+          value: isDarkMode,
           onChange: setDarkMode
         }
       ]
@@ -72,18 +78,17 @@ const Settings = () => {
   ];
 
   const handleSaveSettings = () => {
-    // Ici vous pourriez sauvegarder les paramètres dans Supabase
     toast.success('Paramètres sauvegardés avec succès');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-card border-b sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
-            <SettingsIcon className="w-6 h-6 text-gray-600" />
-            <h1 className="text-xl font-bold">Paramètres</h1>
+            <SettingsIcon className="w-6 h-6 text-muted-foreground" />
+            <h1 className="text-xl font-bold text-foreground">Paramètres</h1>
           </div>
         </div>
       </div>
@@ -98,10 +103,10 @@ const Settings = () => {
               </span>
             </div>
             <div>
-              <h3 className="font-semibold text-lg">
+              <h3 className="font-semibold text-lg text-foreground">
                 {user?.user_metadata?.display_name || user?.email?.split('@')[0]}
               </h3>
-              <p className="text-gray-500">{user?.email}</p>
+              <p className="text-muted-foreground">{user?.email}</p>
             </div>
           </div>
         </Card>
@@ -110,16 +115,16 @@ const Settings = () => {
         {settingSections.map((section, sectionIndex) => (
           <Card key={sectionIndex} className="p-4">
             <div className="flex items-center space-x-3 mb-4">
-              <section.icon className="w-5 h-5 text-gray-600" />
-              <h3 className="font-semibold text-lg">{section.title}</h3>
+              <section.icon className="w-5 h-5 text-muted-foreground" />
+              <h3 className="font-semibold text-lg text-foreground">{section.title}</h3>
             </div>
             
             <div className="space-y-4">
               {section.items.map((item, itemIndex) => (
                 <div key={itemIndex} className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="font-medium">{item.label}</p>
-                    <p className="text-sm text-gray-500">{item.description}</p>
+                    <p className="font-medium text-foreground">{item.label}</p>
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
                   </div>
                   <Switch
                     checked={item.value}
@@ -139,7 +144,7 @@ const Settings = () => {
           
           <Card className="p-4">
             <h3 className="font-semibold text-red-600 mb-2">Zone de danger</h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Ces actions sont irréversibles. Procédez avec prudence.
             </p>
             <div className="space-y-2">
@@ -153,10 +158,10 @@ const Settings = () => {
         {/* App Info */}
         <Card className="p-4 text-center">
           <div className="flex items-center justify-center space-x-2 mb-2">
-            <Smartphone className="w-5 h-5 text-gray-400" />
-            <span className="text-sm text-gray-500">PENDOR v1.0.0</span>
+            <Smartphone className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">PENDOR v1.0.0</span>
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground">
             © 2024 PENDOR. Tous droits réservés.
           </p>
         </Card>
