@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Menu, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import PredictionCard from '@/components/PredictionCard';
 import BottomNavigation from '@/components/BottomNavigation';
 import SideMenu from '@/components/SideMenu';
+import NotificationIcon from '@/components/NotificationIcon';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -105,7 +105,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header avec logo et photo de profil - couleur verte restaurée */}
+      {/* Header avec logo, notifications et photo de profil */}
       <div className="bg-gradient-to-r from-green-500 to-green-600 border-b sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -129,6 +129,7 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-2">
+              {user && <NotificationIcon />}
               <Button
                 variant="ghost"
                 size="icon"

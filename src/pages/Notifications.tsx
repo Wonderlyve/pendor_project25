@@ -1,99 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { Bell, Check, Clock, Heart, MessageCircle, UserPlus } from 'lucide-react';
+import { ArrowLeft, Bell, Check, Clock, Heart, MessageCircle, UserPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-
-interface Notification {
-  id: string;
-  type: string;
-  content: string;
-  read: boolean;
-  created_at: string;
-  post_id?: string;
-}
+import { useNotifications } from '@/hooks/useNotifications';
+import { useNavigate } from 'react-router-dom';
 
 const Notifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        return;
-      }
-
-      setNotifications(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return;
-      }
-
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, read: true }
-            : notif
-        )
-      );
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user?.id)
-        .eq('read', false);
-
-      if (error) {
-        console.error('Error marking all notifications as read:', error);
-        return;
-      }
-
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
-      );
-      toast.success('Toutes les notifications ont été marquées comme lues');
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const navigate = useNavigate();
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -127,8 +43,6 @@ const Notifications = () => {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -146,24 +60,35 @@ const Notifications = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-gradient-to-r from-green-500 to-green-600 border-b sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Bell className="w-6 h-6 text-green-600" />
-              <h1 className="text-xl font-bold">Notifications</h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="text-white hover:bg-white/20"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+              <Bell className="w-6 h-6 text-white" />
+              <h1 className="text-xl font-bold text-white">Notifications</h1>
               {unreadCount > 0 && (
-                <Badge variant="destructive">{unreadCount}</Badge>
+                <Badge variant="secondary" className="bg-white/20 text-white">
+                  {unreadCount}
+                </Badge>
               )}
             </div>
             {unreadCount > 0 && (
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm"
                 onClick={markAllAsRead}
+                className="text-white hover:bg-white/20"
               >
                 <Check className="w-4 h-4 mr-2" />
-                Tout marquer comme lu
+                Tout marquer
               </Button>
             )}
           </div>
