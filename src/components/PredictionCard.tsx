@@ -67,7 +67,8 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     blockUser,
     checkIfUserFollowed,
     checkIfPostSaved,
-    checkIfUserBlocked
+    checkIfUserBlocked,
+    loading: actionsLoading
   } = usePostActions();
   
   const [isPlaying, setIsPlaying] = useState(false);
@@ -82,51 +83,74 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const [isFollowed, setIsFollowed] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const loadActionStates = async () => {
-      if (user) {
-        const [followed, saved, blocked] = await Promise.all([
-          checkIfUserFollowed(prediction.user.username), // Note: il faudrait l'ID utilisateur réel
-          checkIfPostSaved(prediction.id.toString()),
-          checkIfUserBlocked(prediction.user.username) // Note: il faudrait l'ID utilisateur réel
-        ]);
-        
-        setIsFollowed(followed);
-        setIsSaved(saved);
-        setIsBlocked(blocked);
+      if (user && !actionStatesLoaded) {
+        console.log('Loading action states for user:', user.id, 'post:', prediction.id);
+        try {
+          const [followed, saved, blocked] = await Promise.all([
+            checkIfUserFollowed(prediction.user.username),
+            checkIfPostSaved(prediction.id.toString()),
+            checkIfUserBlocked(prediction.user.username)
+          ]);
+          
+          setIsFollowed(followed);
+          setIsSaved(saved);
+          setIsBlocked(blocked);
+          setActionStatesLoaded(true);
+          
+          console.log('Action states loaded:', { followed, saved, blocked });
+        } catch (error) {
+          console.error('Error loading action states:', error);
+        }
       }
     };
 
     loadActionStates();
-  }, [user, prediction.id, prediction.user.username]);
+  }, [user, prediction.id, prediction.user.username, checkIfUserFollowed, checkIfPostSaved, checkIfUserBlocked, actionStatesLoaded]);
 
   const handleMenuAction = async (action: string) => {
     if (!requireAuth()) return;
     
-    switch (action) {
-      case 'follow':
-        await followUser(prediction.user.username); // Note: il faudrait l'ID utilisateur réel
-        setIsFollowed(!isFollowed);
-        break;
-      case 'save':
-        await savePost(prediction.id.toString());
-        setIsSaved(!isSaved);
-        break;
-      case 'report':
-        await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié');
-        break;
-      case 'hide':
-        await hidePost(prediction.id.toString());
-        break;
-      case 'block':
-        await blockUser(prediction.user.username); // Note: il faudrait l'ID utilisateur réel
-        setIsBlocked(true);
-        break;
-      default:
-        console.log(`Action: ${action} on prediction ${prediction.id}`);
+    console.log(`Executing action: ${action} for post ${prediction.id}`);
+    
+    try {
+      switch (action) {
+        case 'follow':
+          await followUser(prediction.user.username);
+          // Recharger l'état après l'action
+          const newFollowState = await checkIfUserFollowed(prediction.user.username);
+          setIsFollowed(newFollowState);
+          break;
+        case 'save':
+          await savePost(prediction.id.toString());
+          // Recharger l'état après l'action
+          const newSaveState = await checkIfPostSaved(prediction.id.toString());
+          setIsSaved(newSaveState);
+          break;
+        case 'report':
+          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié');
+          break;
+        case 'hide':
+          await hidePost(prediction.id.toString());
+          toast.info('Ce post a été masqué');
+          break;
+        case 'block':
+          await blockUser(prediction.user.username);
+          // Recharger l'état après l'action
+          const newBlockState = await checkIfUserBlocked(prediction.user.username);
+          setIsBlocked(newBlockState);
+          break;
+        default:
+          console.log(`Action: ${action} on prediction ${prediction.id}`);
+      }
+    } catch (error) {
+      console.error(`Error executing action ${action}:`, error);
+      toast.error('Une erreur est survenue lors de l\'opération');
     }
   };
 
@@ -329,7 +353,10 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
           }>
             <Drawer>
               <DrawerTrigger asChild>
-                <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                <button 
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  disabled={actionsLoading}
+                >
                   <MoreVertical className="w-4 h-4 text-gray-500" />
                 </button>
               </DrawerTrigger>
@@ -340,42 +367,48 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                 <div className="p-4 space-y-3">
                   <button 
                     onClick={() => handleMenuAction('follow')}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
+                    disabled={actionsLoading}
+                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
                   >
                     <span className="text-2xl">👤</span>
                     <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
                   </button>
                   <button 
                     onClick={() => handleMenuAction('save')}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
+                    disabled={actionsLoading}
+                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
                   >
                     <span className="text-2xl">🔖</span>
                     <span>{isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder'}</span>
                   </button>
                   <button 
                     onClick={handleShare}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
+                    disabled={actionsLoading}
+                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
                   >
                     <span className="text-2xl">📋</span>
                     <span>Partager</span>
                   </button>
                   <button 
                     onClick={() => handleMenuAction('report')}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
+                    disabled={actionsLoading}
+                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
                   >
                     <span className="text-2xl">🚨</span>
                     <span>Signaler</span>
                   </button>
                   <button 
                     onClick={() => handleMenuAction('hide')}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3"
+                    disabled={actionsLoading}
+                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
                   >
                     <span className="text-2xl">👁️</span>
                     <span>Masquer ce post</span>
                   </button>
                   <button 
                     onClick={() => handleMenuAction('block')}
-                    className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600"
+                    disabled={actionsLoading}
+                    className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
                   >
                     <span className="text-2xl">🚫</span>
                     <span>Bloquer l'utilisateur</span>
@@ -408,6 +441,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                 size="sm" 
                 className="h-7 px-2 text-xs"
                 onClick={() => handleMenuAction('follow')}
+                disabled={actionsLoading}
               >
                 {isFollowed ? 'Suivi' : 'Suivre'}
               </Button>

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,19 +10,65 @@ import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import PostSkeleton from '@/optimization/PostSkeleton';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
+  const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const { posts, loading, initialLoading } = useOptimizedPosts();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const filteredPosts = posts.filter(post => 
-    post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.match_teams?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.sport?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Charger les posts masqués et utilisateurs bloqués
+  useEffect(() => {
+    const loadUserFilters = async () => {
+      if (!user) {
+        setHiddenPostIds([]);
+        setBlockedUserIds([]);
+        return;
+      }
+
+      try {
+        // Charger les posts masqués
+        const { data: hiddenPosts } = await supabase
+          .from('hidden_posts')
+          .select('post_id')
+          .eq('user_id', user.id);
+
+        // Charger les utilisateurs bloqués
+        const { data: blockedUsers } = await supabase
+          .from('blocked_users')
+          .select('blocked_id')
+          .eq('blocker_id', user.id);
+
+        setHiddenPostIds(hiddenPosts?.map(hp => hp.post_id) || []);
+        setBlockedUserIds(blockedUsers?.map(bu => bu.blocked_id) || []);
+      } catch (error) {
+        console.error('Error loading user filters:', error);
+      }
+    };
+
+    loadUserFilters();
+  }, [user]);
+
+  const filteredPosts = posts.filter(post => {
+    // Filtrer par recherche
+    const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.match_teams?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.sport?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // Filtrer les posts masqués
+    if (hiddenPostIds.includes(post.id)) return false;
+
+    // Filtrer les posts d'utilisateurs bloqués
+    if (blockedUserIds.includes(post.user_id)) return false;
+
+    return true;
+  });
 
   const handleProfileClick = () => {
     if (user) {

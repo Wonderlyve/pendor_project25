@@ -8,7 +8,28 @@ export const usePostActions = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  const followUser = async (userId: string) => {
+  // Fonction utilitaire pour obtenir l'ID utilisateur depuis le username
+  const getUserIdByUsername = async (username: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .single();
+
+      if (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+      }
+
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error:', error);
+      return null;
+    }
+  };
+
+  const followUser = async (userIdOrUsername: string) => {
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
@@ -16,13 +37,31 @@ export const usePostActions = () => {
 
     setLoading(true);
     try {
+      // Déterminer si c'est un ID ou un username
+      let targetUserId = userIdOrUsername;
+      
+      // Si ça ne ressemble pas à un UUID, c'est probablement un username
+      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        targetUserId = await getUserIdByUsername(userIdOrUsername);
+        if (!targetUserId) {
+          toast.error('Utilisateur introuvable');
+          return;
+        }
+      }
+
       // Vérifier si l'utilisateur suit déjà cette personne
-      const { data: existingFollow } = await supabase
+      const { data: existingFollow, error: checkError } = await supabase
         .from('user_follows')
         .select('*')
         .eq('follower_id', user.id)
-        .eq('following_id', userId)
-        .single();
+        .eq('following_id', targetUserId)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking follow status:', checkError);
+        toast.error('Erreur lors de la vérification du statut de suivi');
+        return;
+      }
 
       if (existingFollow) {
         // Unfollow
@@ -30,7 +69,7 @@ export const usePostActions = () => {
           .from('user_follows')
           .delete()
           .eq('follower_id', user.id)
-          .eq('following_id', userId);
+          .eq('following_id', targetUserId);
 
         if (error) {
           console.error('Error unfollowing user:', error);
@@ -45,7 +84,7 @@ export const usePostActions = () => {
           .from('user_follows')
           .insert({
             follower_id: user.id,
-            following_id: userId
+            following_id: targetUserId
           });
 
         if (error) {
@@ -73,12 +112,18 @@ export const usePostActions = () => {
     setLoading(true);
     try {
       // Vérifier si le post est déjà sauvegardé
-      const { data: existingSave } = await supabase
+      const { data: existingSave, error: checkError } = await supabase
         .from('saved_posts')
         .select('*')
         .eq('post_id', postId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking save status:', checkError);
+        toast.error('Erreur lors de la vérification');
+        return;
+      }
 
       if (existingSave) {
         // Unsave
@@ -160,12 +205,18 @@ export const usePostActions = () => {
     setLoading(true);
     try {
       // Vérifier si l'utilisateur a déjà signalé ce post
-      const { data: existingReport } = await supabase
+      const { data: existingReport, error: checkError } = await supabase
         .from('post_reports')
         .select('*')
         .eq('reporter_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking report status:', checkError);
+        toast.error('Erreur lors de la vérification');
+        return;
+      }
 
       if (existingReport) {
         toast.info('Vous avez déjà signalé ce post');
@@ -205,12 +256,18 @@ export const usePostActions = () => {
     setLoading(true);
     try {
       // Vérifier si le post est déjà masqué
-      const { data: existingHidden } = await supabase
+      const { data: existingHidden, error: checkError } = await supabase
         .from('hidden_posts')
         .select('*')
         .eq('user_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking hidden status:', checkError);
+        toast.error('Erreur lors de la vérification');
+        return;
+      }
 
       if (existingHidden) {
         // Unhide
@@ -252,7 +309,7 @@ export const usePostActions = () => {
     }
   };
 
-  const blockUser = async (userId: string) => {
+  const blockUser = async (userIdOrUsername: string) => {
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
@@ -260,13 +317,31 @@ export const usePostActions = () => {
 
     setLoading(true);
     try {
+      // Déterminer si c'est un ID ou un username
+      let targetUserId = userIdOrUsername;
+      
+      // Si ça ne ressemble pas à un UUID, c'est probablement un username
+      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        targetUserId = await getUserIdByUsername(userIdOrUsername);
+        if (!targetUserId) {
+          toast.error('Utilisateur introuvable');
+          return;
+        }
+      }
+
       // Vérifier si l'utilisateur est déjà bloqué
-      const { data: existingBlock } = await supabase
+      const { data: existingBlock, error: checkError } = await supabase
         .from('blocked_users')
         .select('*')
         .eq('blocker_id', user.id)
-        .eq('blocked_id', userId)
-        .single();
+        .eq('blocked_id', targetUserId)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking block status:', checkError);
+        toast.error('Erreur lors de la vérification');
+        return;
+      }
 
       if (existingBlock) {
         // Unblock
@@ -274,7 +349,7 @@ export const usePostActions = () => {
           .from('blocked_users')
           .delete()
           .eq('blocker_id', user.id)
-          .eq('blocked_id', userId);
+          .eq('blocked_id', targetUserId);
 
         if (error) {
           console.error('Error unblocking user:', error);
@@ -289,7 +364,7 @@ export const usePostActions = () => {
           .from('blocked_users')
           .insert({
             blocker_id: user.id,
-            blocked_id: userId
+            blocked_id: targetUserId
           });
 
         if (error) {
@@ -303,7 +378,7 @@ export const usePostActions = () => {
           .from('user_follows')
           .delete()
           .eq('follower_id', user.id)
-          .eq('following_id', userId);
+          .eq('following_id', targetUserId);
 
         toast.success('Utilisateur bloqué');
       }
@@ -315,16 +390,25 @@ export const usePostActions = () => {
     }
   };
 
-  const checkIfUserFollowed = async (userId: string): Promise<boolean> => {
+  const checkIfUserFollowed = async (userIdOrUsername: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
+      // Déterminer si c'est un ID ou un username
+      let targetUserId = userIdOrUsername;
+      
+      // Si ça ne ressemble pas à un UUID, c'est probablement un username
+      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        targetUserId = await getUserIdByUsername(userIdOrUsername);
+        if (!targetUserId) return false;
+      }
+
       const { data } = await supabase
         .from('user_follows')
         .select('*')
         .eq('follower_id', user.id)
-        .eq('following_id', userId)
-        .single();
+        .eq('following_id', targetUserId)
+        .maybeSingle();
 
       return !!data;
     } catch (error) {
@@ -341,7 +425,7 @@ export const usePostActions = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
 
       return !!data;
     } catch (error) {
@@ -358,7 +442,7 @@ export const usePostActions = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
 
       return !!data;
     } catch (error) {
@@ -366,16 +450,25 @@ export const usePostActions = () => {
     }
   };
 
-  const checkIfUserBlocked = async (userId: string): Promise<boolean> => {
+  const checkIfUserBlocked = async (userIdOrUsername: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
+      // Déterminer si c'est un ID ou un username
+      let targetUserId = userIdOrUsername;
+      
+      // Si ça ne ressemble pas à un UUID, c'est probablement un username
+      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        targetUserId = await getUserIdByUsername(userIdOrUsername);
+        if (!targetUserId) return false;
+      }
+
       const { data } = await supabase
         .from('blocked_users')
         .select('*')
         .eq('blocker_id', user.id)
-        .eq('blocked_id', userId)
-        .single();
+        .eq('blocked_id', targetUserId)
+        .maybeSingle();
 
       return !!data;
     } catch (error) {
