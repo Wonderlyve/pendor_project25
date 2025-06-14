@@ -13,6 +13,20 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface UserPost {
+  id: string;
+  content: string;
+  sport?: string;
+  match_teams?: string;
+  prediction_text?: string;
+  odds: number;
+  confidence: number;
+  likes: number;
+  comments: number;
+  created_at: string;
+  image_url?: string;
+}
+
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -21,9 +35,13 @@ const Profile = () => {
     display_name: '',
     avatar_url: '',
     bio: '',
-    badge: ''
+    badge: '',
+    followers_count: 0,
+    following_count: 0
   });
+  const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newBio, setNewBio] = useState('');
@@ -31,6 +49,7 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchUserPosts();
     }
   }, [user]);
 
@@ -51,11 +70,36 @@ const Profile = () => {
           display_name: data.display_name || '',
           avatar_url: data.avatar_url || '',
           bio: data.bio || '',
-          badge: data.badge || ''
+          badge: data.badge || '',
+          followers_count: data.followers_count || 0,
+          following_count: data.following_count || 0
         });
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserPosts = async () => {
+    if (!user) return;
+    
+    setPostsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching user posts:', error);
+      } else {
+        setUserPosts(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setPostsLoading(false);
     }
   };
 
@@ -88,10 +132,19 @@ const Profile = () => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+        <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
           <h1 className="text-2xl font-bold text-white">Profil</h1>
         </div>
         <div className="p-4">
@@ -107,7 +160,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-6 relative">
+      <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 py-6 relative">
         <Button
           variant="ghost"
           size="icon"
@@ -135,12 +188,31 @@ const Profile = () => {
           
           <div className="text-white">
             <h1 className="text-2xl font-bold">{profile.display_name}</h1>
-            <p className="text-blue-100">@{profile.username}</p>
+            <p className="text-green-100">@{profile.username}</p>
             {profile.badge && (
               <Badge variant="secondary" className="mt-2 bg-white/20 text-white border-white/30">
                 {profile.badge}
               </Badge>
             )}
+            {profile.bio && (
+              <p className="text-green-100 mt-2 text-sm">{profile.bio}</p>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="flex justify-center space-x-8 mt-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">{userPosts.length}</div>
+              <div className="text-green-100 text-sm">Posts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">{profile.followers_count}</div>
+              <div className="text-green-100 text-sm">Abonnés</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">{profile.following_count}</div>
+              <div className="text-green-100 text-sm">Abonnements</div>
+            </div>
           </div>
         </div>
         
@@ -158,29 +230,85 @@ const Profile = () => {
       <div className="p-4">
         <Tabs defaultValue="activity" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="activity" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            <TabsTrigger value="activity" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4 mr-2" />
               Activité
             </TabsTrigger>
-            <TabsTrigger value="favorites" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            <TabsTrigger value="favorites" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
               <Heart className="w-4 h-4 mr-2" />
               Favoris
             </TabsTrigger>
-            <TabsTrigger value="followers" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            <TabsTrigger value="followers" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
               Abonnés
             </TabsTrigger>
           </TabsList>
+          
           <TabsContent value="activity" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Dernière activité</CardTitle>
+                <CardTitle>Mes Posts</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">Aucune activité récente</p>
+                {postsLoading ? (
+                  <p className="text-gray-500">Chargement des posts...</p>
+                ) : userPosts.length > 0 ? (
+                  <div className="space-y-4">
+                    {userPosts.map((post) => (
+                      <div key={post.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            {post.sport && post.match_teams && (
+                              <div className="text-sm text-gray-600 mb-1">
+                                {post.sport} • {post.match_teams}
+                              </div>
+                            )}
+                            <p className="text-gray-800">{post.content}</p>
+                            {post.prediction_text && (
+                              <div className="mt-2 p-2 bg-green-50 rounded border-l-4 border-green-500">
+                                <p className="text-green-800 font-medium">{post.prediction_text}</p>
+                                <div className="flex items-center space-x-4 mt-1 text-sm text-green-600">
+                                  <span>Cote: {post.odds}</span>
+                                  <span>Confiance: {post.confidence}%</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {post.image_url && (
+                          <img
+                            src={post.image_url}
+                            alt="Post"
+                            className="mt-2 rounded-lg max-h-64 w-full object-cover"
+                          />
+                        )}
+                        
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                            <span className="flex items-center">
+                              <Heart className="w-4 h-4 mr-1" />
+                              {post.likes}
+                            </span>
+                            <span className="flex items-center">
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              {post.comments}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {formatDate(post.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Aucun post publié</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
+          
           <TabsContent value="favorites" className="mt-4">
             <Card>
               <CardHeader>
@@ -191,6 +319,7 @@ const Profile = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          
           <TabsContent value="followers" className="mt-4">
             <Card>
               <CardHeader>
