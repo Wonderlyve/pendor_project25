@@ -5,6 +5,7 @@ import { ArrowLeft, Heart, MessageCircle, Send, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import CreatePredictionModal from '@/components/CreatePredictionModal';
 
 interface Comment {
@@ -117,6 +118,9 @@ const LiveStream = () => {
             </div>
             <p className="text-lg font-medium">Vidéo en direct</p>
             <p className="text-sm text-white/70 mt-1">Contenu vidéo sera ici</p>
+            <Badge variant="secondary" className="mt-4 bg-orange-500/20 text-orange-200 border-orange-400/30">
+              Fonctionnalité en cours de développement
+            </Badge>
           </div>
         </div>
 

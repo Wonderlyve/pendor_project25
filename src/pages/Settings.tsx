@@ -1,5 +1,4 @@
-
-import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun, ArrowLeft, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -13,7 +12,7 @@ import { useState } from 'react';
 const Settings = () => {
   const navigate = useNavigate();
   const [publicProfile, setPublicProfile] = useState(true);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isDarkMode, setDarkMode } = useTheme();
   const { 
     pushNotifications, 
@@ -21,6 +20,11 @@ const Settings = () => {
     togglePushNotifications, 
     toggleEmailNotifications 
   } = useNotificationSettings();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   const settingSections = [
     {
@@ -150,6 +154,15 @@ const Settings = () => {
         <div className="space-y-3">
           <Button onClick={handleSaveSettings} className="w-full">
             Sauvegarder les paramètres
+          </Button>
+
+          <Button 
+            onClick={handleSignOut} 
+            variant="outline" 
+            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Se déconnecter
           </Button>
           
           <Card className="p-4">
