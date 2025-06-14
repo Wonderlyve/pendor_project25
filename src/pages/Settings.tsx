@@ -1,5 +1,6 @@
 
-import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [publicProfile, setPublicProfile] = useState(true);
   const { user } = useAuth();
   const { isDarkMode, setDarkMode } = useTheme();
@@ -87,6 +89,14 @@ const Settings = () => {
       <div className="bg-card border-b sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/profile')}
+              className="hover:bg-accent"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <SettingsIcon className="w-6 h-6 text-muted-foreground" />
             <h1 className="text-xl font-bold text-foreground">Paramètres</h1>
           </div>

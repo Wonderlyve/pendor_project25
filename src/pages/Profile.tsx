@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Camera, Edit, Settings, Heart, MessageCircle, BarChart3, Trophy, Users, Star } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Settings, Heart, MessageCircle, BarChart3, Trophy, Users, Star, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { toast } from 'sonner';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState({
     username: '',
     display_name: '',
@@ -87,6 +88,11 @@ const Profile = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
@@ -143,14 +149,24 @@ const Profile = () => {
           </div>
         </div>
         
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/settings')}
-          className="absolute top-4 right-4 text-white hover:bg-white/20"
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
+        <div className="absolute top-4 right-4 flex space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/settings')}
+            className="text-white hover:bg-white/20"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            className="text-white hover:bg-white/20"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Tabs Section */}
