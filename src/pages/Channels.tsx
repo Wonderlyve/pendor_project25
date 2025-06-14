@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { Plus, Lock, Users, MessageCircle, Crown } from 'lucide-react';
+import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BottomNavigation from '@/components/BottomNavigation';
+import ChannelChat from '@/components/ChannelChat';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,10 +29,12 @@ interface Channel {
 }
 
 const Channels = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [newChannel, setNewChannel] = useState({
     name: '',
     description: '',
@@ -38,6 +42,8 @@ const Channels = () => {
   });
 
   const isPro = user?.user_metadata?.badge === 'Pro' || user?.user_metadata?.badge === 'Expert';
+  const isSpecialUser = user?.email === 'c.batuemi@gmail.com';
+  const canCreateChannel = isPro || isSpecialUser;
 
   useEffect(() => {
     fetchChannels();
@@ -77,7 +83,7 @@ const Channels = () => {
   };
 
   const createChannel = async () => {
-    if (!user || !isPro) {
+    if (!user || !canCreateChannel) {
       toast.error('Seuls les pronostiqueurs Pro peuvent créer des canaux');
       return;
     }
@@ -114,22 +120,38 @@ const Channels = () => {
     }
   };
 
-  const subscribeToChannel = async (channelId: string, price: number) => {
+  const joinChannel = async (channel: Channel) => {
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
     }
 
-    if (price > 0) {
-      toast.info(`Abonnement à ${price}€/mois - Fonctionnalité de paiement à venir`);
+    if (channel.price > 0) {
+      toast.info(`Abonnement à ${channel.price}€/mois - Fonctionnalité de paiement à venir`);
       return;
     }
 
     try {
+      // Vérifier si l'utilisateur est déjà abonné
+      const { data: existing } = await supabase
+        .from('channel_subscriptions')
+        .select('*')
+        .eq('channel_id', channel.id)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (existing) {
+        // Déjà abonné, ouvrir le chat
+        setSelectedChannel(channel);
+        return;
+      }
+
+      // Créer l'abonnement
       const { error } = await supabase
         .from('channel_subscriptions')
         .insert({
-          channel_id: channelId,
+          channel_id: channel.id,
           user_id: user.id,
           is_active: true
         });
@@ -145,18 +167,38 @@ const Channels = () => {
       }
 
       toast.success('Abonnement réussi');
-      fetchChannels();
+      setSelectedChannel(channel);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors de l\'abonnement');
     }
   };
 
+  if (selectedChannel) {
+    return (
+      <ChannelChat
+        channelId={selectedChannel.id}
+        channelName={selectedChannel.name}
+        onBack={() => setSelectedChannel(null)}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
-          <h1 className="text-2xl font-bold text-white">Canaux VIP</h1>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-bold text-white">Canaux VIP</h1>
+          </div>
         </div>
         <div className="p-4">
           <div className="text-center py-8">
@@ -173,17 +215,27 @@ const Channels = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Canaux VIP</h1>
-            <p className="text-green-100 text-sm">Analyses exclusives des pros</p>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="text-white hover:bg-white/20"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Canaux VIP</h1>
+              <p className="text-green-100 text-sm">Analyses exclusives des pros</p>
+            </div>
           </div>
           <Crown className="w-8 h-8 text-yellow-300" />
         </div>
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Create Channel Button for Pro Users */}
-        {isPro && (
+        {/* Create Channel Button for Pro Users or Special User */}
+        {canCreateChannel && (
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
             <DialogTrigger asChild>
               <Button className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white">
@@ -233,8 +285,8 @@ const Channels = () => {
           </Dialog>
         )}
 
-        {/* Info Card for Non-Pro Users */}
-        {!isPro && (
+        {/* Info Card for Non-Pro Users (except special user) */}
+        {!canCreateChannel && (
           <Card className="border-2 border-dashed border-gray-300">
             <CardContent className="p-6 text-center">
               <Crown className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -290,11 +342,11 @@ const Channels = () => {
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => subscribeToChannel(channel.id, channel.price)}
+                      onClick={() => joinChannel(channel)}
                       className="bg-green-500 hover:bg-green-600"
                     >
                       <MessageCircle className="w-4 h-4 mr-1" />
-                      S'abonner
+                      Rejoindre
                     </Button>
                   </div>
                 </CardContent>

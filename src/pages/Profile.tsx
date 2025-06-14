@@ -1,224 +1,252 @@
-import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, Edit, TrendingUp, Users, Award, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Camera, Edit, Settings, Heart, MessageCircle, BarChart3, Trophy, Users, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import PredictionCard from '@/components/PredictionCard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import BottomNavigation from '@/components/BottomNavigation';
-import useScrollToTop from '@/hooks/useScrollToTop';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Profile = () => {
-  useScrollToTop();
-  
   const navigate = useNavigate();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const { user } = useAuth();
+  const [profile, setProfile] = useState({
+    username: '',
+    display_name: '',
+    avatar_url: '',
+    bio: '',
+    badge: ''
+  });
+  const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [newBio, setNewBio] = useState('');
 
-  // Mock user data
-  const user = {
-    username: 'PronoExpert',
-    fullName: 'Alexandre Martin',
-    bio: 'Pronostiqueur expert en football ⚽ | Taux de réussite 86% 📈 | Analyses quotidiennes 💪',
-    location: 'Paris, France',
-    website: 'pronoexpert.com',
-    joinDate: 'Novembre 2023',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-    coverImage: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=200&fit=crop',
-    stats: {
-      predictions: 247,
-      followers: 1543,
-      following: 89,
-      successRate: 86
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+      } else if (data) {
+        setProfile({
+          username: data.username || '',
+          display_name: data.display_name || '',
+          avatar_url: data.avatar_url || '',
+          bio: data.bio || '',
+          badge: data.badge || ''
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const userPredictions = [
-    {
-      id: 1,
-      user: {
-        username: '@pronoexpert',
-        avatar: user.avatar,
-        badge: 'Pro',
-        badgeColor: 'bg-blue-500'
-      },
-      match: 'PSG vs Real Madrid',
-      prediction: 'Victoire PSG',
-      odds: '2.10',
-      confidence: 4,
-      analysis: 'PSG en forme à domicile, Mbappé en grande forme.',
-      likes: 127,
-      comments: 23,
-      shares: 8,
-      successRate: 86,
-      timeAgo: '2h',
-      sport: 'Football',
-      image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=600&fit=crop'
+  const updateProfile = async () => {
+    if (!newDisplayName.trim()) {
+      toast.error('Le nom d\'affichage ne peut pas être vide');
+      return;
     }
-  ];
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: newDisplayName.trim(),
+          bio: newBio.trim()
+        })
+        .eq('id', user?.id);
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Erreur lors de la mise à jour du profil');
+      } else {
+        toast.success('Profil mis à jour avec succès');
+        setProfile(prev => ({ ...prev, display_name: newDisplayName.trim(), bio: newBio.trim() }));
+        setShowEditModal(false);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la mise à jour du profil');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+          <h1 className="text-2xl font-bold text-white">Profil</h1>
+        </div>
+        <div className="p-4">
+          <div className="text-center py-8">
+            <p className="text-gray-500">Chargement du profil...</p>
+          </div>
+        </div>
+        <BottomNavigation />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="px-4 py-3 flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            className="rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="font-bold text-lg">{user.fullName}</h1>
-            <p className="text-sm text-gray-500">{user.stats.predictions} pronostics</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cover Image */}
-      <div className="relative">
-        <div 
-          className="h-48 bg-gradient-to-r from-green-500 to-blue-600 bg-cover bg-center"
-          style={{ backgroundImage: `url(${user.coverImage})` }}
-        />
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-6 relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/')}
+          className="absolute top-4 left-4 text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
         
-        {/* Profile Info */}
-        <div className="px-4 pb-4">
-          <div className="flex justify-between items-end -mt-16 mb-4">
-            <div className="w-32 h-32 bg-white p-1 rounded-full">
-              <img
-                src={user.avatar}
-                alt={user.fullName}
-                className="w-full h-full rounded-full object-cover"
-              />
-            </div>
+        <div className="text-center">
+          <div className="relative inline-block mb-4">
+            <img
+              src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`}
+              alt="Profile"
+              className="w-24 h-24 rounded-full border-4 border-white mx-auto"
+            />
             <Button
-              variant={isFollowing ? "outline" : "default"}
-              onClick={() => setIsFollowing(!isFollowing)}
-              className={isFollowing ? "" : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"}
+              size="icon"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-white text-gray-600 hover:bg-gray-100 rounded-full shadow-lg"
+              onClick={() => setShowEditModal(true)}
             >
-              {isFollowing ? 'Suivi' : 'Suivre'}
+              <Camera className="w-4 h-4" />
             </Button>
           </div>
-
-          {/* User Details */}
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-xl font-bold">{user.fullName}</h2>
-              <p className="text-gray-600">@{user.username.toLowerCase()}</p>
-            </div>
-
-            <p className="text-gray-900">{user.bio}</p>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center space-x-1">
-                <MapPin className="w-4 h-4" />
-                <span>{user.location}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <LinkIcon className="w-4 h-4" />
-                <span className="text-blue-600">{user.website}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Calendar className="w-4 h-4" />
-                <span>Rejoint en {user.joinDate}</span>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="flex space-x-6 py-3">
-              <div className="text-center">
-                <div className="font-bold text-lg">{user.stats.predictions}</div>
-                <div className="text-xs text-gray-500">Pronostics</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-lg">{user.stats.followers}</div>
-                <div className="text-xs text-gray-500">Abonnés</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-lg">{user.stats.following}</div>
-                <div className="text-xs text-gray-500">Abonnements</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-lg text-green-600">{user.stats.successRate}%</div>
-                <div className="text-xs text-gray-500">Réussite</div>
-              </div>
-            </div>
+          
+          <div className="text-white">
+            <h1 className="text-2xl font-bold">{profile.display_name}</h1>
+            <p className="text-blue-100">@{profile.username}</p>
+            {profile.badge && (
+              <Badge variant="secondary" className="mt-2 bg-white/20 text-white border-white/30">
+                {profile.badge}
+              </Badge>
+            )}
           </div>
         </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/settings')}
+          className="absolute top-4 right-4 text-white hover:bg-white/20"
+        >
+          <Settings className="w-5 h-5" />
+        </Button>
       </div>
 
-      {/* Performance Cards */}
-      <div className="px-4 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="w-8 h-8 mx-auto mb-2" />
-              <div className="font-bold text-lg">86%</div>
-              <div className="text-xs opacity-90">Taux de réussite</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-            <CardContent className="p-4 text-center">
-              <Award className="w-8 h-8 mx-auto mb-2" />
-              <div className="font-bold text-lg">Top 5%</div>
-              <div className="text-xs opacity-90">Classement</div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Content Tabs */}
-      <div className="px-4">
-        <Tabs defaultValue="predictions" className="w-full">
+      {/* Tabs Section */}
+      <div className="p-4">
+        <Tabs defaultValue="activity" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="predictions">Pronostics</TabsTrigger>
-            <TabsTrigger value="wins">Gagnants</TabsTrigger>
-            <TabsTrigger value="stats">Statistiques</TabsTrigger>
+            <TabsTrigger value="activity" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Activité
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <Heart className="w-4 h-4 mr-2" />
+              Favoris
+            </TabsTrigger>
+            <TabsTrigger value="followers" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <Users className="w-4 h-4 mr-2" />
+              Abonnés
+            </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="predictions" className="space-y-4 mt-4">
-            {userPredictions.map((prediction) => (
-              <PredictionCard key={prediction.id} prediction={prediction} />
-            ))}
-          </TabsContent>
-          
-          <TabsContent value="wins" className="text-center py-12">
-            <Star className="w-16 h-16 mx-auto text-yellow-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">Pronostics gagnants</h3>
-            <p className="text-gray-500">Vos meilleurs pronostics apparaîtront ici</p>
-          </TabsContent>
-          
-          <TabsContent value="stats" className="space-y-4 mt-4">
+          <TabsContent value="activity" className="mt-4">
             <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-4">Statistiques détaillées</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total pronostics</span>
-                    <span className="font-medium">247</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Pronostics gagnants</span>
-                    <span className="font-medium text-green-600">212</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Pronostics perdants</span>
-                    <span className="font-medium text-red-600">35</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">ROI moyen</span>
-                    <span className="font-medium text-green-600">+24%</span>
-                  </div>
-                </div>
+              <CardHeader>
+                <CardTitle>Dernière activité</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">Aucune activité récente</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="favorites" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pronostics favoris</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">Aucun favori enregistré</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="followers" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Abonnés</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">Aucun abonné pour le moment</p>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
 
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Modifier le profil</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed" htmlFor="name">
+                  Nom d'affichage
+                </label>
+                <Input
+                  type="text"
+                  id="name"
+                  placeholder="Votre nom"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed" htmlFor="bio">
+                  Bio
+                </label>
+                <Textarea
+                  id="bio"
+                  placeholder="Petite description de vous"
+                  value={newBio}
+                  onChange={(e) => setNewBio(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="ghost" onClick={() => setShowEditModal(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={updateProfile}>
+                  Enregistrer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
       <BottomNavigation />
     </div>
   );

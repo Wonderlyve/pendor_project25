@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Play, Plus, Users } from 'lucide-react';
+import { Play, Plus, Users, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -75,7 +75,17 @@ const LiveStreams = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Lives</h1>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-xl font-bold text-gray-900">Lives</h1>
+          </div>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             <span>{liveStreams.filter(l => l.isLive).length} en direct</span>

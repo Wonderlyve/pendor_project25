@@ -1,58 +1,72 @@
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bell, Check, Clock, Heart, MessageCircle, UserPlus } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useNotifications } from '@/hooks/useNotifications';
+import { ArrowLeft, Bell, BellOff, Check, CheckCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import BottomNavigation from '@/components/BottomNavigation';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const Notifications = () => {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'like':
-        return <Heart className="w-5 h-5 text-red-500" />;
-      case 'comment':
-        return <MessageCircle className="w-5 h-5 text-blue-500" />;
-      case 'follow':
-        return <UserPlus className="w-5 h-5 text-green-500" />;
-      case 'new_prediction':
-        return <Bell className="w-5 h-5 text-purple-500" />;
-      default:
-        return <Bell className="w-5 h-5 text-gray-500" />;
+  const formatTime = (timestamp: string) => {
+    const now = new Date();
+    const notifTime = new Date(timestamp);
+    const diff = now.getTime() - notifTime.getTime();
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (minutes < 60) {
+      return `Il y a ${minutes}min`;
+    } else if (hours < 24) {
+      return `Il y a ${hours}h`;
+    } else {
+      return `Il y a ${days}j`;
     }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInMinutes < 60) {
-      return `Il y a ${diffInMinutes} min`;
-    } else if (diffInHours < 24) {
-      return `Il y a ${diffInHours}h`;
-    } else {
-      return `Il y a ${diffInDays}j`;
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'new_prediction':
+        return '🎯';
+      case 'follow':
+        return '👤';
+      case 'like':
+        return '❤️';
+      case 'comment':
+        return '💬';
+      default:
+        return '🔔';
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-4 h-20" />
-            ))}
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
           </div>
         </div>
+        <div className="p-4">
+          <div className="text-center py-8">
+            <p className="text-gray-500">Chargement des notifications...</p>
+          </div>
+        </div>
+        <BottomNavigation />
       </div>
     );
   }
@@ -60,89 +74,82 @@ const Notifications = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-500 to-green-600 border-b sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/')}
-                className="text-white hover:bg-white/20"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <Bell className="w-6 h-6 text-white" />
-              <h1 className="text-xl font-bold text-white">Notifications</h1>
-              {unreadCount > 0 && (
-                <Badge variant="secondary" className="bg-white/20 text-white">
-                  {unreadCount}
-                </Badge>
-              )}
-            </div>
+      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
             {unreadCount > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={markAllAsRead}
-                className="text-white hover:bg-white/20"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Tout marquer
-              </Button>
+              <Badge variant="destructive" className="ml-2">
+                {unreadCount}
+              </Badge>
             )}
           </div>
+          {notifications.length > 0 && unreadCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={markAllAsRead}
+              className="text-xs"
+            >
+              <CheckCheck className="w-4 h-4 mr-1" />
+              Tout marquer lu
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Notifications List */}
-      <div className="max-w-2xl mx-auto p-4">
+      <div className="p-4">
         {notifications.length === 0 ? (
-          <Card className="p-8 text-center">
-            <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Aucune notification
-            </h3>
-            <p className="text-gray-500">
-              Vous n'avez pas encore de notifications.
-            </p>
-          </Card>
+          <div className="text-center py-12">
+            <BellOff className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune notification</h3>
+            <p className="text-gray-500">Vous n'avez pas encore de notifications</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {notifications.map((notification) => (
               <Card 
-                key={notification.id}
-                className={`p-4 cursor-pointer transition-colors ${
-                  !notification.read 
-                    ? 'bg-blue-50 border-blue-200' 
-                    : 'bg-white hover:bg-gray-50'
+                key={notification.id} 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  !notification.read ? 'border-blue-200 bg-blue-50' : ''
                 }`}
                 onClick={() => !notification.read && markAsRead(notification.id)}
               >
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-1">
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 mb-1">
-                      {notification.content}
-                    </p>
-                    <div className="flex items-center space-x-2 text-xs text-gray-500">
-                      <Clock className="w-3 h-3" />
-                      <span>{formatTime(notification.created_at)}</span>
-                      {!notification.read && (
-                        <Badge variant="secondary" className="text-xs">
-                          Nouveau
-                        </Badge>
-                      )}
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-2xl">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${!notification.read ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+                        {notification.content}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-500">
+                          {formatTime(notification.created_at)}
+                        </span>
+                        {!notification.read && (
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <BottomNavigation />
     </div>
   );
 };
