@@ -36,7 +36,7 @@ export const useComments = (postId: string) => {
         .from('comments')
         .select(`
           *,
-          profiles:user_id (
+          profiles!comments_user_id_fkey (
             username,
             display_name,
             avatar_url,
@@ -181,9 +181,23 @@ export const useComments = (postId: string) => {
   useEffect(() => {
     if (!postId) return;
 
-    const channel = supabase
-      .channel(`comments_${postId}`)
-      .on(
+    // Nettoyer l'ancien canal s'il existe
+    if (channelRef.current) {
+      console.log('Cleaning up existing comments channel');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Créer un nouveau canal avec un identifiant unique
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    const channelName = `comments_${postId}_${sessionId}`;
+    
+    console.log('Creating comments channel:', channelName);
+
+    try {
+      const channel = supabase.channel(channelName);
+      
+      channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -206,13 +220,24 @@ export const useComments = (postId: string) => {
           fetchComments();
         }
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        console.log('Comments subscription status:', status);
+      });
 
-    channelRef.current = channel;
+      channelRef.current = channel;
+    } catch (error) {
+      console.error('Error setting up comments channel:', error);
+    }
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        console.log('Unsubscribing from comments channel');
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (error) {
+          console.error('Error removing comments channel:', error);
+        }
+        channelRef.current = null;
       }
     };
   }, [postId, fetchComments]);

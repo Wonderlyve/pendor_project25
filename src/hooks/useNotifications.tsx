@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -17,6 +17,7 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const channelRef = useRef<any>(null);
 
   const playNotificationSound = () => {
     // Créer un son de notification
@@ -132,9 +133,23 @@ export const useNotifications = () => {
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
+    // Nettoyer l'ancien canal s'il existe
+    if (channelRef.current) {
+      console.log('Cleaning up existing notifications channel');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Créer un nouveau canal avec un identifiant unique
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    const channelName = `notifications-changes-${sessionId}`;
+    
+    console.log('Creating notifications channel:', channelName);
+
+    try {
+      const channel = supabase.channel(channelName);
+      
+      channel.on(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -156,10 +171,25 @@ export const useNotifications = () => {
           showBrowserNotification(newNotification);
         }
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        console.log('Notifications subscription status:', status);
+      });
+
+      channelRef.current = channel;
+    } catch (error) {
+      console.error('Error setting up notifications channel:', error);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        console.log('Unsubscribing from notifications channel');
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (error) {
+          console.error('Error removing notifications channel:', error);
+        }
+        channelRef.current = null;
+      }
     };
   }, [user]);
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ export const useOptimizedPosts = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const { user } = useAuth();
+  const channelRef = useRef<any>(null);
 
   const fetchPosts = useCallback(async (pageNum: number, limit: number = POSTS_PER_PAGE) => {
     setLoading(true);
@@ -305,16 +306,21 @@ export const useOptimizedPosts = () => {
 
   // Écouter les mises à jour en temps réel des posts avec un contrôle strict
   useEffect(() => {
-    // Créer un nom de canal unique avec un identifiant de session
+    // Nettoyer l'ancien canal s'il existe
+    if (channelRef.current) {
+      console.log('Cleaning up existing posts channel');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Créer un nouveau canal avec un identifiant unique
     const sessionId = Math.random().toString(36).substring(2, 15);
     const channelName = `posts-changes-${sessionId}`;
     
     console.log('Creating posts channel:', channelName);
     
-    let channel: any = null;
-    
     try {
-      channel = supabase.channel(channelName);
+      const channel = supabase.channel(channelName);
       
       channel.on(
         'postgres_changes',
@@ -337,21 +343,24 @@ export const useOptimizedPosts = () => {
       channel.subscribe((status: string) => {
         console.log('Posts subscription status:', status);
       });
+
+      channelRef.current = channel;
     } catch (error) {
       console.error('Error setting up posts channel:', error);
     }
 
     return () => {
-      if (channel) {
-        console.log('Unsubscribing from posts channel:', channelName);
+      if (channelRef.current) {
+        console.log('Unsubscribing from posts channel');
         try {
-          supabase.removeChannel(channel);
+          supabase.removeChannel(channelRef.current);
         } catch (error) {
           console.error('Error removing posts channel:', error);
         }
+        channelRef.current = null;
       }
     };
-  }, []);
+  }, []); // Removed user dependency to prevent re-subscriptions
 
   useEffect(() => {
     const handleScroll = () => {
