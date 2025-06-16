@@ -80,18 +80,6 @@ export const useComments = (postId: string) => {
       }));
 
       setComments(commentsWithReplies);
-
-      // Mettre à jour le compteur de commentaires dans la table posts
-      const totalComments = transformedComments.length;
-      const { error: updateError } = await supabase
-        .from('posts')
-        .update({ comments: totalComments })
-        .eq('id', postId);
-
-      if (updateError) {
-        console.error('Error updating comments count:', updateError);
-      }
-
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -151,7 +139,7 @@ export const useComments = (postId: string) => {
         .select('*')
         .eq('comment_id', commentId)
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
       if (existingLike) {
         const { error } = await supabase
@@ -196,11 +184,7 @@ export const useComments = (postId: string) => {
     // Nettoyer l'ancien canal s'il existe
     if (channelRef.current) {
       console.log('Cleaning up existing comments channel');
-      try {
-        supabase.removeChannel(channelRef.current);
-      } catch (error) {
-        console.error('Error removing old channel:', error);
-      }
+      supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
@@ -221,8 +205,7 @@ export const useComments = (postId: string) => {
           table: 'comments',
           filter: `post_id=eq.${postId}`
         },
-        (payload) => {
-          console.log('Comment change detected:', payload);
+        () => {
           fetchComments();
         }
       )
@@ -233,8 +216,7 @@ export const useComments = (postId: string) => {
           schema: 'public',
           table: 'comment_likes'
         },
-        (payload) => {
-          console.log('Comment like change detected:', payload);
+        () => {
           fetchComments();
         }
       )
