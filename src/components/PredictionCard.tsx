@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize } from 'lucide-react';
+import { Heart, MessageCircle, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -18,10 +18,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { usePostActions } from '@/hooks/usePostActions';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PredictionCardProps {
   prediction: {
     id: number;
+    user_id?: string;
     user: {
       username: string;
       avatar: string;
@@ -71,6 +73,10 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     loading: actionsLoading
   } = usePostActions();
   
+  // Check if current user is the post owner
+  const isPostOwner = user && prediction.user_id && user.id === prediction.user_id;
+  const isCurrentUser = user && prediction.user.username === user.email?.split('@')[0];
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
@@ -113,6 +119,66 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     loadActionStates();
   }, [user, prediction.id, prediction.user.username, checkIfUserFollowed, checkIfPostSaved, checkIfUserBlocked, actionStatesLoaded]);
 
+  const handleProfileClick = async () => {
+    if (!requireAuth()) return;
+    
+    try {
+      // Get the user profile by username
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', prediction.user.username)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Profil introuvable');
+        return;
+      }
+
+      if (profile.id === user?.id) {
+        // Navigate to own profile
+        navigate('/profile');
+      } else {
+        // Navigate to other user's profile - for now just show a message
+        // In a real app, you'd navigate to a user profile page with the user ID
+        toast.info(`Profil de ${prediction.user.username} - Fonctionnalité en développement`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de l\'accès au profil');
+    }
+  };
+
+  const handleEditPost = () => {
+    toast.info('Modification du post - Fonctionnalité en développement');
+  };
+
+  const handleDeletePost = async () => {
+    if (!user || !isPostOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', prediction.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        toast.error('Erreur lors de la suppression');
+        return;
+      }
+
+      toast.success('Post supprimé avec succès');
+      // Refresh the page or remove the post from the list
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   const handleMenuAction = async (action: string) => {
     if (!requireAuth()) return;
     
@@ -121,6 +187,11 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     try {
       switch (action) {
         case 'follow':
+          // Prevent users from following themselves
+          if (isCurrentUser) {
+            toast.error('Vous ne pouvez pas vous suivre vous-même');
+            return;
+          }
           await followUser(prediction.user.username);
           // Recharger l'état après l'action
           const newFollowState = await checkIfUserFollowed(prediction.user.username);
@@ -145,6 +216,14 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
           const newBlockState = await checkIfUserBlocked(prediction.user.username);
           setIsBlocked(newBlockState);
           break;
+        case 'edit':
+          handleEditPost();
+          break;
+        case 'delete':
+          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
+            handleDeletePost();
+          }
+          break;
         default:
           console.log(`Action: ${action} on prediction ${prediction.id}`);
       }
@@ -152,11 +231,6 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
       console.error(`Error executing action ${action}:`, error);
       toast.error('Une erreur est survenue lors de l\'opération');
     }
-  };
-
-  const handleProfileClick = () => {
-    if (!requireAuth()) return;
-    navigate('/profile');
   };
 
   const handleShare = async () => {
@@ -365,54 +439,81 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                   <DrawerTitle>Options du post</DrawerTitle>
                 </DrawerHeader>
                 <div className="p-4 space-y-3">
-                  <button 
-                    onClick={() => handleMenuAction('follow')}
-                    disabled={actionsLoading}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                  >
-                    <span className="text-2xl">👤</span>
-                    <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
-                  </button>
-                  <button 
-                    onClick={() => handleMenuAction('save')}
-                    disabled={actionsLoading}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                  >
-                    <span className="text-2xl">🔖</span>
-                    <span>{isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder'}</span>
-                  </button>
-                  <button 
-                    onClick={handleShare}
-                    disabled={actionsLoading}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                  >
-                    <span className="text-2xl">📋</span>
-                    <span>Partager</span>
-                  </button>
-                  <button 
-                    onClick={() => handleMenuAction('report')}
-                    disabled={actionsLoading}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                  >
-                    <span className="text-2xl">🚨</span>
-                    <span>Signaler</span>
-                  </button>
-                  <button 
-                    onClick={() => handleMenuAction('hide')}
-                    disabled={actionsLoading}
-                    className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                  >
-                    <span className="text-2xl">👁️</span>
-                    <span>Masquer ce post</span>
-                  </button>
-                  <button 
-                    onClick={() => handleMenuAction('block')}
-                    disabled={actionsLoading}
-                    className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
-                  >
-                    <span className="text-2xl">🚫</span>
-                    <span>Bloquer l'utilisateur</span>
-                  </button>
+                  {isPostOwner ? (
+                    <>
+                      <button 
+                        onClick={() => handleMenuAction('edit')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <Edit className="w-5 h-5 text-blue-600" />
+                        <span>Modifier ce post</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMenuAction('delete')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        <span>Supprimer ce post</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {!isCurrentUser && (
+                        <button 
+                          onClick={() => handleMenuAction('follow')}
+                          disabled={actionsLoading}
+                          className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                        >
+                          <span className="text-2xl">👤</span>
+                          <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleMenuAction('save')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">🔖</span>
+                        <span>{isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder'}</span>
+                      </button>
+                      <button 
+                        onClick={handleShare}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">📋</span>
+                        <span>Partager</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMenuAction('report')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">🚨</span>
+                        <span>Signaler</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMenuAction('hide')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">👁️</span>
+                        <span>Masquer ce post</span>
+                      </button>
+                      {!isCurrentUser && (
+                        <button 
+                          onClick={() => handleMenuAction('block')}
+                          disabled={actionsLoading}
+                          className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
+                        >
+                          <span className="text-2xl">🚫</span>
+                          <span>Bloquer l'utilisateur</span>
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </DrawerContent>
             </Drawer>
@@ -436,15 +537,17 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
                 Se connecter
               </Button>
             }>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2 text-xs"
-                onClick={() => handleMenuAction('follow')}
-                disabled={actionsLoading}
-              >
-                {isFollowed ? 'Suivi' : 'Suivre'}
-              </Button>
+              {!isCurrentUser && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs"
+                  onClick={() => handleMenuAction('follow')}
+                  disabled={actionsLoading}
+                >
+                  {isFollowed ? 'Suivi' : 'Suivre'}
+                </Button>
+              )}
             </ProtectedComponent>
           </div>
           
