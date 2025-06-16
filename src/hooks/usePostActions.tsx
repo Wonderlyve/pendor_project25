@@ -1,11 +1,28 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export const usePostActions = () => {
-  const [loading, setLoading] = useState(false);
+export const usePostActions = (postId: string, authorUsername: string) => {
+  const [actionStates, setActionStates] = useState({
+    followed: false,
+    saved: false,
+    hidden: false,
+    blocked: false
+  });
+  
+  const [loading, setLoading] = useState({
+    follow: false,
+    save: false,
+    share: false,
+    report: false,
+    hide: false,
+    block: false,
+    delete: false,
+    edit: false
+  });
+
   const { user } = useAuth();
 
   // Fonction utilitaire pour obtenir l'ID utilisateur depuis le username
@@ -29,41 +46,76 @@ export const usePostActions = () => {
     }
   };
 
-  const followUser = async (userIdOrUsername: string) => {
+  // Charger les états initiaux
+  useEffect(() => {
+    const loadInitialStates = async () => {
+      if (!user || !authorUsername) return;
+
+      try {
+        const authorId = await getUserIdByUsername(authorUsername);
+        if (!authorId) return;
+
+        // Vérifier le statut de suivi
+        const { data: followData } = await supabase
+          .from('user_follows')
+          .select('*')
+          .eq('follower_id', user.id)
+          .eq('following_id', authorId)
+          .maybeSingle();
+
+        // Vérifier le statut de sauvegarde
+        const { data: saveData } = await supabase
+          .from('saved_posts')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('post_id', postId)
+          .maybeSingle();
+
+        // Vérifier le statut de masquage
+        const { data: hideData } = await supabase
+          .from('hidden_posts')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('post_id', postId)
+          .maybeSingle();
+
+        // Vérifier le statut de blocage
+        const { data: blockData } = await supabase
+          .from('blocked_users')
+          .select('*')
+          .eq('blocker_id', user.id)
+          .eq('blocked_id', authorId)
+          .maybeSingle();
+
+        setActionStates({
+          followed: !!followData,
+          saved: !!saveData,
+          hidden: !!hideData,
+          blocked: !!blockData
+        });
+      } catch (error) {
+        console.error('Error loading initial states:', error);
+      }
+    };
+
+    loadInitialStates();
+  }, [user, authorUsername, postId]);
+
+  const followUser = async () => {
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, follow: true }));
     try {
-      // Déterminer si c'est un ID ou un username
-      let targetUserId = userIdOrUsername;
-      
-      // Si ça ne ressemble pas à un UUID, c'est probablement un username
-      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        targetUserId = await getUserIdByUsername(userIdOrUsername);
-        if (!targetUserId) {
-          toast.error('Utilisateur introuvable');
-          return;
-        }
-      }
-
-      // Vérifier si l'utilisateur suit déjà cette personne
-      const { data: existingFollow, error: checkError } = await supabase
-        .from('user_follows')
-        .select('*')
-        .eq('follower_id', user.id)
-        .eq('following_id', targetUserId)
-        .maybeSingle();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking follow status:', checkError);
-        toast.error('Erreur lors de la vérification du statut de suivi');
+      const targetUserId = await getUserIdByUsername(authorUsername);
+      if (!targetUserId) {
+        toast.error('Utilisateur introuvable');
         return;
       }
 
-      if (existingFollow) {
+      if (actionStates.followed) {
         // Unfollow
         const { error } = await supabase
           .from('user_follows')
@@ -71,12 +123,9 @@ export const usePostActions = () => {
           .eq('follower_id', user.id)
           .eq('following_id', targetUserId);
 
-        if (error) {
-          console.error('Error unfollowing user:', error);
-          toast.error('Erreur lors du désabonnement');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, followed: false }));
         toast.success('Vous ne suivez plus cet utilisateur');
       } else {
         // Follow
@@ -87,45 +136,28 @@ export const usePostActions = () => {
             following_id: targetUserId
           });
 
-        if (error) {
-          console.error('Error following user:', error);
-          toast.error('Erreur lors du suivi');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, followed: true }));
         toast.success('Utilisateur suivi avec succès');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error following user:', error);
       toast.error('Erreur lors de l\'opération');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, follow: false }));
     }
   };
 
-  const savePost = async (postId: string) => {
+  const savePost = async () => {
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, save: true }));
     try {
-      // Vérifier si le post est déjà sauvegardé
-      const { data: existingSave, error: checkError } = await supabase
-        .from('saved_posts')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking save status:', checkError);
-        toast.error('Erreur lors de la vérification');
-        return;
-      }
-
-      if (existingSave) {
+      if (actionStates.saved) {
         // Unsave
         const { error } = await supabase
           .from('saved_posts')
@@ -133,12 +165,9 @@ export const usePostActions = () => {
           .eq('post_id', postId)
           .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Error unsaving post:', error);
-          toast.error('Erreur lors de la suppression de la sauvegarde');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, saved: false }));
         toast.success('Post retiré des sauvegardes');
       } else {
         // Save
@@ -149,74 +178,60 @@ export const usePostActions = () => {
             user_id: user.id
           });
 
-        if (error) {
-          console.error('Error saving post:', error);
-          toast.error('Erreur lors de la sauvegarde');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, saved: true }));
         toast.success('Post sauvegardé');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error saving post:', error);
       toast.error('Erreur lors de la sauvegarde');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, save: false }));
     }
   };
 
-  const sharePost = async (postId: string, shareType: string = 'direct') => {
-    if (!user) {
-      toast.error('Vous devez être connecté');
-      return;
-    }
-
-    setLoading(true);
+  const sharePost = async () => {
+    setLoading(prev => ({ ...prev, share: true }));
     try {
+      if (!user) {
+        toast.error('Vous devez être connecté');
+        return;
+      }
+
       const { error } = await supabase
         .from('post_shares')
         .insert({
           post_id: postId,
           user_id: user.id,
-          share_type: shareType
+          share_type: 'direct'
         });
 
-      if (error) {
-        console.error('Error sharing post:', error);
-        toast.error('Erreur lors du partage');
-        return;
-      }
-
+      if (error) throw error;
       toast.success('Post partagé avec succès');
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error sharing post:', error);
       toast.error('Erreur lors du partage');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, share: false }));
     }
   };
 
-  const reportPost = async (postId: string, reason: string, description?: string) => {
-    if (!user) {
-      toast.error('Vous devez être connecté');
-      return;
-    }
-
-    setLoading(true);
+  const reportPost = async () => {
+    setLoading(prev => ({ ...prev, report: true }));
     try {
+      if (!user) {
+        toast.error('Vous devez être connecté');
+        return;
+      }
+
       // Vérifier si l'utilisateur a déjà signalé ce post
-      const { data: existingReport, error: checkError } = await supabase
+      const { data: existingReport } = await supabase
         .from('post_reports')
         .select('*')
         .eq('reporter_id', user.id)
         .eq('post_id', postId)
         .maybeSingle();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking report status:', checkError);
-        toast.error('Erreur lors de la vérification');
-        return;
-      }
 
       if (existingReport) {
         toast.info('Vous avez déjà signalé ce post');
@@ -228,48 +243,29 @@ export const usePostActions = () => {
         .insert({
           reporter_id: user.id,
           post_id: postId,
-          reason: reason,
-          description: description
+          reason: 'inappropriate_content',
+          description: 'Signalement depuis l\'interface'
         });
 
-      if (error) {
-        console.error('Error reporting post:', error);
-        toast.error('Erreur lors du signalement');
-        return;
-      }
-
+      if (error) throw error;
       toast.success('Post signalé. Merci pour votre contribution à la sécurité de la communauté.');
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error reporting post:', error);
       toast.error('Erreur lors du signalement');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, report: false }));
     }
   };
 
-  const hidePost = async (postId: string) => {
-    if (!user) {
-      toast.error('Vous devez être connecté');
-      return;
-    }
-
-    setLoading(true);
+  const hidePost = async () => {
+    setLoading(prev => ({ ...prev, hide: true }));
     try {
-      // Vérifier si le post est déjà masqué
-      const { data: existingHidden, error: checkError } = await supabase
-        .from('hidden_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking hidden status:', checkError);
-        toast.error('Erreur lors de la vérification');
+      if (!user) {
+        toast.error('Vous devez être connecté');
         return;
       }
 
-      if (existingHidden) {
+      if (actionStates.hidden) {
         // Unhide
         const { error } = await supabase
           .from('hidden_posts')
@@ -277,12 +273,9 @@ export const usePostActions = () => {
           .eq('user_id', user.id)
           .eq('post_id', postId);
 
-        if (error) {
-          console.error('Error unhiding post:', error);
-          toast.error('Erreur lors de l\'affichage du post');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, hidden: false }));
         toast.success('Post affiché de nouveau');
       } else {
         // Hide
@@ -293,57 +286,34 @@ export const usePostActions = () => {
             post_id: postId
           });
 
-        if (error) {
-          console.error('Error hiding post:', error);
-          toast.error('Erreur lors du masquage');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, hidden: true }));
         toast.success('Post masqué');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error hiding post:', error);
       toast.error('Erreur lors du masquage');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, hide: false }));
     }
   };
 
-  const blockUser = async (userIdOrUsername: string) => {
+  const blockUser = async () => {
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, block: true }));
     try {
-      // Déterminer si c'est un ID ou un username
-      let targetUserId = userIdOrUsername;
-      
-      // Si ça ne ressemble pas à un UUID, c'est probablement un username
-      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        targetUserId = await getUserIdByUsername(userIdOrUsername);
-        if (!targetUserId) {
-          toast.error('Utilisateur introuvable');
-          return;
-        }
-      }
-
-      // Vérifier si l'utilisateur est déjà bloqué
-      const { data: existingBlock, error: checkError } = await supabase
-        .from('blocked_users')
-        .select('*')
-        .eq('blocker_id', user.id)
-        .eq('blocked_id', targetUserId)
-        .maybeSingle();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking block status:', checkError);
-        toast.error('Erreur lors de la vérification');
+      const targetUserId = await getUserIdByUsername(authorUsername);
+      if (!targetUserId) {
+        toast.error('Utilisateur introuvable');
         return;
       }
 
-      if (existingBlock) {
+      if (actionStates.blocked) {
         // Unblock
         const { error } = await supabase
           .from('blocked_users')
@@ -351,12 +321,9 @@ export const usePostActions = () => {
           .eq('blocker_id', user.id)
           .eq('blocked_id', targetUserId);
 
-        if (error) {
-          console.error('Error unblocking user:', error);
-          toast.error('Erreur lors du déblocage');
-          return;
-        }
+        if (error) throw error;
 
+        setActionStates(prev => ({ ...prev, blocked: false }));
         toast.success('Utilisateur débloqué');
       } else {
         // Block
@@ -367,11 +334,7 @@ export const usePostActions = () => {
             blocked_id: targetUserId
           });
 
-        if (error) {
-          console.error('Error blocking user:', error);
-          toast.error('Erreur lors du blocage');
-          return;
-        }
+        if (error) throw error;
 
         // Aussi unfollower l'utilisateur si on le suit
         await supabase
@@ -380,113 +343,57 @@ export const usePostActions = () => {
           .eq('follower_id', user.id)
           .eq('following_id', targetUserId);
 
+        setActionStates(prev => ({ ...prev, blocked: true, followed: false }));
         toast.success('Utilisateur bloqué');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error blocking user:', error);
       toast.error('Erreur lors du blocage');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, block: false }));
     }
   };
 
-  const checkIfUserFollowed = async (userIdOrUsername: string): Promise<boolean> => {
-    if (!user) return false;
-
+  const deletePost = async () => {
+    setLoading(prev => ({ ...prev, delete: true }));
     try {
-      // Déterminer si c'est un ID ou un username
-      let targetUserId = userIdOrUsername;
-      
-      // Si ça ne ressemble pas à un UUID, c'est probablement un username
-      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        targetUserId = await getUserIdByUsername(userIdOrUsername);
-        if (!targetUserId) return false;
+      if (!user) {
+        toast.error('Vous devez être connecté');
+        return false;
       }
 
-      const { data } = await supabase
-        .from('user_follows')
-        .select('*')
-        .eq('follower_id', user.id)
-        .eq('following_id', targetUserId)
-        .maybeSingle();
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id);
 
-      return !!data;
+      if (error) throw error;
+
+      return true;
     } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Erreur lors de la suppression');
       return false;
+    } finally {
+      setLoading(prev => ({ ...prev, delete: false }));
     }
   };
 
-  const checkIfPostSaved = async (postId: string): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      const { data } = await supabase
-        .from('saved_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-
-      return !!data;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const checkIfPostHidden = async (postId: string): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      const { data } = await supabase
-        .from('hidden_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-
-      return !!data;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const checkIfUserBlocked = async (userIdOrUsername: string): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      // Déterminer si c'est un ID ou un username
-      let targetUserId = userIdOrUsername;
-      
-      // Si ça ne ressemble pas à un UUID, c'est probablement un username
-      if (!userIdOrUsername.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        targetUserId = await getUserIdByUsername(userIdOrUsername);
-        if (!targetUserId) return false;
-      }
-
-      const { data } = await supabase
-        .from('blocked_users')
-        .select('*')
-        .eq('blocker_id', user.id)
-        .eq('blocked_id', targetUserId)
-        .maybeSingle();
-
-      return !!data;
-    } catch (error) {
-      return false;
-    }
+  const editPost = () => {
+    toast.info('Fonctionnalité d\'édition en cours de développement');
   };
 
   return {
+    actionStates,
+    loading,
     followUser,
     savePost,
     sharePost,
     reportPost,
     hidePost,
     blockUser,
-    checkIfUserFollowed,
-    checkIfPostSaved,
-    checkIfPostHidden,
-    checkIfUserBlocked,
-    loading
+    deletePost,
+    editPost
   };
 };

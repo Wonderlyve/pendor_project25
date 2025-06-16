@@ -154,30 +154,30 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
             )}
             {canFollowUser && (
               <DropdownMenuItem 
-                onClick={() => followUser()}
+                onClick={followUser}
                 disabled={loading.follow}
               >
                 {actionStates.followed ? 'Ne plus suivre' : 'Suivre'}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem 
-              onClick={() => savePost()}
+              onClick={savePost}
               disabled={loading.save}
             >
               {actionStates.saved ? 'Retirer des favoris' : 'Sauvegarder'}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => sharePost()}>
+            <DropdownMenuItem onClick={sharePost}>
               Partager
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => reportPost()}>
+            <DropdownMenuItem onClick={reportPost}>
               Signaler
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => hidePost()}>
+            <DropdownMenuItem onClick={hidePost}>
               Masquer
             </DropdownMenuItem>
             {canFollowUser && (
               <DropdownMenuItem 
-                onClick={() => blockUser()}
+                onClick={blockUser}
                 disabled={loading.block}
                 className="text-red-600"
               >
@@ -266,7 +266,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
           </CommentsBottomSheet>
 
           <button 
-            onClick={() => sharePost()}
+            onClick={sharePost}
             className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
           >
             <Share2 className="w-5 h-5" />
@@ -275,7 +275,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
         </div>
 
         <button
-          onClick={() => savePost()}
+          onClick={savePost}
           disabled={loading.save}
           className={`transition-colors ${
             actionStates.saved ? 'text-yellow-500' : 'text-gray-600 hover:text-yellow-500'
