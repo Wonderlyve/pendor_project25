@@ -27,6 +27,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actualCommentsCount, setActualCommentsCount] = useState(commentsCount);
+  const [isOpen, setIsOpen] = useState(false);
   const { comments, loading, createComment, likeComment } = useComments(postId);
   const { user } = useAuth();
 
@@ -52,6 +53,13 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
       } finally {
         setSubmitting(false);
       }
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendComment();
     }
   };
 
@@ -84,14 +92,14 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
               })}
             </span>
             <button 
-              className={`hover:text-gray-700 ${comment.is_liked ? 'text-red-500' : ''}`}
+              className={`hover:text-gray-700 transition-colors ${comment.is_liked ? 'text-red-500' : ''}`}
               onClick={() => likeComment(comment.id)}
               disabled={!user}
             >
               J'aime
             </button>
             <button 
-              className="hover:text-gray-700"
+              className="hover:text-gray-700 transition-colors"
               onClick={() => setReplyingTo(comment.id)}
               disabled={!user}
             >
@@ -103,7 +111,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
                 <span>{comment.likes_count}</span>
               </span>
             )}
-            <button className="hover:text-gray-700">
+            <button className="hover:text-gray-700 transition-colors">
               <MoreVertical className="w-3 h-3" />
             </button>
           </div>
@@ -118,7 +126,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
   );
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
@@ -150,8 +158,8 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
             )}
           </ScrollArea>
           
-          {/* Comment Input - Fixed at bottom with 6rem padding */}
-          <div className="border-t bg-white px-6 py-4 pb-24">
+          {/* Comment Input - Fixed at bottom */}
+          <div className="border-t bg-white px-6 py-4 pb-8">
             {replyingTo && (
               <div className="mb-3 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
                 Réponse à un commentaire...
@@ -174,7 +182,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
                   placeholder="Ajouter un commentaire..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
+                  onKeyPress={handleKeyPress}
                   className="pr-12 rounded-full border-gray-300 min-h-[44px] py-3"
                   disabled={!user || submitting}
                 />
@@ -182,7 +190,7 @@ const CommentsBottomSheet = ({ children, postId, commentsCount }: CommentsBottom
                   size="sm"
                   onClick={handleSendComment}
                   disabled={!newComment.trim() || !user || submitting}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full p-0 bg-blue-500 hover:bg-blue-600"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full p-0 bg-green-500 hover:bg-green-600"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
