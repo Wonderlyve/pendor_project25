@@ -54,10 +54,9 @@ interface PredictionCardProps {
     }>;
     is_liked?: boolean;
   };
-  onOpenModal: (data: any) => void;
 }
 
-const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
+const PredictionCard = ({ prediction }: PredictionCardProps) => {
   const navigate = useNavigate();
   const { requireAuth, user } = useAuth();
   const { likePost } = useOptimizedPosts();
