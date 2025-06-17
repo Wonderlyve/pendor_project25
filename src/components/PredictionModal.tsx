@@ -19,6 +19,8 @@ interface PredictionModalProps {
     successRate: number;
     sport: string;
     totalOdds?: string;
+    reservationCode?: string;
+    betType?: string;
     matches?: Array<{
       id: number;
       teams: string;
@@ -43,7 +45,7 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
     }
   ];
 
-  const isMultipleBet = matches.length > 1;
+  const isMultipleBet = prediction.betType === 'combine' || matches.length > 1;
 
   return (
     <ScrollArea className="max-h-[80vh] pr-4">
@@ -63,6 +65,60 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
           </div>
         </div>
 
+        {/* Titre avec icône pour les paris combinés */}
+        {isMultipleBet && (
+          <div className="flex items-center space-x-2 mb-3">
+            <Trophy className="w-5 h-5 text-blue-600" />
+            <span className="font-semibold text-gray-800">Match sélectionné</span>
+          </div>
+        )}
+
+        {/* Liste des matchs avec style similaire à l'image */}
+        <div className="space-y-2">
+          {matches.map((match, index) => (
+            <div key={match.id} className="bg-white border border-gray-200 rounded-lg p-3">
+              {/* En-tête du match */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold text-gray-900 text-sm">
+                  {match.teams}
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-500 mb-1">Cote</div>
+                  <div className="font-bold text-blue-600 text-lg">{match.odds}</div>
+                </div>
+              </div>
+              
+              {/* Détails du match */}
+              <div className="flex items-center space-x-4 text-xs text-gray-500 mb-2">
+                <div className="flex items-center space-x-1">
+                  <Trophy className="w-3 h-3" />
+                  <span>{match.league}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{match.time}</span>
+                </div>
+              </div>
+              
+              {/* Prédiction avec style vert */}
+              <div className="flex items-center space-x-2">
+                <span className="text-green-600 text-lg">⚽</span>
+                <span className="text-green-600 font-medium text-sm">{match.prediction}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Code de réservation */}
+        {prediction.reservationCode && (
+          <div className="bg-green-500 text-white p-4 rounded-lg text-center">
+            <div className="text-xs font-medium mb-1">CODE DE RÉSERVATION</div>
+            <div className="text-lg font-bold tracking-widest">
+              {prediction.reservationCode}
+            </div>
+          </div>
+        )}
+
         {/* Cote totale si pari multiple */}
         {prediction.totalOdds && isMultipleBet && (
           <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3">
@@ -80,53 +136,6 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
           </div>
         )}
 
-        {/* Liste des matchs avec disposition optimisée */}
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2 mb-2">
-            <Trophy className="w-4 h-4 text-blue-600" />
-            <span className="font-medium text-gray-800 text-sm">
-              {isMultipleBet ? 'Matchs du combiné' : 'Match sélectionné'}
-            </span>
-          </div>
-          
-          {matches.map((match, index) => (
-            <div key={match.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition-colors">
-              {/* En-tête du match */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0 pr-3">
-                  <div className="font-medium text-gray-900 text-sm leading-tight">
-                    {match.teams}
-                  </div>
-                  <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
-                    <div className="flex items-center space-x-1">
-                      <Trophy className="w-3 h-3 flex-shrink-0" />
-                      <span className="truncate">{match.league}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-3 h-3 flex-shrink-0" />
-                      <span>{match.time}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Cote individuelle */}
-                <div className="flex-shrink-0 text-right">
-                  <div className="text-xs text-gray-500 mb-1">Cote</div>
-                  <div className="font-bold text-blue-600 text-sm">{match.odds}</div>
-                </div>
-              </div>
-              
-              {/* Prédiction */}
-              <div className="mt-2">
-                <div className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                  <span className="mr-1">⚽</span>
-                  {match.prediction}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Analyse */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-3">
@@ -139,7 +148,10 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
         {/* Niveau de confiance */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-yellow-800 text-sm">🔥 Niveau de confiance</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">🔥</span>
+              <span className="font-medium text-yellow-800 text-sm">Niveau de confiance</span>
+            </div>
             <div className="flex items-center space-x-2">
               <div className="flex space-x-1">
                 {[...Array(5)].map((_, i) => (

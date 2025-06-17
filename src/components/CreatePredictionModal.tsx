@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { X, Calendar, TrendingUp, Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -36,6 +35,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
   const [analysis, setAnalysis] = useState('');
   const [confidence, setConfidence] = useState(3);
   const [sport, setSport] = useState('');
+  const [reservationCode, setReservationCode] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [lotoNumbers, setLotoNumbers] = useState<number[]>([]);
@@ -92,6 +92,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
           odds: 0,
           sport: 'Loto',
           prediction_text: `Numéros: ${lotoNumbers.join(', ')}`,
+          reservation_code: reservationCode || null,
           image_file: selectedImage,
           video_file: selectedVideo
         };
@@ -104,6 +105,9 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
 
         const totalOdds = betType === 'combine' ? parseFloat(calculateTotalOdds()) : parseFloat(validMatches[0].odds);
         
+        // Stocker les informations des matchs pour les paris combinés
+        const matchesData = betType === 'combine' ? validMatches : null;
+        
         postData = {
           sport,
           match_teams: validMatches.map(m => m.teams).join(' | '),
@@ -111,6 +115,9 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
           analysis,
           confidence,
           odds: totalOdds,
+          reservation_code: reservationCode || null,
+          bet_type: betType,
+          matches_data: matchesData ? JSON.stringify(matchesData) : null,
           image_file: selectedImage,
           video_file: selectedVideo
         };
@@ -135,6 +142,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
     setAnalysis('');
     setConfidence(3);
     setSport('');
+    setReservationCode('');
     setSelectedImage(null);
     setSelectedVideo(null);
     setBetType('simple');
@@ -364,6 +372,21 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                 selectedVideo={selectedVideo}
               />
             </Card>
+
+            {/* Code de réservation */}
+            {betType !== 'loto' && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Code de réservation (optionnel)
+                </label>
+                <Input
+                  placeholder="Ex: 255FGJ2586"
+                  value={reservationCode}
+                  onChange={(e) => setReservationCode(e.target.value)}
+                  className="font-mono text-center font-bold"
+                />
+              </div>
+            )}
           </div>
         </ScrollArea>
 

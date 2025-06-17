@@ -100,7 +100,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
         try {
           const [followed, saved, blocked] = await Promise.all([
             checkIfUserFollowed(prediction.user.username),
-            checkIfPostSaved(prediction.id.toString()),
+            checkIfPostSaved(prediction.id.toString()), // Convert to string here
             checkIfUserBlocked(prediction.user.username)
           ]);
           
@@ -198,16 +198,16 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
           setIsFollowed(newFollowState);
           break;
         case 'save':
-          await savePost(prediction.id.toString());
+          await savePost(prediction.id.toString()); // Convert to string here
           // Recharger l'état après l'action
-          const newSaveState = await checkIfPostSaved(prediction.id.toString());
+          const newSaveState = await checkIfPostSaved(prediction.id.toString()); // Convert to string here
           setIsSaved(newSaveState);
           break;
         case 'report':
-          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié');
+          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié'); // Convert to string here
           break;
         case 'hide':
-          await hidePost(prediction.id.toString());
+          await hidePost(prediction.id.toString()); // Convert to string here
           toast.info('Ce post a été masqué');
           break;
         case 'block':
@@ -246,7 +246,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
           url: postUrl,
         });
         // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'social');
+        await sharePost(prediction.id.toString(), 'social'); // Convert to string here
       } catch (error) {
         console.log('Partage annulé');
       }
@@ -255,7 +255,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
         await navigator.clipboard.writeText(postUrl);
         toast.success('Lien copié dans le presse-papier !');
         // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'link');
+        await sharePost(prediction.id.toString(), 'link'); // Convert to string here
       } catch (error) {
         toast.error('Impossible de copier le lien');
       }
@@ -266,7 +266,7 @@ const PredictionCard = ({ prediction }: PredictionCardProps) => {
     if (!requireAuth()) return;
     
     try {
-      await likePost(prediction.id.toString());
+      await likePost(prediction.id.toString()); // Convert to string here
       
       // La mise à jour locale est maintenant gérée dans useOptimizedPosts
       // mais on garde la logique locale pour une meilleure UX
