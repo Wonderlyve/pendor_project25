@@ -1,62 +1,74 @@
 
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Users, Trophy, BarChart3, Heart, MessageCircle, UserPlus, UserCheck } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import BottomNavigation from '@/components/BottomNavigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, UserPlus, UserMinus, Trophy, TrendingUp, Users, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { PredictionCard } from '@/components/PredictionCard';
 
-interface UserPost {
-  id: string;
-  content: string;
-  sport?: string;
-  match_teams?: string;
-  prediction_text?: string;
-  odds: number;
-  confidence: number;
-  likes: number;
-  comments: number;
-  created_at: string;
-  image_url?: string;
-}
-
-interface UserProfileData {
+interface UserData {
   id: string;
   username: string;
-  display_name: string;
-  avatar_url: string;
-  bio: string;
-  badge: string;
-  followers_count: number;
-  following_count: number;
-  posts_count: number;
-  success_rate: number;
+  full_name: string;
+  avatar_url?: string;
+  bio?: string;
+  website?: string;
+  location?: string;
+  created_at: string;
+  followers_count?: number;
+  following_count?: number;
+  posts_count?: number;
+  wins?: number;
+  losses?: number;
+  win_rate?: number;
+}
+
+interface Post {
+  id: string;
+  content: string;
+  image_url?: string;
+  video_url?: string;
+  created_at: string;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  type: 'simple' | 'combined';
+  matches?: any[];
+  total_odds?: number;
+  stake?: number;
+  potential_gain?: number;
+  sport?: string;
+  status?: 'pending' | 'won' | 'lost';
+  reservation_code?: string;
 }
 
 const UserProfile = () => {
+  const { username } = useParams();
   const navigate = useNavigate();
-  const { username } = useParams<{ username: string }>();
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<UserProfileData | null>(null);
-  const [userPosts, setUserPosts] = useState<UserPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user: currentUser } = useAuth();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     if (username) {
-      fetchUserProfile();
+      fetchUserData();
       fetchUserPosts();
-      checkFollowStatus();
+      if (currentUser) {
+        checkFollowStatus();
+      }
     }
-  }, [username, user]);
+  }, [username, currentUser]);
 
-  const fetchUserProfile = async () => {
+  const fetchUserData = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -64,343 +76,313 @@ const UserProfile = () => {
         .eq('username', username)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        toast.error('Utilisateur introuvable');
-        navigate('/');
-        return;
-      }
-
-      if (data) {
-        setProfile({
-          id: data.id,
-          username: data.username,
-          display_name: data.display_name || data.username,
-          avatar_url: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.id}`,
-          bio: data.bio || '',
-          badge: data.badge || 'Nouveau',
-          followers_count: data.followers_count || 0,
-          following_count: data.following_count || 0,
-          posts_count: 0,
-          success_rate: 75
-        });
-        setFollowersCount(data.followers_count || 0);
-      }
+      if (error) throw error;
+      setUserData(data);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching user data:', error);
       toast.error('Erreur lors du chargement du profil');
+    }
+  };
+
+  const fetchUserPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (username, full_name, avatar_url)
+        `)
+        .eq('profiles.username', username)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching user posts:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUserPosts = async () => {
-    if (!profile?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching user posts:', error);
-      } else {
-        setUserPosts(data || []);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
   const checkFollowStatus = async () => {
-    if (!user || !profile?.id) return;
+    if (!currentUser || !userData) return;
 
     try {
       const { data, error } = await supabase
-        .from('follows')
+        .from('user_follows')
         .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', profile.id)
+        .eq('follower_id', currentUser.id)
+        .eq('following_id', userData.id)
         .single();
 
-      setIsFollowing(!!data);
+      if (!error && data) {
+        setIsFollowing(true);
+      }
     } catch (error) {
       console.error('Error checking follow status:', error);
     }
   };
 
   const handleFollow = async () => {
-    if (!user || !profile) {
-      toast.error('Vous devez être connecté pour suivre cet utilisateur');
-      return;
-    }
+    if (!currentUser || !userData) return;
 
+    setFollowLoading(true);
     try {
       if (isFollowing) {
-        // Unfollow
         const { error } = await supabase
-          .from('follows')
+          .from('user_follows')
           .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', profile.id);
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', userData.id);
 
         if (error) throw error;
-        
         setIsFollowing(false);
-        setFollowersCount(prev => prev - 1);
         toast.success('Vous ne suivez plus cet utilisateur');
       } else {
-        // Follow
         const { error } = await supabase
-          .from('follows')
-          .insert({
-            follower_id: user.id,
-            following_id: profile.id
-          });
+          .from('user_follows')
+          .insert([
+            { follower_id: currentUser.id, following_id: userData.id }
+          ]);
 
         if (error) throw error;
-        
         setIsFollowing(true);
-        setFollowersCount(prev => prev + 1);
         toast.success('Vous suivez maintenant cet utilisateur');
       }
     } catch (error) {
-      console.error('Error following/unfollowing:', error);
+      console.error('Error toggling follow:', error);
       toast.error('Erreur lors de l\'action');
+    } finally {
+      setFollowLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric',
+      month: 'long'
     });
-  };
-
-  const getBadgeStyle = (badge: string) => {
-    switch (badge) {
-      case 'Pro':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Confirmé':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Expert':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
-        <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
-          <h1 className="text-2xl font-bold text-white">Profil</h1>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Chargement du profil...</p>
         </div>
-        <div className="p-4">
-          <div className="text-center py-8">
-            <p className="text-gray-500">Chargement du profil...</p>
-          </div>
-        </div>
-        <BottomNavigation />
       </div>
     );
   }
 
-  if (!profile) {
+  if (!userData) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
-        <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
-          <h1 className="text-2xl font-bold text-white">Profil introuvable</h1>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Utilisateur introuvable</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">L'utilisateur que vous recherchez n'existe pas.</p>
+          <Button onClick={() => navigate(-1)} className="mt-4">
+            Retour
+          </Button>
         </div>
-        <BottomNavigation />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 py-6 relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 text-white hover:bg-white/20"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        
-        <div className="text-center">
-          <div className="relative inline-block mb-4">
-            <img
-              src={profile.avatar_url}
-              alt="Profile"
-              className="w-24 h-24 rounded-full border-4 border-white mx-auto"
-            />
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Profil
+            </h1>
+            <div className="w-10" /> {/* Spacer */}
           </div>
-          
-          <div className="text-white">
-            <h1 className="text-2xl font-bold">{profile.display_name}</h1>
-            <p className="text-green-100">@{profile.username}</p>
-            <Badge variant="secondary" className="mt-2 bg-white/20 text-white border-white/30">
-              {profile.badge}
-            </Badge>
-            {profile.bio && (
-              <p className="text-green-100 mt-2 text-sm">{profile.bio}</p>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="flex justify-center space-x-8 mt-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{userPosts.length}</div>
-              <div className="text-green-100 text-sm">Posts</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{followersCount}</div>
-              <div className="text-green-100 text-sm">Abonnés</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{profile.following_count}</div>
-              <div className="text-green-100 text-sm">Abonnements</div>
-            </div>
-          </div>
-
-          {/* Follow Button */}
-          {user && user.id !== profile.id && (
-            <div className="mt-4">
-              <Button
-                onClick={handleFollow}
-                variant={isFollowing ? "secondary" : "default"}
-                className={isFollowing ? "bg-white/20 text-white border-white/30" : "bg-white text-green-600 hover:bg-gray-100"}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Suivi
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Suivre
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <Tabs defaultValue="activity" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="activity" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Activité
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
-              <Trophy className="w-4 h-4 mr-2" />
-              Statistiques
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="activity" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Posts de {profile.display_name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {userPosts.length > 0 ? (
-                  <div className="space-y-4">
-                    {userPosts.map((post) => (
-                      <div key={post.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            {post.sport && post.match_teams && (
-                              <div className="text-sm text-gray-600 mb-1">
-                                {post.sport} • {post.match_teams}
-                              </div>
-                            )}
-                            <p className="text-gray-800">{post.content}</p>
-                            {post.prediction_text && (
-                              <div className="mt-2 p-2 bg-green-50 rounded border-l-4 border-green-500">
-                                <p className="text-green-800 font-medium">{post.prediction_text}</p>
-                                <div className="flex items-center space-x-4 mt-1 text-sm text-green-600">
-                                  <span>Cote: {post.odds}</span>
-                                  <span>Confiance: {post.confidence}%</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {post.image_url && (
-                          <img
-                            src={post.image_url}
-                            alt="Post"
-                            className="mt-2 rounded-lg max-h-64 w-full object-cover"
-                          />
-                        )}
-                        
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span className="flex items-center">
-                              <Heart className="w-4 h-4 mr-1" />
-                              {post.likes}
-                            </span>
-                            <span className="flex items-center">
-                              <MessageCircle className="w-4 h-4 mr-1" />
-                              {post.comments}
-                            </span>
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            {formatDate(post.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Profile Header */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-4">
+              <Avatar className="w-20 h-20">
+                <AvatarImage src={userData.avatar_url} alt={userData.full_name} />
+                <AvatarFallback className="text-2xl">
+                  {userData.full_name?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {userData.full_name}
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">@{userData.username}</p>
                   </div>
-                ) : (
-                  <p className="text-gray-500">Aucun post publié</p>
+                  
+                  {currentUser && currentUser.id !== userData.id && (
+                    <Button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      variant={isFollowing ? "outline" : "default"}
+                      className="ml-4"
+                    >
+                      {isFollowing ? (
+                        <>
+                          <UserMinus className="w-4 h-4 mr-2" />
+                          Ne plus suivre
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Suivre
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {userData.bio && (
+                  <p className="text-gray-700 dark:text-gray-300 mt-2">{userData.bio}</p>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="stats" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Statistiques</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Taux de réussite</span>
-                    <span className="font-semibold text-green-600">{profile.success_rate}%</span>
+
+                <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>Rejoint en {formatDate(userData.created_at)}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Nombre de posts</span>
-                    <span className="font-semibold">{userPosts.length}</span>
+                  {userData.location && (
+                    <span>{userData.location}</span>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-4 gap-4 mt-4">
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {userData.posts_count || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Posts</div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Badge</span>
-                    <Badge variant="outline" className={getBadgeStyle(profile.badge)}>
-                      {profile.badge}
-                    </Badge>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {userData.followers_count || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Abonnés</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {userData.following_count || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Suivi</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {userData.win_rate ? `${userData.win_rate}%` : '0%'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Réussite</div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Content Tabs */}
+        <Tabs defaultValue="posts" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="posts">Pronostics</TabsTrigger>
+            <TabsTrigger value="stats">Statistiques</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-4">
+            {posts.length > 0 ? (
+              posts.map((post) => (
+                <PredictionCard
+                  key={post.id}
+                  id={post.id}
+                  user={{
+                    name: userData.full_name,
+                    username: userData.username,
+                    avatar: userData.avatar_url,
+                    isVerified: false
+                  }}
+                  type={post.type}
+                  sport={post.sport}
+                  matches={post.matches || []}
+                  totalOdds={post.total_odds}
+                  stake={post.stake}
+                  potentialGain={post.potential_gain}
+                  description={post.content}
+                  image={post.image_url}
+                  video={post.video_url}
+                  likes={post.likes_count}
+                  comments={post.comments_count}
+                  shares={post.shares_count}
+                  isLiked={false}
+                  isBookmarked={false}
+                  timestamp={new Date(post.created_at).toLocaleDateString('fr-FR')}
+                  status={post.status}
+                  reservationCode={post.reservation_code}
+                />
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  Aucun pronostic
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Cet utilisateur n'a pas encore publié de pronostics.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="stats" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3">
+                    <Trophy className="w-8 h-8 text-yellow-500" />
+                    <div>
+                      <h3 className="font-semibold">Pronostics gagnants</h3>
+                      <p className="text-2xl font-bold text-green-600">
+                        {userData.wins || 0}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3">
+                    <TrendingUp className="w-8 h-8 text-red-500" />
+                    <div>
+                      <h3 className="font-semibold">Pronostics perdants</h3>
+                      <p className="text-2xl font-bold text-red-600">
+                        {userData.losses || 0}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
-      
-      <BottomNavigation />
     </div>
   );
 };

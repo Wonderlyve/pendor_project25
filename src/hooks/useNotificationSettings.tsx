@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 export const useNotificationSettings = () => {
-  const [pushNotifications, setPushNotifications] = useState(false);
+  const [pushNotifications, setPushNotifications] = useState(true); // Activé par défaut
   const [emailNotifications, setEmailNotifications] = useState(false);
 
   useEffect(() => {
@@ -11,16 +11,18 @@ export const useNotificationSettings = () => {
     const savedPushNotifs = localStorage.getItem('pushNotifications');
     const savedEmailNotifs = localStorage.getItem('emailNotifications');
     
+    // Si aucun paramètre sauvegardé, activer les notifications push par défaut
     if (savedPushNotifs !== null) {
       setPushNotifications(JSON.parse(savedPushNotifs));
+    } else {
+      // Premier démarrage - activer par défaut et demander la permission
+      setPushNotifications(true);
+      localStorage.setItem('pushNotifications', 'true');
+      requestNotificationPermission();
     }
+    
     if (savedEmailNotifs !== null) {
       setEmailNotifications(JSON.parse(savedEmailNotifs));
-    }
-
-    // Vérifier les permissions existantes pour les notifications push
-    if ('Notification' in window) {
-      setPushNotifications(Notification.permission === 'granted');
     }
   }, []);
 

@@ -20,22 +20,32 @@ export const useNotifications = () => {
   const channelRef = useRef<any>(null);
 
   const playNotificationSound = () => {
-    // Créer un son de notification
+    // Créer un son de notification plus agréable
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
     
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5);
+    // Son de notification avec deux tonalités
+    const playTone = (frequency: number, startTime: number, duration: number) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+
+    // Jouer deux tons pour un son de notification plus agréable
+    const currentTime = audioContext.currentTime;
+    playTone(800, currentTime, 0.15);
+    playTone(600, currentTime + 0.1, 0.15);
   };
 
   const showBrowserNotification = (notification: Notification) => {
@@ -45,8 +55,11 @@ export const useNotifications = () => {
     if (pushNotificationsEnabled === 'true' && 'Notification' in window && Notification.permission === 'granted') {
       new Notification('Nouveau pronostic', {
         body: notification.content,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
+        icon: '/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png',
+        badge: '/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png',
+        tag: 'pendor-notification',
+        requireInteraction: false,
+        silent: false
       });
     }
   };
