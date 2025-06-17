@@ -6,10 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
-import UserProfile from "./pages/UserProfile";
 import LiveStreams from "./pages/LiveStreams";
 import LiveStream from "./pages/LiveStream";
 import Privacy from "./pages/Privacy";
@@ -39,13 +37,11 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <PWAInstallPrompt />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/user/:username" element={<UserProfile />} />
               <Route path="/channels" element={<Channels />} />
               <Route path="/lives" element={<LiveStreams />} />
               <Route path="/live/:id" element={<LiveStream />} />

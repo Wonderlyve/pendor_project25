@@ -1,408 +1,746 @@
-import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Heart, MessageCircle, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trophy, TrendingUp, Users, ChevronDown, ChevronUp } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { usePostActions } from '@/hooks/usePostActions';
-import { CommentsBottomSheet } from '@/components/CommentsBottomSheet';
-import { PredictionModal } from '@/components/PredictionModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
+import PredictionModal from './PredictionModal';
+import CommentsBottomSheet from './CommentsBottomSheet';
+import ProtectedComponent from './ProtectedComponent';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface Match {
-  teams: string;
-  prediction: string;
-  odds?: number;
-}
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
+import { usePostActions } from '@/hooks/usePostActions';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PredictionCardProps {
-  id: string;
-  user: {
-    name: string;
-    username: string;
-    avatar?: string;
-    isVerified?: boolean;
+  prediction: {
+    id: number;
+    user_id?: string;
+    user: {
+      username: string;
+      avatar: string;
+      badge: string;
+      badgeColor: string;
+    };
+    match: string;
+    prediction: string;
+    odds: string;
+    confidence: number;
+    analysis: string;
+    likes: number;
+    comments: number;
+    shares: number;
+    successRate: number;
+    timeAgo: string;
+    sport: string;
+    image?: string;
+    video?: string;
+    totalOdds?: string;
+    matches?: Array<{
+      id: number;
+      teams: string;
+      prediction: string;
+      odds: string;
+      league: string;
+      time: string;
+    }>;
+    is_liked?: boolean;
   };
-  type: 'simple' | 'combined';
-  sport?: string;
-  matches?: Match[];
-  totalOdds?: number;
-  stake?: number;
-  potentialGain?: number;
-  description?: string;
-  image?: string;
-  video?: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  isLiked: boolean;
-  isBookmarked: boolean;
-  timestamp: string;
-  status?: 'pending' | 'won' | 'lost';
-  isFollowing?: boolean;
-  reservationCode?: string;
+  onOpenModal: (data: any) => void;
 }
 
-export const PredictionCard = ({ 
-  id, 
-  user, 
-  type, 
-  sport,
-  matches = [], 
-  totalOdds,
-  stake,
-  potentialGain,
-  description, 
-  image, 
-  video,
-  likes, 
-  comments, 
-  shares, 
-  isLiked, 
-  isBookmarked, 
-  timestamp,
-  status = 'pending',
-  isFollowing = false,
-  reservationCode
-}: PredictionCardProps) => {
-  const [showComments, setShowComments] = useState(false);
-  const [showPredictionModal, setShowPredictionModal] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  
+  const { requireAuth, user } = useAuth();
+  const { likePost } = useOptimizedPosts();
   const { 
-    likePost, 
-    sharePost, 
+    followUser, 
     savePost, 
+    sharePost, 
     reportPost, 
-    blockUser, 
-    hidePost,
-    followUser,
-    loading 
+    hidePost, 
+    blockUser,
+    checkIfUserFollowed,
+    checkIfPostSaved,
+    checkIfUserBlocked,
+    loading: actionsLoading
   } = usePostActions();
+  
+  // Check if current user is the post owner
+  const isPostOwner = user && prediction.user_id && user.id === prediction.user_id;
+  const isCurrentUser = user && prediction.user.username === user.email?.split('@')[0];
 
-  const handleUserClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/user/${user.username}`);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
+  const [likesCount, setLikesCount] = useState(prediction.likes);
+  const [showControls, setShowControls] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hideControlsTimeout = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    const loadActionStates = async () => {
+      if (user && !actionStatesLoaded) {
+        console.log('Loading action states for user:', user.id, 'post:', prediction.id);
+        try {
+          const [followed, saved, blocked] = await Promise.all([
+            checkIfUserFollowed(prediction.user.username),
+            checkIfPostSaved(prediction.id.toString()), // Convert to string here
+            checkIfUserBlocked(prediction.user.username)
+          ]);
+          
+          setIsFollowed(followed);
+          setIsSaved(saved);
+          setIsBlocked(blocked);
+          setActionStatesLoaded(true);
+          
+          console.log('Action states loaded:', { followed, saved, blocked });
+        } catch (error) {
+          console.error('Error loading action states:', error);
+        }
+      }
+    };
+
+    loadActionStates();
+  }, [user, prediction.id, prediction.user.username, checkIfUserFollowed, checkIfPostSaved, checkIfUserBlocked, actionStatesLoaded]);
+
+  const handleProfileClick = async () => {
+    if (!requireAuth()) return;
+    
+    try {
+      // Get the user profile by username
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', prediction.user.username)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Profil introuvable');
+        return;
+      }
+
+      if (profile.id === user?.id) {
+        // Navigate to own profile
+        navigate('/profile');
+      } else {
+        // Navigate to other user's profile - for now just show a message
+        // In a real app, you'd navigate to a user profile page with the user ID
+        toast.info(`Profil de ${prediction.user.username} - Fonctionnalité en développement`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de l\'accès au profil');
+    }
   };
 
-  const handleLike = async () => {
-    await likePost(id);
+  const handleEditPost = () => {
+    toast.info('Modification du post - Fonctionnalité en développement');
+  };
+
+  const handleDeletePost = async () => {
+    if (!user || !isPostOwner) return;
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', prediction.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        toast.error('Erreur lors de la suppression');
+        return;
+      }
+
+      toast.success('Post supprimé avec succès');
+      // Refresh the page or remove the post from the list
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  const handleMenuAction = async (action: string) => {
+    if (!requireAuth()) return;
+    
+    console.log(`Executing action: ${action} for post ${prediction.id}`);
+    
+    try {
+      switch (action) {
+        case 'follow':
+          // Prevent users from following themselves
+          if (isCurrentUser) {
+            toast.error('Vous ne pouvez pas vous suivre vous-même');
+            return;
+          }
+          await followUser(prediction.user.username);
+          // Recharger l'état après l'action
+          const newFollowState = await checkIfUserFollowed(prediction.user.username);
+          setIsFollowed(newFollowState);
+          break;
+        case 'save':
+          await savePost(prediction.id.toString()); // Convert to string here
+          // Recharger l'état après l'action
+          const newSaveState = await checkIfPostSaved(prediction.id.toString()); // Convert to string here
+          setIsSaved(newSaveState);
+          break;
+        case 'report':
+          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié'); // Convert to string here
+          break;
+        case 'hide':
+          await hidePost(prediction.id.toString()); // Convert to string here
+          toast.info('Ce post a été masqué');
+          break;
+        case 'block':
+          await blockUser(prediction.user.username);
+          // Recharger l'état après l'action
+          const newBlockState = await checkIfUserBlocked(prediction.user.username);
+          setIsBlocked(newBlockState);
+          break;
+        case 'edit':
+          handleEditPost();
+          break;
+        case 'delete':
+          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
+            handleDeletePost();
+          }
+          break;
+        default:
+          console.log(`Action: ${action} on prediction ${prediction.id}`);
+      }
+    } catch (error) {
+      console.error(`Error executing action ${action}:`, error);
+      toast.error('Une erreur est survenue lors de l\'opération');
+    }
   };
 
   const handleShare = async () => {
-    await sharePost(id);
-  };
-
-  const handleReport = async () => {
-    await reportPost(id);
-  };
-
-  const handleBlock = async () => {
-    await blockUser(user.username);
-  };
-
-  const handleHide = async () => {
-    await hidePost(id);
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'won': return 'bg-green-500';
-      case 'lost': return 'bg-red-500';
-      default: return 'bg-yellow-500';
+    if (!requireAuth()) return;
+    
+    const postUrl = `${window.location.origin}/post/${prediction.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Pronostic de ${prediction.user.username}`,
+          text: `${prediction.match} - ${prediction.prediction}`,
+          url: postUrl,
+        });
+        // Enregistrer le partage en base
+        await sharePost(prediction.id.toString(), 'social'); // Convert to string here
+      } catch (error) {
+        console.log('Partage annulé');
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(postUrl);
+        toast.success('Lien copié dans le presse-papier !');
+        // Enregistrer le partage en base
+        await sharePost(prediction.id.toString(), 'link'); // Convert to string here
+      } catch (error) {
+        toast.error('Impossible de copier le lien');
+      }
     }
   };
 
-  const getStatusText = () => {
-    switch (status) {
-      case 'won': return 'Gagné';
-      case 'lost': return 'Perdu';
-      default: return 'En cours';
-    }
-  };
-
-  const renderMatches = () => {
-    if (type === 'combined' && matches.length > 0) {
-      const displayMatches = isExpanded ? matches : matches.slice(0, 2);
+  const handleLike = async () => {
+    if (!requireAuth()) return;
+    
+    try {
+      await likePost(prediction.id.toString()); // Convert to string here
       
-      return (
-        <div className="space-y-2">
-          {displayMatches.map((match, index) => (
-            <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{match.teams}</p>
-                  <p className="text-green-600 dark:text-green-400 text-sm font-medium">
-                    {match.prediction}
-                  </p>
-                </div>
-                {match.odds && (
-                  <Badge variant="outline" className="ml-2">
-                    {match.odds}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          ))}
-          
-          {matches.length > 2 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full text-blue-600 dark:text-blue-400"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronUp className="w-4 h-4 mr-1" />
-                  Voir moins
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-4 h-4 mr-1" />
-                  Voir {matches.length - 2} match(s) de plus
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      );
+      // La mise à jour locale est maintenant gérée dans useOptimizedPosts
+      // mais on garde la logique locale pour une meilleure UX
+      if (isLiked) {
+        setLikesCount(prev => prev - 1);
+        setIsLiked(false);
+      } else {
+        setLikesCount(prev => prev + 1);
+        setIsLiked(true);
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
     }
-
-    if (type === 'simple' && matches.length > 0) {
-      const match = matches[0];
-      return (
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-          <div className="flex justify-between items-center">
-            <div className="flex-1">
-              <p className="font-medium">{match.teams}</p>
-              <p className="text-green-600 dark:text-green-400 font-medium">
-                {match.prediction}
-              </p>
-            </div>
-            {match.odds && (
-              <Badge variant="outline" className="ml-2">
-                {match.odds}
-              </Badge>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return null;
   };
+
+  const handleVideoClick = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+      showControlsTemporarily();
+    }
+  };
+
+  const showControlsTemporarily = () => {
+    setShowControls(true);
+    if (hideControlsTimeout.current) {
+      clearTimeout(hideControlsTimeout.current);
+    }
+    hideControlsTimeout.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3000);
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (videoRef.current && duration > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const newTime = (clickX / rect.width) * duration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const updateProgress = () => {
+      setCurrentTime(video.currentTime);
+      setProgress((video.currentTime / video.duration) * 100);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+    };
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+      showControlsTemporarily();
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      setShowControls(true);
+    };
+
+    video.addEventListener('timeupdate', updateProgress);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+
+    return () => {
+      video.removeEventListener('timeupdate', updateProgress);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      if (hideControlsTimeout.current) {
+        clearTimeout(hideControlsTimeout.current);
+      }
+    };
+  }, []);
+
+  if (isBlocked) {
+    return null;
+  }
 
   return (
-    <>
-      <Card className="w-full mb-4 hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3 flex-1">
-              <Avatar 
-                className="cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={handleUserClick}
-              >
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  <span 
-                    className="font-semibold cursor-pointer hover:underline" 
-                    onClick={handleUserClick}
-                  >
-                    {user.name}
-                  </span>
-                  {user.isVerified && <Trophy className="w-4 h-4 text-yellow-500" />}
-                  <span className="text-gray-500 text-sm">@{user.username}</span>
-                </div>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-gray-500 text-sm">{timestamp}</span>
-                  {sport && <Badge variant="secondary" className="text-xs">{sport}</Badge>}
-                  <Badge className={`text-xs text-white ${getStatusColor()}`}>
-                    {getStatusText()}
-                  </Badge>
-                </div>
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        {/* User Info */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div 
+              className="relative cursor-pointer"
+              onClick={handleProfileClick}
+            >
+              <img
+                src={prediction.user.avatar}
+                alt={prediction.user.username}
+                className="w-10 h-10 rounded-full"
+              />
+              <div className={`absolute -bottom-1 -right-1 w-5 h-5 ${prediction.user.badgeColor} rounded-full flex items-center justify-center`}>
+                <span className="text-white text-xs font-bold">
+                  {prediction.user.badge === 'Confirmé' ? 'C' : prediction.user.badge === 'Pro' ? 'P' : 'N'}
+                </span>
               </div>
             </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={handleShare}>
-                  Partager
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleReport}>
-                  Signaler
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleBlock}>
-                  Bloquer @{user.username}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleHide}>
-                  Masquer ce post
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span 
+                  className="font-medium text-gray-900 cursor-pointer hover:underline"
+                  onClick={handleProfileClick}
+                >
+                  {prediction.user.username}
+                </span>
+                <span className="text-xs text-gray-500">{prediction.timeAgo}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                <span>{prediction.successRate}% de réussite</span>
+                <span>•</span>
+                <span className="px-2 py-1 bg-gray-100 rounded-full">{prediction.sport}</span>
+              </div>
+            </div>
           </div>
-        </CardHeader>
+          
+          {/* Menu 3 points */}
+          <ProtectedComponent fallback={
+            <button className="p-1 hover:bg-gray-100 rounded-full transition-colors opacity-50 cursor-not-allowed">
+              <MoreVertical className="w-4 h-4 text-gray-500" />
+            </button>
+          }>
+            <Drawer>
+              <DrawerTrigger asChild>
+                <button 
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  disabled={actionsLoading}
+                >
+                  <MoreVertical className="w-4 h-4 text-gray-500" />
+                </button>
+              </DrawerTrigger>
+              <DrawerContent className="h-[75vh] pb-8">
+                <DrawerHeader>
+                  <DrawerTitle>Options du post</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-4 space-y-3">
+                  {isPostOwner ? (
+                    <>
+                      <button 
+                        onClick={() => handleMenuAction('edit')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <Edit className="w-5 h-5 text-blue-600" />
+                        <span>Modifier ce post</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMenuAction('delete')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        <span>Supprimer ce post</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {!isCurrentUser && (
+                        <button 
+                          onClick={() => handleMenuAction('follow')}
+                          disabled={actionsLoading}
+                          className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                        >
+                          <span className="text-2xl">👤</span>
+                          <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleMenuAction('save')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">🔖</span>
+                        <span>{isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder'}</span>
+                      </button>
+                      <button 
+                        onClick={handleShare}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">📋</span>
+                        <span>Partager</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMenuAction('report')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">🚨</span>
+                        <span>Signaler</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMenuAction('hide')}
+                        disabled={actionsLoading}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
+                      >
+                        <span className="text-2xl">👁️</span>
+                        <span>Masquer ce post</span>
+                      </button>
+                      {!isCurrentUser && (
+                        <button 
+                          onClick={() => handleMenuAction('block')}
+                          disabled={actionsLoading}
+                          className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
+                        >
+                          <span className="text-2xl">🚫</span>
+                          <span>Bloquer l'utilisateur</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </ProtectedComponent>
+        </div>
 
-        <CardContent className="space-y-4">
-          {description && (
-            <p className="text-gray-800 dark:text-gray-200">{description}</p>
-          )}
-
-          {renderMatches()}
-
-          {(totalOdds || stake || potentialGain) && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                {totalOdds && (
-                  <div className="text-center">
-                    <p className="text-gray-600 dark:text-gray-400">Cote totale</p>
-                    <p className="font-bold text-blue-600 dark:text-blue-400">{totalOdds}</p>
-                  </div>
-                )}
-                {stake && (
-                  <div className="text-center">
-                    <p className="text-gray-600 dark:text-gray-400">Mise</p>
-                    <p className="font-bold">{stake}€</p>
-                  </div>
-                )}
-                {potentialGain && (
-                  <div className="text-center">
-                    <p className="text-gray-600 dark:text-gray-400">Gain potentiel</p>
-                    <p className="font-bold text-green-600 dark:text-green-400">{potentialGain}€</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {reservationCode && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Code de réservation</p>
-              <p className="font-mono font-bold text-lg">{reservationCode}</p>
-            </div>
-          )}
-
-          {image && (
-            <div className="rounded-lg overflow-hidden">
-              <img src={image} alt="Prediction" className="w-full h-auto" />
-            </div>
-          )}
-
-          {video && (
-            <div className="rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                className="w-full h-auto"
-                controls
-                playsInline
-              >
-                <source src={video} type="video/mp4" />
-                Votre navigateur ne supporte pas la lecture vidéo.
-              </video>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-            <div className="flex items-center space-x-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLike}
-                disabled={loading}
-                className={`flex items-center space-x-1 ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500`}
-              >
-                <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                <span>{likes}</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowComments(true)}
-                className="flex items-center space-x-1 text-gray-500 hover:text-blue-500"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>{comments}</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleShare}
-                disabled={loading}
-                className="flex items-center space-x-1 text-gray-500 hover:text-green-500"
-              >
-                <Share2 className="w-4 h-4" />
-                <span>{shares}</span>
-              </Button>
-            </div>
-
+        {/* Match Info */}
+        <div className="mb-3">
+          <div className="font-semibold text-lg text-gray-900 mb-2">{prediction.match}</div>
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => savePost(id)}
-                disabled={loading}
-                className={`${isBookmarked ? 'text-blue-500' : 'text-gray-500'} hover:text-blue-500`}
-              >
-                <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPredictionModal(true)}
-                className="text-sm"
-              >
-                Voir prono
-              </Button>
+              <span className="text-gray-600">Cote: {prediction.odds}</span>
+              {prediction.totalOdds && (
+                <span className="text-sm text-orange-600 font-medium">
+                  Cote totale: {prediction.totalOdds}
+                </span>
+              )}
             </div>
+            <ProtectedComponent fallback={
+              <Button variant="outline" size="sm" className="h-7 px-2 text-xs opacity-50 cursor-not-allowed">
+                Se connecter
+              </Button>
+            }>
+              {!isCurrentUser && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs"
+                  onClick={() => handleMenuAction('follow')}
+                  disabled={actionsLoading}
+                >
+                  {isFollowed ? 'Suivi' : 'Suivre'}
+                </Button>
+              )}
+            </ProtectedComponent>
           </div>
-        </CardContent>
-      </Card>
+          
+          {/* Confidence Stars */}
+          <div className="flex items-center space-x-1">
+            <span className="text-sm text-gray-600">Confiance:</span>
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`w-4 h-4 ${
+                  i < prediction.confidence ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                }`}
+              />
+            ))}
+            <span className="text-sm text-yellow-600 font-medium ml-1">
+              {prediction.confidence === 5 ? '🔥🔥' : prediction.confidence >= 4 ? '🔥' : ''}
+            </span>
+          </div>
+        </div>
 
-      <CommentsBottomSheet
-        postId={id}
-        isOpen={showComments}
-        onClose={() => setShowComments(false)}
-      />
+        {/* Media Content */}
+        {(prediction.image || prediction.video) && (
+          <div className="mb-4 rounded-lg overflow-hidden relative">
+            {prediction.video ? (
+              <div 
+                className={`relative cursor-pointer ${isFullscreen ? 'fixed inset-0 z-50 bg-black flex items-center justify-center' : ''}`}
+                onClick={handleVideoClick}
+                onMouseEnter={() => setShowControls(true)}
+                onMouseLeave={() => {
+                  if (isPlaying) {
+                    showControlsTemporarily();
+                  }
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  className={`object-cover ${isFullscreen ? 'max-w-full max-h-full' : 'w-full h-48'}`}
+                  poster="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=600&fit=crop"
+                  muted={isMuted}
+                  playsInline
+                  preload="metadata"
+                  controls={false}
+                >
+                  <source src={prediction.video} type="video/mp4" />
+                </video>
+                
+                {/* Contrôles vidéo */}
+                <div className={`absolute inset-0 transition-opacity duration-300 ${
+                  showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+                }`}>
+                  {/* Bouton Play/Pause central */}
+                  {!isPlaying && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                        <Play className="w-8 h-8 text-gray-800 ml-1" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Contrôles en bas */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                    {/* Barre de progression */}
+                    <div 
+                      className="w-full h-1 bg-white/30 rounded-full mb-2 cursor-pointer"
+                      onClick={handleProgressClick}
+                    >
+                      <div 
+                        className="h-full bg-white rounded-full transition-all duration-200"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    
+                    {/* Boutons de contrôle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={toggleMute}
+                          className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
+                        >
+                          {isMuted ? (
+                            <VolumeX className="w-4 h-4 text-white" />
+                          ) : (
+                            <Volume2 className="w-4 h-4 text-white" />
+                          )}
+                        </button>
+                        <span className="text-white text-xs">
+                          {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
+                      </div>
+                      
+                      <button 
+                        onClick={toggleFullscreen}
+                        className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
+                      >
+                        {isFullscreen ? (
+                          <Minimize className="w-4 h-4 text-white" />
+                        ) : (
+                          <Maximize className="w-4 h-4 text-white" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : prediction.image && (
+              <img
+                src={prediction.image}
+                alt="Contenu du post"
+                className="w-full h-48 object-cover"
+              />
+            )}
+          </div>
+        )}
 
-      <PredictionModal
-        isOpen={showPredictionModal}
-        onClose={() => setShowPredictionModal(false)}
-        prediction={{
-          id,
-          user,
-          type,
-          sport,
-          matches,
-          totalOdds,
-          stake,
-          potentialGain,
-          description,
-          image,
-          video,
-          likes,
-          comments,
-          shares,
-          isLiked,
-          isBookmarked,
-          timestamp,
-          status,
-          reservationCode
-        }}
-      />
-    </>
+        {/* Analysis */}
+        <div className="mb-4">
+          <p className="text-gray-700 text-sm leading-relaxed">{prediction.analysis}</p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <ProtectedComponent fallback={
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <Heart className="w-5 h-5" />
+                <span className="text-sm">{likesCount}</span>
+              </button>
+            }>
+              <button 
+                onClick={handleLike}
+                className={`flex items-center space-x-1 transition-colors ${
+                  isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
+                }`}
+              >
+                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                <span className="text-sm">{likesCount}</span>
+              </button>
+            </ProtectedComponent>
+            
+            <ProtectedComponent fallback={
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <MessageCircle className="w-5 h-5" />
+                <span className="text-sm">{prediction.comments}</span>
+              </button>
+            }>
+              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={prediction.comments}>
+                <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-sm">{prediction.comments}</span>
+                </button>
+              </CommentsBottomSheet>
+            </ProtectedComponent>
+            
+            <ProtectedComponent fallback={
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <Share className="w-5 h-5" />
+                <span className="text-sm">{prediction.shares}</span>
+              </button>
+            }>
+              <button 
+                onClick={handleShare}
+                className="flex items-center space-x-1 text-gray-600 hover:text-green-500 transition-colors"
+              >
+                <Share className="w-5 h-5" />
+                <span className="text-sm">{prediction.shares}</span>
+              </button>
+            </ProtectedComponent>
+          </div>
+          
+          <ProtectedComponent fallback={
+            <Button className="bg-gray-400 text-white text-xs px-2 py-1 h-7 cursor-not-allowed" size="sm" disabled>
+              Se connecter
+            </Button>
+          }>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 h-7" size="sm">
+                  Voir pronos
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Pronostics de {prediction.user.username}</DialogTitle>
+                </DialogHeader>
+                <PredictionModal prediction={prediction} />
+              </DialogContent>
+            </Dialog>
+          </ProtectedComponent>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
+
+export default PredictionCard;

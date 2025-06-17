@@ -1,40 +1,41 @@
 
-<!doctype html>
-<html lang="fr">
+<!DOCTYPE html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pendor - Pronostics Sportifs</title>
-    
-    <!-- PWA Configuration -->
+    <title>pendor-social-scores</title>
+    <meta name="description" content="Plateforme sociale de pronostics sportifs" />
+    <meta name="author" content="Lovable" />
+
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Theme colors -->
     <meta name="theme-color" content="#22c55e" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Pendor" />
+    <meta name="msapplication-TileColor" content="#22c55e" />
     
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png" />
-    
-    <!-- Apple Splash Screens -->
-    <link rel="apple-touch-startup-image" href="/lovable-uploads/c2a6370a-529d-41ee-846d-ca7370fde8db.png" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    
-    <!-- Meta tags pour SEO -->
-    <meta name="description" content="Plateforme sociale de pronostics sportifs - Partagez vos analyses et suivez les meilleurs pronostiqueurs" />
-    <meta name="keywords" content="pronostics, sport, paris sportifs, football, tennis, basketball" />
-    
+    <!-- Icons -->
+    <link rel="icon" href="/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png" type="image/png">
+    <link rel="apple-touch-icon" href="/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png" />
+
     <!-- Open Graph -->
-    <meta property="og:title" content="Pendor - Pronostics Sportifs" />
+    <meta property="og:title" content="Pendor Social Scores" />
     <meta property="og:description" content="Plateforme sociale de pronostics sportifs" />
-    <meta property="og:image" content="/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@pendor_app" />
+    <meta name="twitter:image" content="/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration -->
+    <!-- PWA Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -48,9 +49,5 @@
         });
       }
     </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

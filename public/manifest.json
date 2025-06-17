@@ -10,25 +10,25 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png",
+      "src": "/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png",
+      "src": "/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png",
+      "src": "/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/lovable-uploads/16ccdb07-6b84-45cd-aabe-109f7e2ecde1.png",
+      "src": "/lovable-uploads/35ad5651-d83e-4704-9851-61f3ad9fb0c3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -37,10 +37,16 @@
   "categories": ["sports", "social"],
   "screenshots": [
     {
-      "src": "/lovable-uploads/c2a6370a-529d-41ee-846d-ca7370fde8db.png",
+      "src": "/screenshot-mobile.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
     }
   ]
 }
