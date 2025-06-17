@@ -10,20 +10,20 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  // Toujours commencer en mode clair par défaut
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    // Récupérer la préférence du localStorage
+    // Récupérer uniquement la préférence du localStorage, ignorer la préférence système
     const savedTheme = localStorage.getItem('darkMode');
     if (savedTheme !== null) {
       const isDark = JSON.parse(savedTheme);
       setIsDarkMode(isDark);
       updateTheme(isDark);
     } else {
-      // Utiliser la préférence système par défaut
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(prefersDark);
-      updateTheme(prefersDark);
+      // Toujours commencer en mode clair, ne pas utiliser la préférence système
+      setIsDarkMode(false);
+      updateTheme(false);
     }
   }, []);
 

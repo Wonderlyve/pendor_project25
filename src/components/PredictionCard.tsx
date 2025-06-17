@@ -1,29 +1,18 @@
-import { Heart, MessageCircle, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+
+import { useState } from 'react';
+import { Heart, MessageCircle, Share2, MoreVertical, Eye, TrendingUp, Trophy, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 import PredictionModal from './PredictionModal';
 import CommentsBottomSheet from './CommentsBottomSheet';
-import ProtectedComponent from './ProtectedComponent';
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { usePostActions } from '@/hooks/usePostActions';
-import { supabase } from '@/integrations/supabase/client';
 
 interface PredictionCardProps {
   prediction: {
     id: number;
-    user_id?: string;
     user: {
       username: string;
       avatar: string;
@@ -43,702 +32,239 @@ interface PredictionCardProps {
     sport: string;
     image?: string;
     video?: string;
-    totalOdds?: string;
-    matches?: Array<{
-      id: number;
-      teams: string;
-      prediction: string;
-      odds: string;
-      league: string;
-      time: string;
-    }>;
     is_liked?: boolean;
   };
 }
 
 const PredictionCard = ({ prediction }: PredictionCardProps) => {
+  const [showComments, setShowComments] = useState(false);
   const navigate = useNavigate();
-  const { requireAuth, user } = useAuth();
-  const { likePost } = useOptimizedPosts();
-  const { 
-    followUser, 
-    savePost, 
-    sharePost, 
-    reportPost, 
-    hidePost, 
-    blockUser,
-    checkIfUserFollowed,
-    checkIfPostSaved,
-    checkIfUserBlocked,
-    loading: actionsLoading
-  } = usePostActions();
-  
-  // Check if current user is the post owner
-  const isPostOwner = user && prediction.user_id && user.id === prediction.user_id;
-  const isCurrentUser = user && prediction.user.username === user.email?.split('@')[0];
+  const { handleLike, handleShare, handleReport, handleBlock, handleHide } = usePostActions();
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
-  const [likesCount, setLikesCount] = useState(prediction.likes);
-  const [showControls, setShowControls] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isFollowed, setIsFollowed] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hideControlsTimeout = useRef<NodeJS.Timeout>();
+  const handleUserClick = () => {
+    navigate(`/user/${prediction.user.username}`);
+  };
 
-  useEffect(() => {
-    const loadActionStates = async () => {
-      if (user && !actionStatesLoaded) {
-        console.log('Loading action states for user:', user.id, 'post:', prediction.id);
-        try {
-          const [followed, saved, blocked] = await Promise.all([
-            checkIfUserFollowed(prediction.user.username),
-            checkIfPostSaved(prediction.id.toString()), // Convert to string here
-            checkIfUserBlocked(prediction.user.username)
-          ]);
-          
-          setIsFollowed(followed);
-          setIsSaved(saved);
-          setIsBlocked(blocked);
-          setActionStatesLoaded(true);
-          
-          console.log('Action states loaded:', { followed, saved, blocked });
-        } catch (error) {
-          console.error('Error loading action states:', error);
-        }
-      }
-    };
+  const onLike = async () => {
+    await handleLike(prediction.id.toString());
+  };
 
-    loadActionStates();
-  }, [user, prediction.id, prediction.user.username, checkIfUserFollowed, checkIfPostSaved, checkIfUserBlocked, actionStatesLoaded]);
+  const onShare = async () => {
+    await handleShare(prediction.id.toString(), prediction.analysis);
+  };
 
-  const handleProfileClick = async () => {
-    if (!requireAuth()) return;
-    
-    try {
-      // Get the user profile by username
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', prediction.user.username)
-        .single();
+  const onReport = async () => {
+    await handleReport(prediction.id.toString());
+  };
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        toast.error('Profil introuvable');
-        return;
-      }
+  const onBlock = async () => {
+    await handleBlock(prediction.id.toString());
+  };
 
-      if (profile.id === user?.id) {
-        // Navigate to own profile
-        navigate('/profile');
-      } else {
-        // Navigate to other user's profile - for now just show a message
-        // In a real app, you'd navigate to a user profile page with the user ID
-        toast.info(`Profil de ${prediction.user.username} - Fonctionnalité en développement`);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de l\'accès au profil');
+  const onHide = async () => {
+    await handleHide(prediction.id.toString());
+  };
+
+  const getBadgeStyle = () => {
+    switch (prediction.user.badge) {
+      case 'Pro':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Confirmé':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Expert':
+        return 'bg-gold-100 text-gold-800 border-gold-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const handleEditPost = () => {
-    toast.info('Modification du post - Fonctionnalité en développement');
+  const getConfidenceColor = () => {
+    if (prediction.confidence >= 4) return 'text-green-600';
+    if (prediction.confidence >= 3) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
-  const handleDeletePost = async () => {
-    if (!user || !isPostOwner) return;
-
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', prediction.id)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting post:', error);
-        toast.error('Erreur lors de la suppression');
-        return;
-      }
-
-      toast.success('Post supprimé avec succès');
-      // Refresh the page or remove the post from the list
-      window.location.reload();
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de la suppression');
-    }
+  const getConfidenceIcon = () => {
+    if (prediction.confidence === 5) return '🚀';
+    if (prediction.confidence >= 4) return '🔥';
+    if (prediction.confidence >= 3) return '⚡';
+    return '💫';
   };
-
-  const handleMenuAction = async (action: string) => {
-    if (!requireAuth()) return;
-    
-    console.log(`Executing action: ${action} for post ${prediction.id}`);
-    
-    try {
-      switch (action) {
-        case 'follow':
-          // Prevent users from following themselves
-          if (isCurrentUser) {
-            toast.error('Vous ne pouvez pas vous suivre vous-même');
-            return;
-          }
-          await followUser(prediction.user.username);
-          // Recharger l'état après l'action
-          const newFollowState = await checkIfUserFollowed(prediction.user.username);
-          setIsFollowed(newFollowState);
-          break;
-        case 'save':
-          await savePost(prediction.id.toString()); // Convert to string here
-          // Recharger l'état après l'action
-          const newSaveState = await checkIfPostSaved(prediction.id.toString()); // Convert to string here
-          setIsSaved(newSaveState);
-          break;
-        case 'report':
-          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié'); // Convert to string here
-          break;
-        case 'hide':
-          await hidePost(prediction.id.toString()); // Convert to string here
-          toast.info('Ce post a été masqué');
-          break;
-        case 'block':
-          await blockUser(prediction.user.username);
-          // Recharger l'état après l'action
-          const newBlockState = await checkIfUserBlocked(prediction.user.username);
-          setIsBlocked(newBlockState);
-          break;
-        case 'edit':
-          handleEditPost();
-          break;
-        case 'delete':
-          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
-            handleDeletePost();
-          }
-          break;
-        default:
-          console.log(`Action: ${action} on prediction ${prediction.id}`);
-      }
-    } catch (error) {
-      console.error(`Error executing action ${action}:`, error);
-      toast.error('Une erreur est survenue lors de l\'opération');
-    }
-  };
-
-  const handleShare = async () => {
-    if (!requireAuth()) return;
-    
-    const postUrl = `${window.location.origin}/post/${prediction.id}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Pronostic de ${prediction.user.username}`,
-          text: `${prediction.match} - ${prediction.prediction}`,
-          url: postUrl,
-        });
-        // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'social'); // Convert to string here
-      } catch (error) {
-        console.log('Partage annulé');
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(postUrl);
-        toast.success('Lien copié dans le presse-papier !');
-        // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'link'); // Convert to string here
-      } catch (error) {
-        toast.error('Impossible de copier le lien');
-      }
-    }
-  };
-
-  const handleLike = async () => {
-    if (!requireAuth()) return;
-    
-    try {
-      await likePost(prediction.id.toString()); // Convert to string here
-      
-      // La mise à jour locale est maintenant gérée dans useOptimizedPosts
-      // mais on garde la logique locale pour une meilleure UX
-      if (isLiked) {
-        setLikesCount(prev => prev - 1);
-        setIsLiked(false);
-      } else {
-        setLikesCount(prev => prev + 1);
-        setIsLiked(true);
-      }
-    } catch (error) {
-      console.error('Error liking post:', error);
-    }
-  };
-
-  const handleVideoClick = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        videoRef.current.play();
-        setIsPlaying(true);
-      }
-      showControlsTemporarily();
-    }
-  };
-
-  const showControlsTemporarily = () => {
-    setShowControls(true);
-    if (hideControlsTimeout.current) {
-      clearTimeout(hideControlsTimeout.current);
-    }
-    hideControlsTimeout.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3000);
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  const toggleFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsFullscreen(!isFullscreen);
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    if (videoRef.current && duration > 0) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const newTime = (clickX / rect.width) * duration;
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const updateProgress = () => {
-      setCurrentTime(video.currentTime);
-      setProgress((video.currentTime / video.duration) * 100);
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration);
-    };
-
-    const handlePlay = () => {
-      setIsPlaying(true);
-      showControlsTemporarily();
-    };
-
-    const handlePause = () => {
-      setIsPlaying(false);
-      setShowControls(true);
-    };
-
-    video.addEventListener('timeupdate', updateProgress);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-
-    return () => {
-      video.removeEventListener('timeupdate', updateProgress);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current);
-      }
-    };
-  }, []);
-
-  if (isBlocked) {
-    return null;
-  }
 
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        {/* User Info */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <div 
-              className="relative cursor-pointer"
-              onClick={handleProfileClick}
-            >
-              <img
-                src={prediction.user.avatar}
-                alt={prediction.user.username}
-                className="w-10 h-10 rounded-full"
-              />
-              <div className={`absolute -bottom-1 -right-1 w-5 h-5 ${prediction.user.badgeColor} rounded-full flex items-center justify-center`}>
-                <span className="text-white text-xs font-bold">
-                  {prediction.user.badge === 'Confirmé' ? 'C' : prediction.user.badge === 'Pro' ? 'P' : 'N'}
-                </span>
-              </div>
-            </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* Header avec profil utilisateur */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={handleUserClick}>
+            <img
+              src={prediction.user.avatar}
+              alt={prediction.user.username}
+              className="w-10 h-10 rounded-full"
+            />
             <div>
               <div className="flex items-center space-x-2">
-                <span 
-                  className="font-medium text-gray-900 cursor-pointer hover:underline"
-                  onClick={handleProfileClick}
-                >
+                <span className="font-semibold text-gray-900 text-sm">
                   {prediction.user.username}
                 </span>
-                <span className="text-xs text-gray-500">{prediction.timeAgo}</span>
+                <Badge variant="outline" className={`text-xs ${getBadgeStyle()}`}>
+                  {prediction.user.badge}
+                </Badge>
               </div>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <span>{prediction.successRate}% de réussite</span>
-                <span>•</span>
-                <span className="px-2 py-1 bg-gray-100 rounded-full">{prediction.sport}</span>
+              <div className="flex items-center space-x-3 text-xs text-gray-500">
+                <span className="flex items-center space-x-1">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>{prediction.successRate}% de réussite</span>
+                </span>
+                <span>{prediction.timeAgo}</span>
               </div>
             </div>
           </div>
           
-          {/* Menu 3 points */}
-          <ProtectedComponent fallback={
-            <button className="p-1 hover:bg-gray-100 rounded-full transition-colors opacity-50 cursor-not-allowed">
-              <MoreVertical className="w-4 h-4 text-gray-500" />
-            </button>
-          }>
-            <Drawer>
-              <DrawerTrigger asChild>
-                <button 
-                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                  disabled={actionsLoading}
-                >
-                  <MoreVertical className="w-4 h-4 text-gray-500" />
-                </button>
-              </DrawerTrigger>
-              <DrawerContent className="h-[75vh] pb-8">
-                <DrawerHeader>
-                  <DrawerTitle>Options du post</DrawerTitle>
-                </DrawerHeader>
-                <div className="p-4 space-y-3">
-                  {isPostOwner ? (
-                    <>
-                      <button 
-                        onClick={() => handleMenuAction('edit')}
-                        disabled={actionsLoading}
-                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                      >
-                        <Edit className="w-5 h-5 text-blue-600" />
-                        <span>Modifier ce post</span>
-                      </button>
-                      <button 
-                        onClick={() => handleMenuAction('delete')}
-                        disabled={actionsLoading}
-                        className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                        <span>Supprimer ce post</span>
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {!isCurrentUser && (
-                        <button 
-                          onClick={() => handleMenuAction('follow')}
-                          disabled={actionsLoading}
-                          className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                        >
-                          <span className="text-2xl">👤</span>
-                          <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => handleMenuAction('save')}
-                        disabled={actionsLoading}
-                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">🔖</span>
-                        <span>{isSaved ? 'Retirer des sauvegardes' : 'Sauvegarder'}</span>
-                      </button>
-                      <button 
-                        onClick={handleShare}
-                        disabled={actionsLoading}
-                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">📋</span>
-                        <span>Partager</span>
-                      </button>
-                      <button 
-                        onClick={() => handleMenuAction('report')}
-                        disabled={actionsLoading}
-                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">🚨</span>
-                        <span>Signaler</span>
-                      </button>
-                      <button 
-                        onClick={() => handleMenuAction('hide')}
-                        disabled={actionsLoading}
-                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">👁️</span>
-                        <span>Masquer ce post</span>
-                      </button>
-                      {!isCurrentUser && (
-                        <button 
-                          onClick={() => handleMenuAction('block')}
-                          disabled={actionsLoading}
-                          className="w-full text-left p-3 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-3 text-red-600 disabled:opacity-50"
-                        >
-                          <span className="text-2xl">🚫</span>
-                          <span>Bloquer l'utilisateur</span>
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </DrawerContent>
-            </Drawer>
-          </ProtectedComponent>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onReport}>
+                Signaler
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onBlock}>
+                Bloquer l'utilisateur
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onHide}>
+                Masquer ce post
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="p-4 space-y-3">
+        {/* Info du match */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Trophy className="w-4 h-4 text-orange-500" />
+            <span className="font-medium text-gray-900 text-sm">{prediction.sport}</span>
+          </div>
+          <div className="flex items-center space-x-1 text-gray-500 text-xs">
+            <Clock className="w-3 h-3" />
+            <span>20:00</span>
+          </div>
         </div>
 
-        {/* Match Info */}
-        <div className="mb-3">
-          <div className="font-semibold text-lg text-gray-900 mb-2">{prediction.match}</div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600">Cote: {prediction.odds}</span>
-              {prediction.totalOdds && (
-                <span className="text-sm text-orange-600 font-medium">
-                  Cote totale: {prediction.totalOdds}
-                </span>
-              )}
-            </div>
-            <ProtectedComponent fallback={
-              <Button variant="outline" size="sm" className="h-7 px-2 text-xs opacity-50 cursor-not-allowed">
-                Se connecter
-              </Button>
-            }>
-              {!isCurrentUser && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs"
-                  onClick={() => handleMenuAction('follow')}
-                  disabled={actionsLoading}
-                >
-                  {isFollowed ? 'Suivi' : 'Suivre'}
-                </Button>
-              )}
-            </ProtectedComponent>
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">{prediction.match}</h3>
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-green-600 font-medium">⚽ {prediction.prediction}</span>
+            <Badge variant="outline" className="text-blue-600 border-blue-200">
+              Cote: {prediction.odds}
+            </Badge>
           </div>
-          
-          {/* Confidence Stars */}
+        </div>
+
+        {/* Niveau de confiance */}
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600">Confiance:</span>
           <div className="flex items-center space-x-1">
-            <span className="text-sm text-gray-600">Confiance:</span>
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className={`w-4 h-4 ${
-                  i < prediction.confidence ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                }`}
-              />
-            ))}
-            <span className="text-sm text-yellow-600 font-medium ml-1">
-              {prediction.confidence === 5 ? '🔥🔥' : prediction.confidence >= 4 ? '🔥' : ''}
+            <div className="flex space-x-1">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full ${
+                    i < prediction.confidence ? 'bg-yellow-400' : 'bg-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className={`text-sm font-medium ${getConfidenceColor()}`}>
+              {prediction.confidence}/5 {getConfidenceIcon()}
             </span>
           </div>
         </div>
 
-        {/* Media Content */}
-        {(prediction.image || prediction.video) && (
-          <div className="mb-4 rounded-lg overflow-hidden relative">
-            {prediction.video ? (
-              <div 
-                className={`relative cursor-pointer ${isFullscreen ? 'fixed inset-0 z-50 bg-black flex items-center justify-center' : ''}`}
-                onClick={handleVideoClick}
-                onMouseEnter={() => setShowControls(true)}
-                onMouseLeave={() => {
-                  if (isPlaying) {
-                    showControlsTemporarily();
-                  }
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  className={`object-cover ${isFullscreen ? 'max-w-full max-h-full' : 'w-full h-48'}`}
-                  poster="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=600&fit=crop"
-                  muted={isMuted}
-                  playsInline
-                  preload="metadata"
-                  controls={false}
-                >
-                  <source src={prediction.video} type="video/mp4" />
-                </video>
-                
-                {/* Contrôles vidéo */}
-                <div className={`absolute inset-0 transition-opacity duration-300 ${
-                  showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
-                }`}>
-                  {/* Bouton Play/Pause central */}
-                  {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
-                        <Play className="w-8 h-8 text-gray-800 ml-1" />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Contrôles en bas */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                    {/* Barre de progression */}
-                    <div 
-                      className="w-full h-1 bg-white/30 rounded-full mb-2 cursor-pointer"
-                      onClick={handleProgressClick}
-                    >
-                      <div 
-                        className="h-full bg-white rounded-full transition-all duration-200"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    
-                    {/* Boutons de contrôle */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <button 
-                          onClick={toggleMute}
-                          className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
-                        >
-                          {isMuted ? (
-                            <VolumeX className="w-4 h-4 text-white" />
-                          ) : (
-                            <Volume2 className="w-4 h-4 text-white" />
-                          )}
-                        </button>
-                        <span className="text-white text-xs">
-                          {formatTime(currentTime)} / {formatTime(duration)}
-                        </span>
-                      </div>
-                      
-                      <button 
-                        onClick={toggleFullscreen}
-                        className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
-                      >
-                        {isFullscreen ? (
-                          <Minimize className="w-4 h-4 text-white" />
-                        ) : (
-                          <Maximize className="w-4 h-4 text-white" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : prediction.image && (
-              <img
-                src={prediction.image}
-                alt="Contenu du post"
-                className="w-full h-48 object-cover"
-              />
-            )}
-          </div>
+        {/* Image ou vidéo si présente */}
+        {prediction.image && (
+          <img
+            src={prediction.image}
+            alt="Prédiction"
+            className="w-full h-48 object-cover rounded-lg"
+          />
         )}
 
-        {/* Analysis */}
-        <div className="mb-4">
-          <p className="text-gray-700 text-sm leading-relaxed">{prediction.analysis}</p>
+        {prediction.video && (
+          <video
+            src={prediction.video}
+            controls
+            className="w-full h-48 rounded-lg"
+          />
+        )}
+
+        {/* Analyse courte */}
+        <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
+          {prediction.analysis}
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLike}
+            className={`flex items-center space-x-1 ${
+              prediction.is_liked ? 'text-red-500' : 'text-gray-500'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${prediction.is_liked ? 'fill-current' : ''}`} />
+            <span className="text-xs">{prediction.likes}</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowComments(true)}
+            className="flex items-center space-x-1 text-gray-500"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-xs">{prediction.comments}</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onShare}
+            className="flex items-center space-x-1 text-gray-500"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="text-xs">{prediction.shares}</span>
+          </Button>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
-                <Heart className="w-5 h-5" />
-                <span className="text-sm">{likesCount}</span>
-              </button>
-            }>
-              <button 
-                onClick={handleLike}
-                className={`flex items-center space-x-1 transition-colors ${
-                  isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="text-sm">{likesCount}</span>
-              </button>
-            </ProtectedComponent>
-            
-            <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">{prediction.comments}</span>
-              </button>
-            }>
-              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={prediction.comments}>
-                <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm">{prediction.comments}</span>
-                </button>
-              </CommentsBottomSheet>
-            </ProtectedComponent>
-            
-            <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
-                <Share className="w-5 h-5" />
-                <span className="text-sm">{prediction.shares}</span>
-              </button>
-            }>
-              <button 
-                onClick={handleShare}
-                className="flex items-center space-x-1 text-gray-600 hover:text-green-500 transition-colors"
-              >
-                <Share className="w-5 h-5" />
-                <span className="text-sm">{prediction.shares}</span>
-              </button>
-            </ProtectedComponent>
-          </div>
-          
-          <ProtectedComponent fallback={
-            <Button className="bg-gray-400 text-white text-xs px-2 py-1 h-7 cursor-not-allowed" size="sm" disabled>
-              Se connecter
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center space-x-1">
+              <Eye className="w-4 h-4" />
+              <span className="text-xs">Voir prono</span>
             </Button>
-          }>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 h-7" size="sm">
-                  Voir pronos
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Pronostics de {prediction.user.username}</DialogTitle>
-                </DialogHeader>
-                <PredictionModal prediction={prediction} />
-              </DialogContent>
-            </Dialog>
-          </ProtectedComponent>
-        </div>
-      </CardContent>
-    </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] p-0">
+            <PredictionModal prediction={prediction} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Comments Bottom Sheet */}
+      <CommentsBottomSheet
+        open={showComments}
+        onOpenChange={setShowComments}
+        postId={prediction.id.toString()}
+      />
+    </div>
   );
 };
 
