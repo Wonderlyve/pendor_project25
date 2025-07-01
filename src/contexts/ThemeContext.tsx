@@ -20,10 +20,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       setIsDarkMode(isDark);
       updateTheme(isDark);
     } else {
-      // Utiliser la préférence système par défaut
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(prefersDark);
-      updateTheme(prefersDark);
+      // Toujours commencer en mode clair par défaut
+      setIsDarkMode(false);
+      updateTheme(false);
+      localStorage.setItem('darkMode', JSON.stringify(false));
     }
   }, []);
 
