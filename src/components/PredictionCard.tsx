@@ -54,7 +54,7 @@ interface PredictionCardProps {
     }>;
     is_liked?: boolean;
   };
-  onOpenModal: (data: any) => void;
+  onOpenModal?: (data: any) => void;
 }
 
 const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {

@@ -53,6 +53,11 @@ const Index = () => {
     loadUserFilters();
   }, [user]);
 
+  const handleOpenModal = (data: any) => {
+    // Modal handling logic if needed
+    console.log('Opening modal with data:', data);
+  };
+
   const filteredPosts = posts.filter(post => {
     // Filtrer par recherche
     const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,7 +187,11 @@ const Index = () => {
           </div>
         ) : (
           filteredPosts.map((post) => (
-            <PredictionCard key={post.id} prediction={transformPostToPrediction(post)} />
+            <PredictionCard 
+              key={post.id} 
+              prediction={transformPostToPrediction(post)} 
+              onOpenModal={handleOpenModal}
+            />
           ))
         )}
 
