@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Menu, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import PredictionCard from '@/components/PredictionCard';
 import BottomNavigation from '@/components/BottomNavigation';
 import SideMenu from '@/components/SideMenu';
 import NotificationIcon from '@/components/NotificationIcon';
-import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
+import { useOptimizedPostsFixed } from '@/hooks/useOptimizedPostsFixed';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import PostSkeleton from '@/optimization/PostSkeleton';
@@ -17,7 +18,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
-  const { posts, loading, initialLoading } = useOptimizedPosts();
+  const { posts, loading, initialLoading } = useOptimizedPostsFixed();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -32,16 +33,24 @@ const Index = () => {
 
       try {
         // Charger les posts masqués
-        const { data: hiddenPosts } = await supabase
+        const { data: hiddenPosts, error: hiddenError } = await supabase
           .from('hidden_posts')
           .select('post_id')
           .eq('user_id', user.id);
 
+        if (hiddenError && hiddenError.code !== 'PGRST116') {
+          console.error('Error loading hidden posts:', hiddenError);
+        }
+
         // Charger les utilisateurs bloqués
-        const { data: blockedUsers } = await supabase
+        const { data: blockedUsers, error: blockedError } = await supabase
           .from('blocked_users')
           .select('blocked_id')
           .eq('blocker_id', user.id);
+
+        if (blockedError && blockedError.code !== 'PGRST116') {
+          console.error('Error loading blocked users:', blockedError);
+        }
 
         setHiddenPostIds(hiddenPosts?.map(hp => hp.post_id) || []);
         setBlockedUserIds(blockedUsers?.map(bu => bu.blocked_id) || []);
@@ -54,13 +63,15 @@ const Index = () => {
   }, [user]);
 
   const handleOpenModal = (data: any) => {
-    // Modal handling logic if needed
     console.log('Opening modal with data:', data);
   };
 
   const filteredPosts = posts.filter(post => {
+    // Vérifier que l'ID du post est valide
+    if (!post.id || post.id === 'undefined') return false;
+
     // Filtrer par recherche
-    const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = post.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.match_teams?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.sport?.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -83,30 +94,45 @@ const Index = () => {
     }
   };
 
-  // Transform Post to PredictionCard format
-  const transformPostToPrediction = (post: any) => ({
-    id: parseInt(post.id),
-    user: {
-      username: post.display_name || post.username || 'Utilisateur',
-      avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,
-      badge: post.badge || 'Nouveau',
-      badgeColor: post.badge === 'Pro' ? 'bg-purple-500' : post.badge === 'Confirmé' ? 'bg-blue-500' : 'bg-gray-500'
-    },
-    match: post.match_teams || 'Match non spécifié',
-    prediction: post.prediction_text || 'Pronostic non spécifié',
-    odds: post.odds?.toString() || '1.00',
-    confidence: post.confidence || 0,
-    analysis: post.analysis || post.content || '',
-    likes: post.likes || 0,
-    comments: post.comments || 0,
-    shares: post.shares || 0,
-    successRate: 75, // Default value, should come from user stats
-    timeAgo: new Date(post.created_at).toLocaleDateString('fr-FR'),
-    sport: post.sport || 'Sport',
-    image: post.image_url,
-    video: post.video_url,
-    is_liked: post.is_liked || false
-  });
+  // Transform Post to PredictionCard format avec validation des IDs
+  const transformPostToPrediction = (post: any) => {
+    // S'assurer que l'ID est un nombre valide
+    const postId = post.id ? parseInt(post.id, 10) : 0;
+    
+    if (isNaN(postId) || postId === 0) {
+      console.error('Invalid post ID detected:', post.id);
+      return null;
+    }
+
+    return {
+      id: postId,
+      user: {
+        username: post.display_name || post.username || 'Utilisateur',
+        avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,
+        badge: post.badge || 'Nouveau',
+        badgeColor: post.badge === 'Pro' ? 'bg-purple-500' : post.badge === 'Confirmé' ? 'bg-blue-500' : 'bg-gray-500'
+      },
+      match: post.match_teams || 'Match non spécifié',
+      prediction: post.prediction_text || 'Pronostic non spécifié',
+      odds: post.odds?.toString() || '1.00',
+      confidence: post.confidence || 0,
+      analysis: post.analysis || post.content || '',
+      likes: post.likes || 0,
+      comments: post.comments || 0,
+      shares: post.shares || 0,
+      successRate: 75,
+      timeAgo: new Date(post.created_at).toLocaleDateString('fr-FR'),
+      sport: post.sport || 'Sport',
+      image: post.image_url,
+      video: post.video_url,
+      is_liked: post.is_liked || false
+    };
+  };
+
+  // Filtrer les posts transformés pour exclure les null
+  const validTransformedPosts = filteredPosts
+    .map(transformPostToPrediction)
+    .filter(post => post !== null);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -179,17 +205,17 @@ const Index = () => {
               <PostSkeleton key={i} />
             ))}
           </div>
-        ) : filteredPosts.length === 0 ? (
+        ) : validTransformedPosts.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500">
               {searchQuery ? 'Aucun pronostic trouvé pour votre recherche.' : 'Aucun pronostic disponible.'}
             </p>
           </div>
         ) : (
-          filteredPosts.map((post) => (
+          validTransformedPosts.map((prediction) => (
             <PredictionCard 
-              key={post.id} 
-              prediction={transformPostToPrediction(post)} 
+              key={prediction.id} 
+              prediction={prediction} 
               onOpenModal={handleOpenModal}
             />
           ))
