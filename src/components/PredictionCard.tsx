@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/drawer';
 import PredictionModal from './PredictionModal';
 import ProtectedComponent from './ProtectedComponent';
+import CommentsBottomSheet from './CommentsBottomSheet';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -90,6 +91,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const [isSaved, setIsSaved] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
@@ -687,11 +689,20 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
               </button>
             </ProtectedComponent>
             
-            {/* Commentaires supprimés - affichage simple du nombre */}
-            <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
-              <MessageCircle className="w-5 h-5" />
-              <span className="text-sm">{prediction.comments}</span>
-            </button>
+            <ProtectedComponent fallback={
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <MessageCircle className="w-5 h-5" />
+                <span className="text-sm">{prediction.comments}</span>
+              </button>
+            }>
+              <button 
+                onClick={() => setCommentsOpen(true)}
+                className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span className="text-sm">{prediction.comments}</span>
+              </button>
+            </ProtectedComponent>
             
             <ProtectedComponent fallback={
               <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
@@ -730,6 +741,14 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           </ProtectedComponent>
         </div>
       </CardContent>
+
+      {/* Comments Bottom Sheet */}
+      <CommentsBottomSheet
+        postId={prediction.id.toString()}
+        isOpen={commentsOpen}
+        onOpenChange={setCommentsOpen}
+        commentsCount={prediction.comments}
+      />
     </Card>
   );
 };
