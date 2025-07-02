@@ -10,7 +10,6 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import PredictionModal from './PredictionModal';
-import CommentsBottomSheet from './CommentsBottomSheet';
 import ProtectedComponent from './ProtectedComponent';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +100,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
         try {
           const [followed, saved, blocked] = await Promise.all([
             checkIfUserFollowed(prediction.user.username),
-            checkIfPostSaved(prediction.id.toString()), // Convert to string here
+            checkIfPostSaved(prediction.id.toString()),
             checkIfUserBlocked(prediction.user.username)
           ]);
           
@@ -199,16 +198,16 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           setIsFollowed(newFollowState);
           break;
         case 'save':
-          await savePost(prediction.id.toString()); // Convert to string here
+          await savePost(prediction.id.toString());
           // Recharger l'état après l'action
-          const newSaveState = await checkIfPostSaved(prediction.id.toString()); // Convert to string here
+          const newSaveState = await checkIfPostSaved(prediction.id.toString());
           setIsSaved(newSaveState);
           break;
         case 'report':
-          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié'); // Convert to string here
+          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié');
           break;
         case 'hide':
-          await hidePost(prediction.id.toString()); // Convert to string here
+          await hidePost(prediction.id.toString());
           toast.info('Ce post a été masqué');
           break;
         case 'block':
@@ -247,7 +246,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           url: postUrl,
         });
         // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'social'); // Convert to string here
+        await sharePost(prediction.id.toString(), 'social');
       } catch (error) {
         console.log('Partage annulé');
       }
@@ -256,7 +255,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
         await navigator.clipboard.writeText(postUrl);
         toast.success('Lien copié dans le presse-papier !');
         // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'link'); // Convert to string here
+        await sharePost(prediction.id.toString(), 'link');
       } catch (error) {
         toast.error('Impossible de copier le lien');
       }
@@ -267,7 +266,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
     if (!requireAuth()) return;
     
     try {
-      await likePost(prediction.id.toString()); // Convert to string here
+      await likePost(prediction.id.toString());
       
       // La mise à jour locale est maintenant gérée dans useOptimizedPosts
       // mais on garde la logique locale pour une meilleure UX
@@ -688,19 +687,11 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
               </button>
             </ProtectedComponent>
             
-            <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">{prediction.comments}</span>
-              </button>
-            }>
-              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={prediction.comments}>
-                <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm">{prediction.comments}</span>
-                </button>
-              </CommentsBottomSheet>
-            </ProtectedComponent>
+            {/* Commentaires supprimés - affichage simple du nombre */}
+            <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+              <MessageCircle className="w-5 h-5" />
+              <span className="text-sm">{prediction.comments}</span>
+            </button>
             
             <ProtectedComponent fallback={
               <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
