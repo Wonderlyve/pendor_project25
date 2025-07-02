@@ -163,7 +163,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
       const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', prediction.id)
+        .eq('id', prediction.id.toString())
         .eq('user_id', user.id);
 
       if (error) {

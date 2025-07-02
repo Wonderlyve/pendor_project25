@@ -64,6 +64,13 @@ export const useComments = (postId: string) => {
       // Transform and organize comments
       const transformedComments = commentsData?.map(comment => ({
         ...comment,
+        likes_count: comment.likes_count || 0,
+        profiles: comment.profiles || {
+          username: 'Utilisateur inconnu',
+          display_name: 'Utilisateur inconnu',
+          avatar_url: null,
+          badge: null
+        },
         is_liked: userLikes.includes(comment.id),
         replies: [] as Comment[]
       })) || [];
