@@ -30,11 +30,13 @@ export const useComments = (postId: string) => {
 
   const fetchComments = async () => {
     try {
+      console.log('Fetching comments for post:', postId);
+      
       const { data: commentsData, error } = await supabase
         .from('comments')
         .select(`
           *,
-          profiles:user_id (
+          profiles!comments_user_id_fkey (
             username,
             display_name,
             avatar_url,
@@ -46,8 +48,11 @@ export const useComments = (postId: string) => {
 
       if (error) {
         console.error('Error fetching comments:', error);
+        toast.error('Erreur lors du chargement des commentaires');
         return;
       }
+
+      console.log('Comments fetched:', commentsData);
 
       // Fetch likes for authenticated user
       let userLikes: string[] = [];
@@ -65,7 +70,12 @@ export const useComments = (postId: string) => {
       const transformedComments = commentsData?.map(comment => ({
         ...comment,
         likes_count: comment.likes_count || 0,
-        profiles: comment.profiles || {
+        profiles: comment.profiles ? {
+          username: comment.profiles.username || 'Utilisateur',
+          display_name: comment.profiles.display_name || 'Utilisateur',
+          avatar_url: comment.profiles.avatar_url || null,
+          badge: comment.profiles.badge || null
+        } : {
           username: 'Utilisateur inconnu',
           display_name: 'Utilisateur inconnu',
           avatar_url: null,
@@ -95,6 +105,7 @@ export const useComments = (postId: string) => {
         comment.replies = repliesMap[comment.id] || [];
       });
 
+      console.log('Organized comments:', rootComments);
       setComments(rootComments);
     } catch (error) {
       console.error('Error:', error);
@@ -111,6 +122,8 @@ export const useComments = (postId: string) => {
     }
 
     try {
+      console.log('Creating comment:', { content, parentId, postId, userId: user.id });
+      
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -121,7 +134,7 @@ export const useComments = (postId: string) => {
         })
         .select(`
           *,
-          profiles:user_id (
+          profiles!comments_user_id_fkey (
             username,
             display_name,
             avatar_url,
@@ -136,6 +149,7 @@ export const useComments = (postId: string) => {
         return null;
       }
 
+      console.log('Comment created:', data);
       toast.success('Commentaire ajouté avec succès !');
       fetchComments(); // Refresh comments
       return data;
@@ -153,6 +167,8 @@ export const useComments = (postId: string) => {
     }
 
     try {
+      console.log('Toggling like for comment:', commentId);
+      
       // Check if already liked
       const { data: existingLike } = await supabase
         .from('comment_likes')
@@ -173,6 +189,7 @@ export const useComments = (postId: string) => {
           console.error('Error unliking comment:', error);
           return;
         }
+        console.log('Comment unliked');
       } else {
         // Like
         const { error } = await supabase
@@ -186,6 +203,7 @@ export const useComments = (postId: string) => {
           console.error('Error liking comment:', error);
           return;
         }
+        console.log('Comment liked');
       }
 
       fetchComments(); // Refresh comments to update like counts
@@ -198,6 +216,8 @@ export const useComments = (postId: string) => {
     if (!user) return;
 
     try {
+      console.log('Deleting comment:', commentId);
+      
       const { error } = await supabase
         .from('comments')
         .delete()
@@ -210,6 +230,7 @@ export const useComments = (postId: string) => {
         return;
       }
 
+      console.log('Comment deleted');
       toast.success('Commentaire supprimé avec succès');
       fetchComments(); // Refresh comments
     } catch (error) {
@@ -219,7 +240,9 @@ export const useComments = (postId: string) => {
   };
 
   useEffect(() => {
-    fetchComments();
+    if (postId) {
+      fetchComments();
+    }
   }, [postId, user]);
 
   return {

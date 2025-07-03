@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Heart, Reply, Trash2, Send } from 'lucide-react';
+import { Heart, Reply, Trash2, Send, User } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -41,11 +41,17 @@ const CommentItem = ({
   return (
     <div className={`${isReply ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}`}>
       <div className="flex items-start space-x-3 p-3">
-        <img
-          src={comment.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user_id}`}
-          alt={comment.profiles?.username || 'User'}
-          className="w-8 h-8 rounded-full flex-shrink-0"
-        />
+        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+          {comment.profiles?.avatar_url ? (
+            <img
+              src={comment.profiles.avatar_url}
+              alt={comment.profiles.username || 'User'}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <User className="w-4 h-4 text-gray-500" />
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2 mb-1">
             <span className="font-medium text-sm text-gray-900">
@@ -70,17 +76,17 @@ const CommentItem = ({
           <div className="flex items-center space-x-4">
             <button
               onClick={() => onLike(comment.id)}
-              className={`flex items-center space-x-1 text-sm ${
+              className={`flex items-center space-x-1 text-sm transition-colors ${
                 comment.is_liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
               }`}
             >
               <Heart className={`w-4 h-4 ${comment.is_liked ? 'fill-current' : ''}`} />
-              <span>{comment.likes_count}</span>
+              <span>{comment.likes_count || 0}</span>
             </button>
             {!isReply && (
               <button
                 onClick={() => onReply(comment.id)}
-                className="flex items-center space-x-1 text-sm text-gray-500 hover:text-blue-500"
+                className="flex items-center space-x-1 text-sm text-gray-500 hover:text-blue-500 transition-colors"
               >
                 <Reply className="w-4 h-4" />
                 <span>Répondre</span>
@@ -89,7 +95,7 @@ const CommentItem = ({
             {isOwner && (
               <button
                 onClick={() => onDelete(comment.id)}
-                className="flex items-center space-x-1 text-sm text-gray-500 hover:text-red-500"
+                className="flex items-center space-x-1 text-sm text-gray-500 hover:text-red-500 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Supprimer</span>
@@ -132,6 +138,8 @@ const CommentsBottomSheet = ({
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
 
+    console.log('Submitting comment:', { content: newComment, parentId: replyingTo });
+    
     const success = await createComment(newComment, replyingTo || undefined);
     if (success) {
       setNewComment('');
@@ -141,14 +149,23 @@ const CommentsBottomSheet = ({
 
   const handleReply = (commentId: string) => {
     setReplyingTo(commentId);
+    console.log('Setting reply to:', commentId);
   };
+
+  console.log('CommentsBottomSheet render:', { 
+    postId, 
+    isOpen, 
+    commentsCount, 
+    comments: comments.length,
+    loading 
+  });
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerContent className="h-[80vh]">
         <DrawerHeader>
           <DrawerTitle>
-            Commentaires ({commentsCount})
+            Commentaires ({comments.length})
           </DrawerTitle>
         </DrawerHeader>
         
@@ -160,7 +177,8 @@ const CommentsBottomSheet = ({
               </div>
             ) : comments.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                Aucun commentaire pour le moment
+                <p>Aucun commentaire pour le moment</p>
+                <p className="text-sm mt-2">Soyez le premier à commenter !</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -181,7 +199,7 @@ const CommentsBottomSheet = ({
           {user ? (
             <div className="p-4 border-t bg-white">
               {replyingTo && (
-                <div className="mb-2 text-sm text-gray-600">
+                <div className="mb-2 text-sm text-gray-600 bg-gray-50 p-2 rounded">
                   Réponse en cours...{' '}
                   <button 
                     onClick={() => setReplyingTo(null)}
@@ -196,13 +214,19 @@ const CommentsBottomSheet = ({
                   placeholder="Écrivez votre commentaire..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 min-h-[60px]"
+                  className="flex-1 min-h-[60px] resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmitComment();
+                    }
+                  }}
                 />
                 <Button
                   onClick={handleSubmitComment}
                   disabled={!newComment.trim()}
                   size="sm"
-                  className="self-end"
+                  className="self-end bg-green-500 hover:bg-green-600"
                 >
                   <Send className="w-4 h-4" />
                 </Button>

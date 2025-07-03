@@ -696,7 +696,10 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
               </button>
             }>
               <button 
-                onClick={() => setCommentsOpen(true)}
+                onClick={() => {
+                  console.log('Opening comments for post:', prediction.id);
+                  setCommentsOpen(true);
+                }}
                 className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors"
               >
                 <MessageCircle className="w-5 h-5" />
