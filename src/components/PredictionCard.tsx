@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2 } from 'lucide-react';
+import { Heart, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -691,24 +691,6 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
             
             <ProtectedComponent fallback={
               <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">{prediction.comments}</span>
-              </button>
-            }>
-              <button 
-                onClick={() => {
-                  console.log('Opening comments for post:', prediction.id);
-                  setCommentsOpen(true);
-                }}
-                className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm">{prediction.comments}</span>
-              </button>
-            </ProtectedComponent>
-            
-            <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
                 <Share className="w-5 h-5" />
                 <span className="text-sm">{prediction.shares}</span>
               </button>
@@ -724,13 +706,13 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           </div>
           
           <ProtectedComponent fallback={
-            <Button className="bg-gray-400 text-white text-xs px-2 py-1 h-7 cursor-not-allowed" size="sm" disabled>
+            <Button className="bg-gray-400 text-white text-xs px-3 py-1 h-7 cursor-not-allowed" size="sm" disabled>
               Se connecter
             </Button>
           }>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 h-7" size="sm">
+                <Button className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-1 h-7" size="sm">
                   Voir pronos
                 </Button>
               </DialogTrigger>
