@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/drawer';
 import PredictionModal from './PredictionModal';
 import ProtectedComponent from './ProtectedComponent';
-import CommentsBottomSheet from './CommentsBottomSheet';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -36,7 +35,6 @@ interface PredictionCardProps {
     confidence: number;
     analysis: string;
     likes: number;
-    comments: number;
     shares: number;
     successRate: number;
     timeAgo: string;
@@ -91,7 +89,6 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const [isSaved, setIsSaved] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
@@ -671,49 +668,49 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
 
         {/* Actions */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+              <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
                 <Heart className="w-5 h-5" />
-                <span className="text-sm">{likesCount}</span>
+                <span className="text-sm font-medium">{likesCount}</span>
               </button>
             }>
               <button 
                 onClick={handleLike}
-                className={`flex items-center space-x-1 transition-colors ${
+                className={`flex items-center space-x-2 transition-colors ${
                   isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
                 }`}
               >
                 <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="text-sm">{likesCount}</span>
+                <span className="text-sm font-medium">{likesCount}</span>
               </button>
             </ProtectedComponent>
             
             <ProtectedComponent fallback={
-              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+              <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
                 <Share className="w-5 h-5" />
-                <span className="text-sm">{prediction.shares}</span>
+                <span className="text-sm font-medium">{prediction.shares}</span>
               </button>
             }>
               <button 
                 onClick={handleShare}
-                className="flex items-center space-x-1 text-gray-600 hover:text-green-500 transition-colors"
+                className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
               >
                 <Share className="w-5 h-5" />
-                <span className="text-sm">{prediction.shares}</span>
+                <span className="text-sm font-medium">{prediction.shares}</span>
               </button>
             </ProtectedComponent>
           </div>
           
           <ProtectedComponent fallback={
-            <Button className="bg-gray-400 text-white text-xs px-3 py-1 h-7 cursor-not-allowed" size="sm" disabled>
+            <Button className="bg-gray-400 text-white text-sm px-4 py-2 h-8 cursor-not-allowed" size="sm" disabled>
               Se connecter
             </Button>
           }>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-1 h-7" size="sm">
-                  Voir pronos
+                <Button className="bg-green-500 hover:bg-green-600 text-white text-sm px-6 py-2 h-8" size="sm">
+                  Voir le pronostique
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
@@ -726,14 +723,6 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           </ProtectedComponent>
         </div>
       </CardContent>
-
-      {/* Comments Bottom Sheet */}
-      <CommentsBottomSheet
-        postId={prediction.id.toString()}
-        isOpen={commentsOpen}
-        onOpenChange={setCommentsOpen}
-        commentsCount={prediction.comments}
-      />
     </Card>
   );
 };
