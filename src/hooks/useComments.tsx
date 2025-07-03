@@ -32,27 +32,48 @@ export const useComments = (postId: string) => {
     try {
       console.log('Fetching comments for post:', postId);
       
-      const { data: commentsData, error } = await supabase
+      // Première requête pour récupérer les commentaires
+      const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles!comments_user_id_fkey (
-            username,
-            display_name,
-            avatar_url,
-            badge
-          )
-        `)
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching comments:', error);
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
         toast.error('Erreur lors du chargement des commentaires');
         return;
       }
 
-      console.log('Comments fetched:', commentsData);
+      console.log('Raw comments data:', commentsData);
+
+      if (!commentsData || commentsData.length === 0) {
+        setComments([]);
+        return;
+      }
+
+      // Récupérer les profils séparément
+      const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+      console.log('User IDs to fetch:', userIds);
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, badge')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      console.log('Profiles data:', profilesData);
+
+      // Créer une map des profils pour un accès rapide
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
 
       // Fetch likes for authenticated user
       let userLikes: string[] = [];
@@ -66,24 +87,29 @@ export const useComments = (postId: string) => {
         userLikes = likesData?.map(l => l.comment_id) || [];
       }
 
-      // Transform and organize comments
-      const transformedComments = commentsData?.map(comment => ({
-        ...comment,
-        likes_count: comment.likes_count || 0,
-        profiles: comment.profiles ? {
-          username: comment.profiles.username || 'Utilisateur',
-          display_name: comment.profiles.display_name || 'Utilisateur',
-          avatar_url: comment.profiles.avatar_url || null,
-          badge: comment.profiles.badge || null
-        } : {
-          username: 'Utilisateur inconnu',
-          display_name: 'Utilisateur inconnu',
-          avatar_url: null,
-          badge: null
-        },
-        is_liked: userLikes.includes(comment.id),
-        replies: [] as Comment[]
-      })) || [];
+      // Transform comments avec les profils
+      const transformedComments = commentsData.map(comment => {
+        const profile = profilesMap.get(comment.user_id);
+        return {
+          ...comment,
+          likes_count: comment.likes_count || 0,
+          profiles: profile ? {
+            username: profile.username || 'Utilisateur',
+            display_name: profile.display_name || profile.username || 'Utilisateur',
+            avatar_url: profile.avatar_url || null,
+            badge: profile.badge || null
+          } : {
+            username: 'Utilisateur inconnu',
+            display_name: 'Utilisateur inconnu',
+            avatar_url: null,
+            badge: null
+          },
+          is_liked: userLikes.includes(comment.id),
+          replies: [] as Comment[]
+        };
+      });
+
+      console.log('Transformed comments:', transformedComments);
 
       // Organize replies
       const rootComments: Comment[] = [];
@@ -105,10 +131,10 @@ export const useComments = (postId: string) => {
         comment.replies = repliesMap[comment.id] || [];
       });
 
-      console.log('Organized comments:', rootComments);
+      console.log('Final organized comments:', rootComments);
       setComments(rootComments);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchComments:', error);
       toast.error('Erreur lors du chargement des commentaires');
     } finally {
       setLoading(false);
@@ -132,15 +158,7 @@ export const useComments = (postId: string) => {
           content,
           parent_id: parentId || null
         })
-        .select(`
-          *,
-          profiles!comments_user_id_fkey (
-            username,
-            display_name,
-            avatar_url,
-            badge
-          )
-        `)
+        .select()
         .single();
 
       if (error) {
@@ -154,7 +172,7 @@ export const useComments = (postId: string) => {
       fetchComments(); // Refresh comments
       return data;
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in createComment:', error);
       toast.error('Erreur lors de la création du commentaire');
       return null;
     }
@@ -208,7 +226,7 @@ export const useComments = (postId: string) => {
 
       fetchComments(); // Refresh comments to update like counts
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in likeComment:', error);
     }
   };
 
@@ -234,7 +252,7 @@ export const useComments = (postId: string) => {
       toast.success('Commentaire supprimé avec succès');
       fetchComments(); // Refresh comments
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in deleteComment:', error);
       toast.error('Erreur lors de la suppression du commentaire');
     }
   };

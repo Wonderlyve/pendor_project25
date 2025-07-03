@@ -38,6 +38,14 @@ const CommentItem = ({
   const { user } = useAuth();
   const isOwner = user && comment.user_id === user.id;
 
+  console.log('CommentItem rendering:', { 
+    commentId: comment.id, 
+    profiles: comment.profiles,
+    isOwner,
+    userId: user?.id,
+    commentUserId: comment.user_id
+  });
+
   return (
     <div className={`${isReply ? 'ml-6 border-l-2 border-gray-200 pl-4' : ''}`}>
       <div className="flex items-start space-x-3 p-3">
@@ -157,7 +165,8 @@ const CommentsBottomSheet = ({
     isOpen, 
     commentsCount, 
     comments: comments.length,
-    loading 
+    loading,
+    user: user?.id
   });
 
   return (
