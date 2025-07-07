@@ -18,7 +18,6 @@ export interface Post {
   image_url?: string;
   video_url?: string;
   likes: number;
-  comments: number;
   shares: number;
   created_at: string;
   username?: string;
@@ -26,7 +25,6 @@ export interface Post {
   avatar_url?: string;
   badge?: string;
   like_count?: number;
-  comment_count?: number;
   is_liked?: boolean;
   saved_at?: string;
   status?: 'won' | 'lost' | 'pending';
@@ -40,6 +38,7 @@ export const useOptimizedPosts = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [lastPostTimestamp, setLastPostTimestamp] = useState<string | null>(null);
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
 
@@ -73,8 +72,7 @@ export const useOptimizedPosts = () => {
         display_name: post.profiles?.display_name,
         avatar_url: post.profiles?.avatar_url,
         badge: post.profiles?.badge,
-        like_count: post.likes,
-        comment_count: post.comments
+        like_count: post.likes
       })) || [];
 
       // Vérifier les likes de l'utilisateur si connecté
@@ -93,6 +91,11 @@ export const useOptimizedPosts = () => {
         });
       }
 
+      // Mettre à jour le timestamp du dernier post
+      if (transformedPosts.length > 0 && pageNum === 0) {
+        setLastPostTimestamp(transformedPosts[0].created_at);
+      }
+
       return transformedPosts;
     } catch (error) {
       console.error('Error:', error);
@@ -103,6 +106,29 @@ export const useOptimizedPosts = () => {
     }
   }, [user]);
 
+  const checkForNewPosts = useCallback(async () => {
+    if (!lastPostTimestamp) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, created_at')
+        .gt('created_at', lastPostTimestamp)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking for new posts:', error);
+        return false;
+      }
+
+      return data && data.length > 0;
+    } catch (error) {
+      console.error('Error checking for new posts:', error);
+      return false;
+    }
+  }, [lastPostTimestamp]);
+
   const loadInitialPosts = useCallback(async () => {
     setInitialLoading(true);
     const newPosts = await fetchPosts(0);
@@ -111,6 +137,14 @@ export const useOptimizedPosts = () => {
     setHasMore(newPosts.length === POSTS_PER_PAGE);
     setInitialLoading(false);
   }, [fetchPosts]);
+
+  const refreshPostsIfNeeded = useCallback(async () => {
+    const hasNewPosts = await checkForNewPosts();
+    if (hasNewPosts) {
+      console.log('Nouveaux posts détectés, actualisation...');
+      await loadInitialPosts();
+    }
+  }, [checkForNewPosts, loadInitialPosts]);
 
   const loadMorePosts = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -207,7 +241,6 @@ export const useOptimizedPosts = () => {
           image_url,
           video_url,
           likes: 0,
-          comments: 0,
           shares: 0
         })
         .select()
@@ -236,26 +269,25 @@ export const useOptimizedPosts = () => {
     }
 
     try {
+      // Vérifier si l'utilisateur a déjà liké ce post
       const { data: existingLike } = await supabase
         .from('post_likes')
         .select('*')
         .eq('post_id', postId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingLike) {
-        const { error } = await supabase
+        // Unlike - supprimer le like
+        const { error: deleteError } = await supabase
           .from('post_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Error unliking post:', error);
-          // Si l'erreur est due à la contrainte unique, l'utilisateur a déjà liké
-          if (error.code === '23505') {
-            toast.error('Vous avez déjà liké ce post');
-          }
+        if (deleteError) {
+          console.error('Error unliking post:', deleteError);
+          toast.error('Erreur lors du unlike');
           return;
         }
 
@@ -264,25 +296,27 @@ export const useOptimizedPosts = () => {
           post.id === postId 
             ? { 
                 ...post, 
-                likes: post.likes - 1,
-                like_count: post.like_count! - 1,
+                likes: Math.max(0, post.likes - 1),
+                like_count: Math.max(0, post.like_count! - 1),
                 is_liked: false
               }
             : post
         ));
       } else {
-        const { error } = await supabase
+        // Like - ajouter le like
+        const { error: insertError } = await supabase
           .from('post_likes')
           .insert({
             post_id: postId,
             user_id: user.id
           });
 
-        if (error) {
-          console.error('Error liking post:', error);
-          // Si l'erreur est due à la contrainte unique, l'utilisateur a déjà liké
-          if (error.code === '23505') {
+        if (insertError) {
+          console.error('Error liking post:', insertError);
+          if (insertError.code === '23505') {
             toast.error('Vous avez déjà liké ce post');
+          } else {
+            toast.error('Erreur lors du like');
           }
           return;
         }
@@ -300,11 +334,12 @@ export const useOptimizedPosts = () => {
         ));
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in likePost:', error);
+      toast.error('Erreur lors de l\'opération');
     }
   };
 
-  // Écouter les mises à jour en temps réel des posts avec un contrôle strict
+  // Écouter les nouveaux posts en temps réel
   useEffect(() => {
     // Nettoyer l'ancien canal s'il existe
     if (channelRef.current) {
@@ -313,15 +348,31 @@ export const useOptimizedPosts = () => {
       channelRef.current = null;
     }
 
-    // Créer un nouveau canal avec un identifiant unique
+    // Créer un nouveau canal pour écouter les nouveaux posts
     const sessionId = Math.random().toString(36).substring(2, 15);
-    const channelName = `posts-changes-${sessionId}`;
+    const channelName = `posts-realtime-${sessionId}`;
     
-    console.log('Creating posts channel:', channelName);
+    console.log('Creating posts realtime channel:', channelName);
     
     try {
       const channel = supabase.channel(channelName);
       
+      // Écouter les nouveaux posts
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'posts'
+        },
+        (payload: any) => {
+          console.log('Nouveau post détecté:', payload);
+          // Actualiser automatiquement quand un nouveau post est ajouté
+          refreshPostsIfNeeded();
+        }
+      );
+
+      // Écouter les mises à jour des posts (pour les likes)
       channel.on(
         'postgres_changes',
         {
@@ -330,37 +381,80 @@ export const useOptimizedPosts = () => {
           table: 'posts'
         },
         (payload: any) => {
-          console.log('Post updated:', payload);
+          console.log('Post mis à jour:', payload);
           // Mettre à jour le post spécifique dans la liste
           setPosts(prev => prev.map(post => 
             post.id === payload.new.id 
-              ? { ...post, ...payload.new }
+              ? { ...post, ...payload.new, like_count: payload.new.likes }
               : post
           ));
         }
       );
 
+      // Écouter les likes en temps réel
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'post_likes'
+        },
+        async (payload: any) => {
+          console.log('Like event:', payload);
+          // Recharger les informations du post pour avoir les likes à jour
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          if (postId) {
+            const { data: updatedPost } = await supabase
+              .from('posts')
+              .select('likes')
+              .eq('id', postId)
+              .single();
+            
+            if (updatedPost) {
+              setPosts(prev => prev.map(post => 
+                post.id === postId 
+                  ? { 
+                      ...post, 
+                      likes: updatedPost.likes,
+                      like_count: updatedPost.likes
+                    }
+                  : post
+              ));
+            }
+          }
+        }
+      );
+
       channel.subscribe((status: string) => {
-        console.log('Posts subscription status:', status);
+        console.log('Posts realtime subscription status:', status);
       });
 
       channelRef.current = channel;
     } catch (error) {
-      console.error('Error setting up posts channel:', error);
+      console.error('Error setting up posts realtime channel:', error);
     }
 
     return () => {
       if (channelRef.current) {
-        console.log('Unsubscribing from posts channel');
+        console.log('Unsubscribing from posts realtime channel');
         try {
           supabase.removeChannel(channelRef.current);
         } catch (error) {
-          console.error('Error removing posts channel:', error);
+          console.error('Error removing posts realtime channel:', error);
         }
         channelRef.current = null;
       }
     };
-  }, []); // Removed user dependency to prevent re-subscriptions
+  }, [refreshPostsIfNeeded]);
+
+  // Vérification périodique pour les nouveaux posts (fallback)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshPostsIfNeeded();
+    }, 30000); // Vérifier toutes les 30 secondes
+
+    return () => clearInterval(interval);
+  }, [refreshPostsIfNeeded]);
 
   useEffect(() => {
     const handleScroll = () => {
