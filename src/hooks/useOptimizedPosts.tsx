@@ -23,7 +23,6 @@ export interface Post {
   username?: string;
   display_name?: string;
   avatar_url?: string;
-  badge?: string;
   like_count?: number;
   is_liked?: boolean;
   saved_at?: string;
@@ -53,8 +52,7 @@ export const useOptimizedPosts = () => {
           profiles:user_id (
             username,
             display_name,
-            avatar_url,
-            badge
+            avatar_url
           )
         `)
         .order('created_at', { ascending: false })
@@ -71,7 +69,6 @@ export const useOptimizedPosts = () => {
         username: post.profiles?.username,
         display_name: post.profiles?.display_name,
         avatar_url: post.profiles?.avatar_url,
-        badge: post.profiles?.badge,
         like_count: post.likes
       })) || [];
 

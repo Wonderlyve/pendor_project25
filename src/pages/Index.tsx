@@ -90,8 +90,8 @@ const Index = () => {
     user: {
       username: post.display_name || post.username || 'Utilisateur',
       avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,
-      badge: post.badge || 'Nouveau',
-      badgeColor: post.badge === 'Pro' ? 'bg-purple-500' : post.badge === 'Confirmé' ? 'bg-blue-500' : 'bg-gray-500'
+      badge: 'Nouveau',
+      badgeColor: 'bg-gray-500'
     },
     match: post.match_teams || 'Match non spécifié',
     prediction: post.prediction_text || 'Pronostic non spécifié',
