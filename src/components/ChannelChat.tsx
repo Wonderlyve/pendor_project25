@@ -1,12 +1,9 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Send, ArrowLeft, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface ChannelMessage {
   id: string;
@@ -25,122 +22,19 @@ interface ChannelChatProps {
 }
 
 const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<ChannelMessage[]>([]);
+  const [messages] = useState<ChannelMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const channelRef = useRef<any>(null);
-
-  useEffect(() => {
-    fetchMessages();
-    setupRealtimeSubscription();
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
-  }, [channelId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const fetchMessages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('channel_messages')
-        .select(`
-          *,
-          profiles!channel_messages_user_id_fkey (
-            username,
-            avatar_url
-          )
-        `)
-        .eq('channel_id', channelId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return;
-      }
-
-      const messagesWithProfiles = data?.map((message: any) => ({
-        ...message,
-        username: message.profiles?.username,
-        avatar_url: message.profiles?.avatar_url,
-      })) || [];
-
-      setMessages(messagesWithProfiles);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setupRealtimeSubscription = () => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    const channel = supabase.channel(`channel_messages_${channelId}`);
-    
-    channel.on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'channel_messages',
-        filter: `channel_id=eq.${channelId}`
-      },
-      (payload) => {
-        fetchMessages(); // Refetch to get user profile data
-      }
-    )
-    .subscribe();
-
-    channelRef.current = channel;
-  };
 
   const sendMessage = async () => {
-    if (!user || !newMessage.trim()) return;
-
-    try {
-      const { error } = await supabase
-        .from('channel_messages')
-        .insert({
-          channel_id: channelId,
-          user_id: user.id,
-          content: newMessage.trim()
-        });
-
-      if (error) {
-        console.error('Error sending message:', error);
-        toast.error('Erreur lors de l\'envoi du message');
-        return;
-      }
-
-      setNewMessage('');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de l\'envoi du message');
-    }
+    if (!newMessage.trim()) return;
+    // Mock implementation
+    console.log('Sending message:', newMessage);
+    setNewMessage('');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       sendMessage();
-    }
-  };
-
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
     }
   };
 
@@ -150,14 +44,6 @@ const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
       minute: '2-digit'
     });
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Chargement du chat...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -184,7 +70,7 @@ const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
 
       {/* Messages */}
       <div className="flex-1">
-        <ScrollArea ref={scrollAreaRef} className="h-full px-4 py-4">
+        <ScrollArea className="h-full px-4 py-4">
           <div className="space-y-4">
             {messages.length === 0 ? (
               <div className="text-center py-12">
