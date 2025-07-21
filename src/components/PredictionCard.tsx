@@ -1,4 +1,4 @@
-import { Heart, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2 } from 'lucide-react';
+import { Heart, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -18,6 +18,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { usePostActions } from '@/hooks/usePostActions';
 import { supabase } from '@/integrations/supabase/client';
+import { usePostLikes } from '@/hooks/usePostLikes';
+import { CommentsBottomSheet } from '@/components/CommentsBottomSheet';
 
 interface PredictionCardProps {
   prediction: {
@@ -59,6 +61,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const navigate = useNavigate();
   const { requireAuth, user } = useAuth();
   const { likePost } = useOptimizedPosts();
+  const { isLiked: isPostLiked, likesCount: postLikesCount, toggleLike } = usePostLikes(prediction.id.toString());
   const { 
     followUser, 
     savePost, 
@@ -80,6 +83,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(prediction.is_liked || false);
   const [likesCount, setLikesCount] = useState(prediction.likes);
+  
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -263,22 +267,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
 
   const handleLike = async () => {
     if (!requireAuth()) return;
-    
-    try {
-      await likePost(prediction.id.toString());
-      
-      // La mise à jour locale est maintenant gérée dans useOptimizedPosts
-      // mais on garde la logique locale pour une meilleure UX
-      if (isLiked) {
-        setLikesCount(prev => prev - 1);
-        setIsLiked(false);
-      } else {
-        setLikesCount(prev => prev + 1);
-        setIsLiked(true);
-      }
-    } catch (error) {
-      console.error('Error liking post:', error);
-    }
+    await toggleLike();
   };
 
   const handleVideoClick = () => {
@@ -688,6 +677,20 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
             
             <ProtectedComponent fallback={
               <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
+                <MessageCircle className="w-5 h-5" />
+                <span className="text-sm font-medium">0</span>
+              </button>
+            }>
+              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={0}>
+                <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-sm font-medium">0</span>
+                </button>
+              </CommentsBottomSheet>
+            </ProtectedComponent>
+
+            <ProtectedComponent fallback={
+              <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
                 <Share className="w-5 h-5" />
                 <span className="text-sm font-medium">{prediction.shares}</span>
               </button>
@@ -723,6 +726,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           </ProtectedComponent>
         </div>
       </CardContent>
+      
     </Card>
   );
 };

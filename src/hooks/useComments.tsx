@@ -35,14 +35,7 @@ export function useComments(postId?: string) {
       // Fetch comments with profiles 
       const { data: commentsData, error } = await supabase
         .from('comments')
-        .select(`
-          *,
-          profiles!comments_user_id_fkey:user_id (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
@@ -67,10 +60,20 @@ export function useComments(postId?: string) {
 
       const likedCommentIds = new Set(userLikes.map(like => like.comment_id));
 
+      // Get profiles for all comments
+      const userIds = [...new Set(commentsData.map(c => c.user_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
       // Transform comments and build tree structure
       const commentsWithLikes = commentsData.map(comment => ({
         ...comment,
         is_liked: likedCommentIds.has(comment.id),
+        profiles: profilesMap.get(comment.user_id) || null,
         replies: []
       }));
 
@@ -118,14 +121,7 @@ export function useComments(postId?: string) {
           content: content.trim(),
           parent_id: parentId || null
         })
-        .select(`
-          *,
-          profiles!comments_user_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
