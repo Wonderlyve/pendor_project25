@@ -51,30 +51,8 @@ const Channels = () => {
 
   const fetchChannels = async () => {
     try {
-      const { data, error } = await supabase
-        .from('channels')
-        .select(`
-          *,
-          profiles:creator_id (
-            username,
-            badge
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching channels:', error);
-        return;
-      }
-
-      const channelsWithCreator = data?.map((channel: any) => ({
-        ...channel,
-        creator_username: channel.profiles?.username,
-        creator_badge: channel.profiles?.badge,
-        subscriber_count: Math.floor(Math.random() * 1000) + 50 // Simulation
-      })) || [];
-
-      setChannels(channelsWithCreator);
+      // Stub for channels - return empty array for now
+      setChannels([]);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -83,95 +61,11 @@ const Channels = () => {
   };
 
   const createChannel = async () => {
-    if (!user || !canCreateChannel) {
-      toast.error('Seuls les pronostiqueurs Pro peuvent créer des canaux');
-      return;
-    }
-
-    if (!newChannel.name.trim()) {
-      toast.error('Le nom du canal est requis');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('channels')
-        .insert({
-          name: newChannel.name.trim(),
-          description: newChannel.description.trim(),
-          creator_id: user.id,
-          price: newChannel.price,
-          is_private: true
-        });
-
-      if (error) {
-        console.error('Error creating channel:', error);
-        toast.error('Erreur lors de la création du canal');
-        return;
-      }
-
-      toast.success('Canal créé avec succès');
-      setShowCreateModal(false);
-      setNewChannel({ name: '', description: '', price: 0 });
-      fetchChannels();
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de la création du canal');
-    }
+    toast.info('Fonctionnalité de canaux à venir bientôt');
   };
 
   const joinChannel = async (channel: Channel) => {
-    if (!user) {
-      toast.error('Vous devez être connecté');
-      return;
-    }
-
-    if (channel.price > 0) {
-      toast.info(`Abonnement à ${channel.price}€/mois - Fonctionnalité de paiement à venir`);
-      return;
-    }
-
-    try {
-      // Vérifier si l'utilisateur est déjà abonné
-      const { data: existing } = await supabase
-        .from('channel_subscriptions')
-        .select('*')
-        .eq('channel_id', channel.id)
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
-
-      if (existing) {
-        // Déjà abonné, ouvrir le chat
-        setSelectedChannel(channel);
-        return;
-      }
-
-      // Créer l'abonnement
-      const { error } = await supabase
-        .from('channel_subscriptions')
-        .insert({
-          channel_id: channel.id,
-          user_id: user.id,
-          is_active: true
-        });
-
-      if (error) {
-        console.error('Error subscribing to channel:', error);
-        if (error.code === '23505') {
-          toast.info('Vous êtes déjà abonné à ce canal');
-        } else {
-          toast.error('Erreur lors de l\'abonnement');
-        }
-        return;
-      }
-
-      toast.success('Abonnement réussi');
-      setSelectedChannel(channel);
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de l\'abonnement');
-    }
+    toast.info('Fonctionnalité de canaux à venir bientôt');
   };
 
   if (selectedChannel) {

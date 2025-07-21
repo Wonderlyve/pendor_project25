@@ -20,41 +20,8 @@ const Favorites = () => {
 
   const fetchFavorites = async () => {
     try {
-      const { data, error } = await supabase
-        .from('saved_predictions')
-        .select(`
-          *,
-          posts (
-            *,
-            profiles:user_id (
-              username,
-              display_name,
-              avatar_url,
-              badge
-            )
-          )
-        `)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching favorites:', error);
-        return;
-      }
-
-      const transformedFavorites = data?.map((fav: any) => ({
-        ...fav.posts,
-        username: fav.posts.profiles?.username,
-        display_name: fav.posts.profiles?.display_name,
-        avatar_url: fav.posts.profiles?.avatar_url,
-        badge: fav.posts.profiles?.badge,
-        like_count: fav.posts.likes,
-        comment_count: fav.posts.comments,
-        saved_at: fav.created_at,
-        status: fav.status || 'pending'
-      })) || [];
-
-      setFavorites(transformedFavorites);
+      // Stub for favorites - return empty array for now
+      setFavorites([]);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -197,8 +164,8 @@ const Favorites = () => {
                   {/* Stats */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{post.like_count || post.likes} likes</span>
-                      <span>{post.comment_count || post.comments} commentaires</span>
+                      <span>{post.like_count || post.likes || 0} likes</span>
+                      <span>0 commentaires</span>
                     </div>
                     <p className="text-xs text-gray-400">
                       {formatDate(post.created_at)}

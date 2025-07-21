@@ -69,10 +69,10 @@ const Profile = () => {
           username: data.username || '',
           display_name: data.display_name || '',
           avatar_url: data.avatar_url || '',
-          bio: data.bio || '',
-          badge: data.badge || '',
-          followers_count: data.followers_count || 0,
-          following_count: data.following_count || 0
+          bio: '',
+          badge: '',
+          followers_count: 0,
+          following_count: 0
         });
       }
     } finally {

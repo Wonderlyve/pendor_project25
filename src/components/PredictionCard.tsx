@@ -661,18 +661,17 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
             <ProtectedComponent fallback={
               <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
                 <Heart className="w-5 h-5" />
-                <span className="text-sm font-medium">{likesCount}</span>
+                <span className="text-sm font-medium">{postLikesCount}</span>
               </button>
             }>
-              <button 
-                onClick={handleLike}
-                className={`flex items-center space-x-2 transition-colors ${
-                  isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="text-sm font-medium">{likesCount}</span>
-              </button>
+              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={0}>
+                <button className={`flex items-center space-x-2 transition-colors ${
+                  isPostLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
+                }`}>
+                  <Heart className={`w-5 h-5 ${isPostLiked ? 'fill-current' : ''}`} />
+                  <span className="text-sm font-medium">{postLikesCount}</span>
+                </button>
+              </CommentsBottomSheet>
             </ProtectedComponent>
             
             <ProtectedComponent fallback={
