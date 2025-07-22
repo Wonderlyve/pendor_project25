@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PredictionModalProps {
   prediction: {
-    id: number;
+    id: string;
     user: {
       username: string;
       avatar: string;
@@ -22,7 +22,7 @@ interface PredictionModalProps {
     reservationCode?: string;
     betType?: string;
     matches?: Array<{
-      id: number;
+      id: string;
       teams: string;
       prediction: string;
       odds: string;
@@ -36,7 +36,7 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
   // Si c'est un pari multiple, afficher tous les matchs
   const matches = prediction.matches || [
     {
-      id: 1,
+      id: "1",
       teams: prediction.match,
       prediction: prediction.prediction,
       odds: prediction.odds,

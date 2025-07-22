@@ -23,7 +23,7 @@ import { CommentsBottomSheet } from '@/components/CommentsBottomSheet';
 
 interface PredictionCardProps {
   prediction: {
-    id: number;
+    id: string;
     user_id?: string;
     user: {
       username: string;
@@ -45,7 +45,7 @@ interface PredictionCardProps {
     video?: string;
     totalOdds?: string;
     matches?: Array<{
-      id: number;
+      id: string;
       teams: string;
       prediction: string;
       odds: string;
@@ -61,7 +61,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const navigate = useNavigate();
   const { requireAuth, user } = useAuth();
   const { likePost } = useOptimizedPosts();
-  const { isLiked: isPostLiked, likesCount: postLikesCount, toggleLike } = usePostLikes(prediction.id.toString());
+  const { isLiked: isPostLiked, likesCount: postLikesCount, toggleLike } = usePostLikes(prediction.id);
   const { 
     followUser, 
     savePost, 
@@ -103,7 +103,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
         try {
           const [followed, saved, blocked] = await Promise.all([
             checkIfUserFollowed(prediction.user.username),
-            checkIfPostSaved(prediction.id.toString()),
+            checkIfPostSaved(prediction.id),
             checkIfUserBlocked(prediction.user.username)
           ]);
           
@@ -164,7 +164,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
       const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', prediction.id.toString())
+        .eq('id', prediction.id)
         .eq('user_id', user.id);
 
       if (error) {
@@ -201,16 +201,16 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           setIsFollowed(newFollowState);
           break;
         case 'save':
-          await savePost(prediction.id.toString());
+          await savePost(prediction.id);
           // Recharger l'état après l'action
-          const newSaveState = await checkIfPostSaved(prediction.id.toString());
+          const newSaveState = await checkIfPostSaved(prediction.id);
           setIsSaved(newSaveState);
           break;
         case 'report':
-          await reportPost(prediction.id.toString(), 'inappropriate', 'Contenu inapproprié');
+          await reportPost(prediction.id, 'inappropriate', 'Contenu inapproprié');
           break;
         case 'hide':
-          await hidePost(prediction.id.toString());
+          await hidePost(prediction.id);
           toast.info('Ce post a été masqué');
           break;
         case 'block':
@@ -249,7 +249,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           url: postUrl,
         });
         // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'social');
+        await sharePost(prediction.id, 'social');
       } catch (error) {
         console.log('Partage annulé');
       }
@@ -258,7 +258,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
         await navigator.clipboard.writeText(postUrl);
         toast.success('Lien copié dans le presse-papier !');
         // Enregistrer le partage en base
-        await sharePost(prediction.id.toString(), 'link');
+        await sharePost(prediction.id, 'link');
       } catch (error) {
         toast.error('Impossible de copier le lien');
       }
@@ -664,7 +664,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
                 <span className="text-sm font-medium">{postLikesCount}</span>
               </button>
             }>
-              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={0}>
+        <CommentsBottomSheet postId={prediction.id} commentsCount={0}>
                 <button className={`flex items-center space-x-2 transition-colors ${
                   isPostLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
                 }`}>

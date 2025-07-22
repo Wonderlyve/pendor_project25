@@ -86,7 +86,7 @@ const Index = () => {
 
   // Transform Post to PredictionCard format
   const transformPostToPrediction = (post: any) => ({
-    id: parseInt(post.id),
+    id: post.id,
     user: {
       username: post.display_name || post.username || 'Utilisateur',
       avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,
