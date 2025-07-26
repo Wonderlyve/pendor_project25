@@ -150,6 +150,23 @@ const Settings = () => {
           </Card>
         ))}
 
+        {/* Admin Dashboard Access - Only for "Smart" user */}
+        {(user?.email === 'smart@example.com' || user?.user_metadata?.display_name === 'Smart' || user?.email?.includes('padmin')) && (
+          <Card className="p-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <SettingsIcon className="w-5 h-5 text-muted-foreground" />
+              <h3 className="font-semibold text-lg text-foreground">Administration</h3>
+            </div>
+            <Button 
+              onClick={() => navigate('/dashboard')} 
+              className="w-full"
+              variant="outline"
+            >
+              Tableau de bord administrateur
+            </Button>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button onClick={handleSaveSettings} className="w-full">

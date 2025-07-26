@@ -17,6 +17,7 @@ import Channels from "./pages/Channels";
 import Notifications from "./pages/Notifications";
 import Favorites from "./pages/Favorites";
 import Settings from "./pages/Settings";
+import Dashboard from "./pages/Dashboard";
 import HelpSupport from "./pages/HelpSupport";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/help" element={<HelpSupport />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/about" element={<About />} />

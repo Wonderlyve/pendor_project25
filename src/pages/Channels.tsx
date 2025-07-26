@@ -7,66 +7,86 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BottomNavigation from '@/components/BottomNavigation';
 import ChannelChat from '@/components/ChannelChat';
 import { useAuth } from '@/hooks/useAuth';
+import { useChannels, Channel } from '@/hooks/useChannels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface Channel {
-  id: string;
-  name: string;
-  description: string;
-  creator_id: string;
-  is_private: boolean;
-  price: number;
-  created_at: string;
-  creator_username?: string;
-  creator_badge?: string;
-  subscriber_count?: number;
-}
 
 const Channels = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { channels, loading, createChannel: createChannelHook, subscribeToChannel, isSubscribed } = useChannels();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
   const [newChannel, setNewChannel] = useState({
     name: '',
     description: '',
     price: 0
   });
+  
 
-  const isPro = user?.user_metadata?.badge === 'Pro' || user?.user_metadata?.badge === 'Expert';
-  const isSpecialUser = user?.email === 'c.batuemi@gmail.com';
+  // Check user badge from profiles table
+  const [userProfile, setUserProfile] = useState<any>(null);
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('badge, username')
+          .eq('user_id', user.id)
+          .single();
+        setUserProfile(data);
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
+
+  const isPro = userProfile?.badge === 'Pro' || userProfile?.badge === 'Expert';
+  const isSpecialUser = user?.email === 'Padmin@pendor.com';
   const canCreateChannel = isPro || isSpecialUser;
 
-  useEffect(() => {
-    fetchChannels();
-  }, []);
+  const createChannel = async () => {
+    if (!newChannel.name.trim()) {
+      toast.error('Le nom du canal est requis');
+      return;
+    }
 
-  const fetchChannels = async () => {
-    try {
-      // Stub for channels - return empty array for now
-      setChannels([]);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
+    const result = await createChannelHook(newChannel);
+    if (result) {
+      setShowCreateModal(false);
+      setNewChannel({ name: '', description: '', price: 0 });
     }
   };
 
-  const createChannel = async () => {
-    toast.info('Fonctionnalité de canaux à venir bientôt');
+  const createFreeChannel = async () => {
+    const defaultChannelData = {
+      name: `Canal de ${userProfile?.username || user?.email?.split('@')[0] || 'Utilisateur'}`,
+      description: 'Canal gratuit ouvert à tous',
+      price: 0
+    };
+
+    const result = await createChannelHook(defaultChannelData);
+    if (result) {
+      setShowWarningDialog(false);
+      toast.success('Canal gratuit créé avec succès !');
+    }
   };
 
   const joinChannel = async (channel: Channel) => {
-    toast.info('Fonctionnalité de canaux à venir bientôt');
+    if (isSubscribed(channel.id)) {
+      setSelectedChannel(channel);
+    } else {
+      await subscribeToChannel(channel.id);
+    }
   };
+
 
   if (selectedChannel) {
     return (
@@ -128,69 +148,97 @@ const Channels = () => {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Create Channel Button for Pro Users or Special User */}
-        {canCreateChannel && (
-          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-            <DialogTrigger asChild>
-              <Button className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white">
-                <Plus className="w-5 h-5 mr-2" />
-                Créer un canal VIP
+        {/* Create Channel Button - Visible for all users */}
+        <Button 
+          className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white"
+          onClick={() => {
+            if (canCreateChannel) {
+              setShowCreateModal(true);
+            } else {
+              setShowWarningDialog(true);
+            }
+          }}
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Créer un canal VIP
+        </Button>
+
+        {/* Create Channel Modal - Only for Pro Users */}
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Créer un nouveau canal VIP</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="channelName">Nom du canal</Label>
+                <Input
+                  id="channelName"
+                  value={newChannel.name}
+                  onChange={(e) => setNewChannel(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ex: Analyses Premium Football"
+                />
+              </div>
+              <div>
+                <Label htmlFor="channelDescription">Description</Label>
+                <Textarea
+                  id="channelDescription"
+                  value={newChannel.description}
+                  onChange={(e) => setNewChannel(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Décrivez ce que vos abonnés recevront..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="channelPrice">Prix mensuel (€)</Label>
+                <Input
+                  id="channelPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newChannel.price}
+                  onChange={(e) => setNewChannel(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              <Button onClick={createChannel} className="w-full">
+                Créer le canal
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Créer un nouveau canal VIP</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="channelName">Nom du canal</Label>
-                  <Input
-                    id="channelName"
-                    value={newChannel.name}
-                    onChange={(e) => setNewChannel(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: Analyses Premium Football"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="channelDescription">Description</Label>
-                  <Textarea
-                    id="channelDescription"
-                    value={newChannel.description}
-                    onChange={(e) => setNewChannel(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Décrivez ce que vos abonnés recevront..."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="channelPrice">Prix mensuel (€)</Label>
-                  <Input
-                    id="channelPrice"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newChannel.price}
-                    onChange={(e) => setNewChannel(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-                <Button onClick={createChannel} className="w-full">
-                  Créer le canal
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Warning Dialog for Non-Pro Users */}
+        <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center space-x-2">
+                <Crown className="w-5 h-5 text-yellow-500" />
+                <span>Fonctionnalité Pro uniquement</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Seuls les pronostiqueurs certifiés Pro peuvent créer des canaux VIP. 
+                Obtenez votre certification Pro pour accéder à cette fonctionnalité exclusive 
+                et commencer à monétiser vos analyses sportives.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <div className="flex space-x-2 w-full">
+                <Button 
+                  onClick={() => setShowWarningDialog(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Compris
+                </Button>
+                <Button 
+                  onClick={createFreeChannel}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+                >
+                  Créer un canal gratuit
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Info Card for Non-Pro Users (except special user) */}
-        {!canCreateChannel && (
-          <Card className="border-2 border-dashed border-gray-300">
-            <CardContent className="p-6 text-center">
-              <Crown className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-700 mb-2">Devenez Pronostiqueur Pro</h3>
-              <p className="text-gray-500 text-sm">
-                Seuls les pronostiqueurs certifiés Pro peuvent créer des canaux VIP
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Channels List */}
         {channels.length > 0 ? (
@@ -237,10 +285,10 @@ const Channels = () => {
                     <Button
                       size="sm"
                       onClick={() => joinChannel(channel)}
-                      className="bg-green-500 hover:bg-green-600"
+                      className="bg-green-500 hover:bg-green-600 px-3 py-1 h-8 text-xs"
                     >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      Rejoindre
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      {isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre'}
                     </Button>
                   </div>
                 </CardContent>

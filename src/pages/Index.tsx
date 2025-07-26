@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { Menu, Search, User } from 'lucide-react';
+import { Menu, Search, User, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PredictionCard from '@/components/PredictionCard';
 import BottomNavigation from '@/components/BottomNavigation';
 import SideMenu from '@/components/SideMenu';
@@ -18,6 +19,10 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
+  const [selectedSport, setSelectedSport] = useState<string>('');
+  const [minOdds, setMinOdds] = useState<string>('');
+  const [maxOdds, setMaxOdds] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
   const { posts, loading, initialLoading } = useOptimizedPosts();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -60,12 +65,27 @@ const Index = () => {
   };
 
   const filteredPosts = posts.filter(post => {
-    // Filtrer par recherche
-    const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    // Filtrer par recherche (contenu, équipes, sport, et nom d'utilisateur)
+    const matchesSearch = searchQuery === '' || 
+      post.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.match_teams?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.sport?.toLowerCase().includes(searchQuery.toLowerCase());
+      post.sport?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.username?.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchesSearch) return false;
+
+    // Filtrer par sport
+    if (selectedSport && selectedSport !== '' && selectedSport !== 'all' && post.sport !== selectedSport) return false;
+
+    // Filtrer par cotes - vérifier que les valeurs sont valides
+    const postOdds = parseFloat(post.odds?.toString() || '0');
+    if (minOdds && minOdds !== '' && !isNaN(parseFloat(minOdds))) {
+      if (postOdds < parseFloat(minOdds)) return false;
+    }
+    if (maxOdds && maxOdds !== '' && !isNaN(parseFloat(maxOdds))) {
+      if (postOdds > parseFloat(maxOdds)) return false;
+    }
 
     // Filtrer les posts masqués
     if (hiddenPostIds.includes(post.id)) return false;
@@ -75,6 +95,16 @@ const Index = () => {
 
     return true;
   });
+
+  // Obtenir la liste unique des sports pour le filtre
+  const uniqueSports = Array.from(new Set(posts.map(post => post.sport).filter(Boolean)));
+
+  const clearFilters = () => {
+    setSelectedSport('');
+    setMinOdds('');
+    setMaxOdds('');
+    setSearchQuery('');
+  };
 
   const handleProfileClick = () => {
     if (user) {
@@ -101,6 +131,7 @@ const Index = () => {
     likes: post.likes || 0,
     comments: post.comments || 0,
     shares: post.shares || 0,
+    views: post.views || 0,
     successRate: 75, // Default value, should come from user stats
     timeAgo: new Date(post.created_at).toLocaleDateString('fr-FR'),
     sport: post.sport || 'Sport',
@@ -157,17 +188,84 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Search Bar et Filtres */}
       <div className="bg-white border-b">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Rechercher des pronostics, sports, équipes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Rechercher par pronostic, sport, équipe, utilisateur..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowFilters(!showFilters)}
+                className={showFilters ? 'bg-primary text-white' : ''}
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Sport</label>
+                  <Select value={selectedSport} onValueChange={setSelectedSport}>
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Tous les sports" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les sports</SelectItem>
+                      {uniqueSports.map(sport => (
+                        <SelectItem key={sport} value={sport}>{sport}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Cote min</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 1.5"
+                    value={minOdds}
+                    onChange={(e) => setMinOdds(e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Cote max</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="Ex: 5.0"
+                    value={maxOdds}
+                    onChange={(e) => setMaxOdds(e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+                
+                <div className="md:col-span-3 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-xs"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Effacer les filtres
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

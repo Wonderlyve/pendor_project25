@@ -12,6 +12,8 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useFollows } from '@/hooks/useFollows';
+import FollowsList from '@/components/FollowsList';
 
 interface UserPost {
   id: string;
@@ -30,14 +32,13 @@ interface UserPost {
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { followersCount, followingCount, fetchCounts } = useFollows(user?.id);
   const [profile, setProfile] = useState({
     username: '',
     display_name: '',
     avatar_url: '',
     bio: '',
-    badge: '',
-    followers_count: 0,
-    following_count: 0
+    badge: ''
   });
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,7 @@ const Profile = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newBio, setNewBio] = useState('');
+  const [showFollowsList, setShowFollowsList] = useState<'followers' | 'following' | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -59,7 +61,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user?.id)
+        .eq('user_id', user?.id)
         .single();
 
       if (error) {
@@ -69,10 +71,8 @@ const Profile = () => {
           username: data.username || '',
           display_name: data.display_name || '',
           avatar_url: data.avatar_url || '',
-          bio: '',
-          badge: '',
-          followers_count: 0,
-          following_count: 0
+          bio: (data as any).bio || '',
+          badge: data.badge || ''
         });
       }
     } finally {
@@ -103,6 +103,59 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Veuillez sélectionner une image valide');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('L\'image ne doit pas dépasser 5MB');
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError);
+        toast.error('Erreur lors de l\'upload de l\'image');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update profile in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+        toast.error('Erreur lors de la mise à jour du profil');
+      } else {
+        toast.success('Photo de profil mise à jour avec succès');
+        setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la mise à jour de la photo');
+    }
+  };
+
   const updateProfile = async () => {
     if (!newDisplayName.trim()) {
       toast.error('Le nom d\'affichage ne peut pas être vide');
@@ -116,7 +169,7 @@ const Profile = () => {
           display_name: newDisplayName.trim(),
           bio: newBio.trim()
         })
-        .eq('id', user?.id);
+        .eq('user_id', user?.id);
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -177,10 +230,17 @@ const Profile = () => {
               alt="Profile"
               className="w-24 h-24 rounded-full border-4 border-white mx-auto"
             />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              id="avatar-upload"
+            />
             <Button
               size="icon"
               className="absolute bottom-0 right-0 w-8 h-8 bg-white text-gray-600 hover:bg-gray-100 rounded-full shadow-lg"
-              onClick={() => setShowEditModal(true)}
+              onClick={() => document.getElementById('avatar-upload')?.click()}
             >
               <Camera className="w-4 h-4" />
             </Button>
@@ -205,12 +265,12 @@ const Profile = () => {
               <div className="text-2xl font-bold text-white">{userPosts.length}</div>
               <div className="text-green-100 text-sm">Posts</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{profile.followers_count}</div>
+            <div className="text-center cursor-pointer" onClick={() => setShowFollowsList('followers')}>
+              <div className="text-2xl font-bold text-white">{followersCount}</div>
               <div className="text-green-100 text-sm">Abonnés</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{profile.following_count}</div>
+            <div className="text-center cursor-pointer" onClick={() => setShowFollowsList('following')}>
+              <div className="text-2xl font-bold text-white">{followingCount}</div>
               <div className="text-green-100 text-sm">Abonnements</div>
             </div>
           </div>
@@ -375,6 +435,16 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Follows List Modal */}
+      {showFollowsList && (
+        <FollowsList
+          isOpen={!!showFollowsList}
+          onClose={() => setShowFollowsList(null)}
+          userId={user?.id || ''}
+          type={showFollowsList}
+        />
       )}
       
       <BottomNavigation />

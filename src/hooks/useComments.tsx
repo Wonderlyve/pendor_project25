@@ -127,7 +127,7 @@ export function useComments(postId?: string) {
       if (error) throw error;
 
       toast.success('Commentaire ajouté avec succès');
-      await fetchComments(); // Refresh comments
+      // Don't refresh all comments, let real-time handle it
       return data;
     } catch (error: any) {
       console.error('Error adding comment:', error);
@@ -148,7 +148,7 @@ export function useComments(postId?: string) {
         .select('id')
         .eq('comment_id', commentId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingLike) {
         // Unlike
@@ -171,7 +171,7 @@ export function useComments(postId?: string) {
         if (error) throw error;
       }
 
-      await fetchComments(); // Refresh comments
+      // Don't refresh all comments, just let real-time handle it
     } catch (error: any) {
       console.error('Error liking comment:', error);
       toast.error('Erreur lors du like du commentaire');
@@ -191,7 +191,7 @@ export function useComments(postId?: string) {
       if (error) throw error;
 
       toast.success('Commentaire supprimé');
-      await fetchComments(); // Refresh comments
+      // Don't refresh all comments, let real-time handle it
     } catch (error: any) {
       console.error('Error deleting comment:', error);
       toast.error('Erreur lors de la suppression du commentaire');

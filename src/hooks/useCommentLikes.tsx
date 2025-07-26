@@ -3,42 +3,42 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
-export function usePostLikes(postId?: string) {
+export function useCommentLikes(commentId?: string) {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
   const fetchLikeStatus = useCallback(async () => {
-    if (!postId) return;
+    if (!commentId) return;
 
     try {
-      // Fetch both post likes count and user like status in parallel
-      const [postResponse, userLikeResponse] = await Promise.all([
+      // Fetch both comment likes count and user like status in parallel
+      const [commentResponse, userLikeResponse] = await Promise.all([
         supabase
-          .from('posts')
+          .from('comments')
           .select('likes')
-          .eq('id', postId)
+          .eq('id', commentId)
           .single(),
         user ? supabase
-          .from('post_likes')
+          .from('comment_likes')
           .select('id')
-          .eq('post_id', postId)
+          .eq('comment_id', commentId)
           .eq('user_id', user.id)
           .maybeSingle() : Promise.resolve({ data: null, error: null })
       ]);
 
-      if (postResponse.error) throw postResponse.error;
+      if (commentResponse.error) throw commentResponse.error;
       
-      setLikesCount(postResponse.data?.likes || 0);
+      setLikesCount(commentResponse.data?.likes || 0);
       setIsLiked(!!userLikeResponse.data);
     } catch (error: any) {
-      console.error('Error fetching like status:', error);
+      console.error('Error fetching comment like status:', error);
     }
-  }, [postId, user]);
+  }, [commentId, user]);
 
   const toggleLike = useCallback(async () => {
-    if (!user || !postId) {
+    if (!user || !commentId) {
       toast.error('Vous devez être connecté pour liker');
       return;
     }
@@ -55,35 +55,35 @@ export function usePostLikes(postId?: string) {
 
     try {
       if (wasLiked) {
-        // Unlike the post
+        // Unlike the comment
         const { error } = await supabase
-          .from('post_likes')
+          .from('comment_likes')
           .delete()
-          .eq('post_id', postId)
+          .eq('comment_id', commentId)
           .eq('user_id', user.id);
 
         if (error) throw error;
       } else {
-        // Like the post
+        // Like the comment
         const { error } = await supabase
-          .from('post_likes')
+          .from('comment_likes')
           .insert({
-            post_id: postId,
+            comment_id: commentId,
             user_id: user.id
           });
 
         if (error) throw error;
       }
     } catch (error: any) {
-      console.error('Error toggling like:', error);
-      toast.error('Erreur lors du like du post');
+      console.error('Error toggling comment like:', error);
+      toast.error('Erreur lors du like du commentaire');
       // Revert optimistic update on error
       setIsLiked(wasLiked);
       setLikesCount(previousCount);
     } finally {
       setLoading(false);
     }
-  }, [user, postId, loading, isLiked, likesCount]);
+  }, [user, commentId, loading, isLiked, likesCount]);
 
   useEffect(() => {
     fetchLikeStatus();
@@ -91,17 +91,17 @@ export function usePostLikes(postId?: string) {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!postId) return;
+    if (!commentId) return;
 
     const channel = supabase
-      .channel(`post-likes-${postId}`)
+      .channel(`comment-likes-${commentId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'post_likes',
-          filter: `post_id=eq.${postId}`
+          table: 'comment_likes',
+          filter: `comment_id=eq.${commentId}`
         },
         () => {
           // Only fetch if we're not currently toggling a like
@@ -115,11 +115,11 @@ export function usePostLikes(postId?: string) {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'posts',
-          filter: `id=eq.${postId}`
+          table: 'comments',
+          filter: `id=eq.${commentId}`
         },
         (payload) => {
-          // Update likes count from posts table update
+          // Update likes count from comments table update
           if (payload.new && payload.new.likes !== undefined) {
             setLikesCount(payload.new.likes);
           }
@@ -130,7 +130,7 @@ export function usePostLikes(postId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [postId, loading, fetchLikeStatus]);
+  }, [commentId, loading, fetchLikeStatus]);
 
   return {
     isLiked,

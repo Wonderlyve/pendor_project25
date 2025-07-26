@@ -19,6 +19,7 @@ export interface Post {
   likes: number;
   comments: number;
   shares: number;
+  views: number;
   created_at: string;
   username?: string;
   display_name?: string;
@@ -147,7 +148,8 @@ export const usePosts = () => {
           video_url,
           likes: 0,
           comments: 0,
-          shares: 0
+          shares: 0,
+          views: 0
         })
         .select()
         .single();

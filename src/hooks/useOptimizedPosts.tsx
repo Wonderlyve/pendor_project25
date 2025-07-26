@@ -19,6 +19,7 @@ export interface Post {
   video_url?: string;
   likes: number;
   shares: number;
+  views: number;
   created_at: string;
   username?: string;
   display_name?: string;
@@ -414,6 +415,39 @@ export const useOptimizedPosts = () => {
                       ...post, 
                       likes: updatedPost.likes,
                       like_count: updatedPost.likes
+                    }
+                  : post
+              ));
+            }
+          }
+        }
+      );
+
+      // Écouter les vues en temps réel
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'post_views'
+        },
+        async (payload: any) => {
+          console.log('View event:', payload);
+          // Recharger les informations du post pour avoir les vues à jour
+          const postId = payload.new?.post_id;
+          if (postId) {
+            const { data: updatedPost } = await supabase
+              .from('posts')
+              .select('views')
+              .eq('id', postId)
+              .single();
+            
+            if (updatedPost) {
+              setPosts(prev => prev.map(post => 
+                post.id === postId 
+                  ? { 
+                      ...post, 
+                      views: updatedPost.views
                     }
                   : post
               ));

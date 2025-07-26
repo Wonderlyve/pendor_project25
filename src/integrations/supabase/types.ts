@@ -50,6 +50,115 @@ export type Database = {
           },
         ]
       }
+      channel_messages: {
+        Row: {
+          channel_id: string
+          content: string
+          created_at: string
+          id: string
+          media_filename: string | null
+          media_type: string | null
+          media_url: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          content: string
+          created_at?: string
+          id?: string
+          media_filename?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          media_filename?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_subscriptions: {
+        Row: {
+          channel_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          subscribed_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          subscribed_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          subscribed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_subscriptions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          is_private: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -120,6 +229,27 @@ export type Database = {
           },
         ]
       }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       hidden_posts: {
         Row: {
           created_at: string
@@ -155,6 +285,30 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       post_likes: {
         Row: {
@@ -192,6 +346,27 @@ export type Database = {
           },
         ]
       }
+      post_views: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           analysis: string | null
@@ -210,6 +385,7 @@ export type Database = {
           updated_at: string
           user_id: string
           video_url: string | null
+          views: number
         }
         Insert: {
           analysis?: string | null
@@ -228,6 +404,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           video_url?: string | null
+          views?: number
         }
         Update: {
           analysis?: string | null
@@ -246,6 +423,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           video_url?: string | null
+          views?: number
         }
         Relationships: [
           {
@@ -260,6 +438,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          badge: string | null
+          bio: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -270,6 +450,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          badge?: string | null
+          bio?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -280,6 +462,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          badge?: string | null
+          bio?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -290,12 +474,67 @@ export type Database = {
         }
         Relationships: []
       }
+      vip_pronos: {
+        Row: {
+          channel_id: string
+          created_at: string
+          creator_id: string
+          description: string
+          id: string
+          image_url: string | null
+          prediction_text: string
+          total_odds: number
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          creator_id: string
+          description: string
+          id?: string
+          image_url?: string | null
+          prediction_text: string
+          total_odds: number
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          creator_id?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          prediction_text?: string
+          total_odds?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_pronos_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_follower_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
+      get_following_count: {
+        Args: { user_id: string }
+        Returns: number
+      }
+      is_following: {
+        Args: { follower_id: string; following_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
