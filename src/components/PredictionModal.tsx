@@ -67,79 +67,65 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
           </div>
         </div>
 
-        {/* Titre avec icône pour les paris combinés */}
-        {isMultipleBet && (
-          <div className="flex items-center space-x-2 mb-3">
-            <Trophy className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-gray-800">Match sélectionné</span>
-          </div>
-        )}
+        {/* Titre Match sélectionné */}
+        <div className="mb-3">
+          <span className="text-sm font-medium text-gray-700">Match sélectionné</span>
+        </div>
 
-        {/* Tableau des matchs */}
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <div className="bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700">
-            {isMultipleBet ? `${matches.length} matchs sélectionnés` : 'Match sélectionné'}
-          </div>
-          
-          <div className="divide-y divide-gray-200">
-            {matches.map((match, index) => (
-              <div key={match.id} className="p-3">
-                <div className="grid grid-cols-12 gap-2 items-center text-xs">
-                  {/* Équipes */}
-                  <div className="col-span-4">
-                    <div className="font-medium text-gray-900 leading-tight">{match.teams}</div>
-                    <div className="flex items-center text-gray-500 mt-1">
-                      <Trophy className="w-3 h-3 mr-1" />
-                      <span className="truncate">{match.league}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Heure */}
-                  <div className="col-span-2 text-center">
-                    <div className="flex items-center justify-center text-gray-600">
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span className="font-medium">{match.time}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Type de pari */}
-                  <div className="col-span-2 text-center">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                      {match.betType || '1X2'}
-                    </span>
-                  </div>
-                  
-                  {/* Pronostic */}
-                  <div className="col-span-2 text-center">
-                    <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
-                      {match.prediction}
-                    </span>
-                  </div>
-                  
-                  {/* Côte */}
-                  <div className="col-span-2 text-right">
-                    <span className="text-sm font-bold text-green-600">{match.odds}</span>
-                  </div>
+        {/* Liste des matchs */}
+        <div className="space-y-3">
+          {matches.map((match, index) => (
+            <div key={match.id} className="flex items-center justify-between py-2">
+              {/* Équipes et sport */}
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 text-sm">{match.teams}</div>
+                <div className="flex items-center text-gray-500 text-xs mt-1">
+                  <Trophy className="w-3 h-3 mr-1" />
+                  <span>{match.league}</span>
                 </div>
               </div>
-            ))}
-          </div>
-          
-          {/* Total des côtes pour pari combiné */}
-          {prediction.totalOdds && isMultipleBet && (
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-t border-orange-200 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">🎯</span>
-                  <span className="font-semibold text-orange-800 text-sm">Côte totale combinée</span>
-                </div>
-                <span className="text-lg font-bold text-orange-600">
-                  {prediction.totalOdds}
+              
+              {/* Heure */}
+              <div className="mx-4 text-sm font-medium text-gray-700">
+                {match.time}
+              </div>
+              
+              {/* Type de pari */}
+              <div className="mx-4">
+                <span className="text-sm font-medium text-blue-600">
+                  {match.betType || '1X2'}
                 </span>
               </div>
+              
+              {/* Pronostic */}
+              <div className="mx-4">
+                <span className="px-2 py-1 text-sm font-bold bg-green-100 text-green-700 rounded">
+                  {match.prediction}
+                </span>
+              </div>
+              
+              {/* Côte */}
+              <div className="text-right">
+                <span className="text-lg font-bold text-green-600">{match.odds}</span>
+              </div>
             </div>
-          )}
+          ))}
         </div>
+        
+        {/* Total des côtes pour pari combiné */}
+        {prediction.totalOdds && isMultipleBet && (
+          <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 p-3 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">🎯</span>
+                <span className="font-semibold text-orange-800 text-sm">Côte totale combinée</span>
+              </div>
+              <span className="text-lg font-bold text-orange-600">
+                {prediction.totalOdds}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Code de réservation - toujours affiché s'il existe */}
         {prediction.reservationCode && (
