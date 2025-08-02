@@ -59,6 +59,10 @@ export type Database = {
           media_filename: string | null
           media_type: string | null
           media_url: string | null
+          reply_to_content: string | null
+          reply_to_id: string | null
+          reply_to_media_type: string | null
+          reply_to_username: string | null
           user_id: string
         }
         Insert: {
@@ -69,6 +73,10 @@ export type Database = {
           media_filename?: string | null
           media_type?: string | null
           media_url?: string | null
+          reply_to_content?: string | null
+          reply_to_id?: string | null
+          reply_to_media_type?: string | null
+          reply_to_username?: string | null
           user_id: string
         }
         Update: {
@@ -79,6 +87,10 @@ export type Database = {
           media_filename?: string | null
           media_type?: string | null
           media_url?: string | null
+          reply_to_content?: string | null
+          reply_to_id?: string | null
+          reply_to_media_type?: string | null
+          reply_to_username?: string | null
           user_id?: string
         }
         Relationships: [
@@ -229,6 +241,153 @@ export type Database = {
           },
         ]
       }
+      debriefing_comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debriefing_comments: {
+        Row: {
+          content: string
+          created_at: string
+          debriefing_id: string
+          id: string
+          likes: number
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          debriefing_id: string
+          id?: string
+          likes?: number
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          debriefing_id?: string
+          id?: string
+          likes?: number
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debriefing_likes: {
+        Row: {
+          created_at: string
+          debriefing_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          debriefing_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          debriefing_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debriefing_views: {
+        Row: {
+          created_at: string
+          debriefing_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          debriefing_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          debriefing_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debriefings: {
+        Row: {
+          channel_id: string | null
+          comments: number
+          created_at: string
+          creator_id: string
+          description: string
+          id: string
+          is_public: boolean | null
+          likes: number
+          post_link: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string
+          views: number
+        }
+        Insert: {
+          channel_id?: string | null
+          comments?: number
+          created_at?: string
+          creator_id: string
+          description: string
+          id?: string
+          is_public?: boolean | null
+          likes?: number
+          post_link?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_url: string
+          views?: number
+        }
+        Update: {
+          channel_id?: string | null
+          comments?: number
+          created_at?: string
+          creator_id?: string
+          description?: string
+          id?: string
+          is_public?: boolean | null
+          likes?: number
+          post_link?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string
+          views?: number
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -370,6 +529,7 @@ export type Database = {
       posts: {
         Row: {
           analysis: string | null
+          bet_type: string | null
           comments: number | null
           confidence: number | null
           content: string
@@ -389,6 +549,7 @@ export type Database = {
         }
         Insert: {
           analysis?: string | null
+          bet_type?: string | null
           comments?: number | null
           confidence?: number | null
           content: string
@@ -408,6 +569,7 @@ export type Database = {
         }
         Update: {
           analysis?: string | null
+          bet_type?: string | null
           comments?: number | null
           confidence?: number | null
           content?: string
@@ -471,6 +633,51 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      saved_posts: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vip_prono_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          prono_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          prono_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          prono_id?: string
+          user_id?: string
         }
         Relationships: []
       }

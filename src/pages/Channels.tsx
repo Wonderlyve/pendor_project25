@@ -52,6 +52,20 @@ const Channels = () => {
   const isSpecialUser = user?.email === 'Padmin@pendor.com';
   const canCreateChannel = isPro || isSpecialUser;
 
+  // Listen for channel creation events from BottomNavigation
+  useEffect(() => {
+    const handleCreateChannel = () => {
+      if (canCreateChannel) {
+        setShowCreateModal(true);
+      } else {
+        setShowWarningDialog(true);
+      }
+    };
+
+    window.addEventListener('createChannel', handleCreateChannel);
+    return () => window.removeEventListener('createChannel', handleCreateChannel);
+  }, [canCreateChannel]);
+
   const createChannel = async () => {
     if (!newChannel.name.trim()) {
       toast.error('Le nom du canal est requis');
@@ -244,7 +258,11 @@ const Channels = () => {
         {channels.length > 0 ? (
           <div className="space-y-4">
             {channels.map((channel) => (
-              <Card key={channel.id} className="overflow-hidden">
+              <Card 
+                key={channel.id} 
+                className="overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => joinChannel(channel)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -252,7 +270,12 @@ const Channels = () => {
                         <Lock className="w-4 h-4 text-orange-500" />
                         <CardTitle className="text-lg">{channel.name}</CardTitle>
                       </div>
-                      <p className="text-gray-600 text-sm">{channel.description}</p>
+                      <p className="text-gray-600 text-sm">
+                        {channel.description.length > 30 
+                          ? `${channel.description.substring(0, 30)}... voir tout`
+                          : channel.description
+                        }
+                      </p>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-green-600">
@@ -265,11 +288,6 @@ const Channels = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center space-x-2">
-                        <img
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${channel.creator_id}`}
-                          alt="Creator"
-                          className="w-6 h-6 rounded-full"
-                        />
                         <span className="text-sm font-medium">{channel.creator_username}</span>
                         {channel.creator_badge && (
                           <Badge variant="outline" className="text-xs">
@@ -282,14 +300,10 @@ const Channels = () => {
                         {channel.subscriber_count} abonnés
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => joinChannel(channel)}
-                      className="bg-green-500 hover:bg-green-600 px-3 py-1 h-8 text-xs"
-                    >
-                      <MessageCircle className="w-3 h-3 mr-1" />
+                    <div className="flex items-center text-xs text-gray-500">
+                      <MessageCircle className="w-4 h-4 mr-1" />
                       {isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre'}
-                    </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

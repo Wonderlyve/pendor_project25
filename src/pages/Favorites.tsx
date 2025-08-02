@@ -20,8 +20,78 @@ const Favorites = () => {
 
   const fetchFavorites = async () => {
     try {
-      // Stub for favorites - return empty array for now
-      setFavorites([]);
+      if (!user) return;
+
+      // First get saved post IDs
+      const { data: savedPosts, error: savedError } = await supabase
+        .from('saved_posts')
+        .select('post_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (savedError) {
+        console.error('Error fetching saved posts:', savedError);
+        return;
+      }
+
+      if (!savedPosts || savedPosts.length === 0) {
+        setFavorites([]);
+        return;
+      }
+
+      // Get post IDs
+      const postIds = savedPosts.map(sp => sp.post_id);
+
+      // Fetch posts with profile information
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles!posts_user_id_fkey (
+            username,
+            display_name,
+            avatar_url,
+            badge
+          )
+        `)
+        .in('id', postIds);
+
+      if (postsError) {
+        console.error('Error fetching posts:', postsError);
+        return;
+      }
+
+      if (!posts) {
+        setFavorites([]);
+        return;
+      }
+
+      // Transform and merge with saved date
+      const transformedFavorites = posts.map(post => {
+        const savedInfo = savedPosts.find(sp => sp.post_id === post.id);
+        return {
+          ...post,
+          saved_at: savedInfo?.created_at,
+          display_name: post.profiles?.display_name,
+          username: post.profiles?.username,
+          avatar_url: post.profiles?.avatar_url,
+          badge: post.profiles?.badge,
+          user: {
+            id: post.user_id,
+            username: post.profiles?.username || '',
+            display_name: post.profiles?.display_name || '',
+            avatar_url: post.profiles?.avatar_url || '',
+            badge: post.profiles?.badge || ''
+          }
+        };
+      }) || [];
+
+      // Sort by saved date
+      transformedFavorites.sort((a, b) => 
+        new Date(b.saved_at || b.created_at).getTime() - new Date(a.saved_at || a.created_at).getTime()
+      );
+
+      setFavorites(transformedFavorites);
     } catch (error) {
       console.error('Error:', error);
     } finally {

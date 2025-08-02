@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useFollows } from '@/hooks/useFollows';
 import FollowsList from '@/components/FollowsList';
+import FollowersListView from '@/components/FollowersListView';
 
 interface UserPost {
   id: string;
@@ -41,8 +42,10 @@ const Profile = () => {
     badge: ''
   });
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
+  const [savedPosts, setSavedPosts] = useState<UserPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newBio, setNewBio] = useState('');
@@ -52,6 +55,7 @@ const Profile = () => {
     if (user) {
       fetchProfile();
       fetchUserPosts();
+      fetchSavedPosts();
     }
   }, [user]);
 
@@ -100,6 +104,63 @@ const Profile = () => {
       console.error('Error:', error);
     } finally {
       setPostsLoading(false);
+    }
+  };
+
+  const fetchSavedPosts = async () => {
+    if (!user) return;
+    
+    setFavoritesLoading(true);
+    try {
+      // First get saved post IDs
+      const { data: savedPosts, error: savedError } = await supabase
+        .from('saved_posts')
+        .select('post_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (savedError) {
+        console.error('Error fetching saved posts:', savedError);
+        return;
+      }
+
+      if (!savedPosts || savedPosts.length === 0) {
+        setSavedPosts([]);
+        return;
+      }
+
+      // Get post IDs
+      const postIds = savedPosts.map(sp => sp.post_id);
+
+      // Fetch posts
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('*')
+        .in('id', postIds);
+
+      if (postsError) {
+        console.error('Error fetching posts:', postsError);
+        return;
+      }
+
+      if (!posts) {
+        setSavedPosts([]);
+        return;
+      }
+
+      // Sort by saved date
+      const sortedPosts = posts.sort((a, b) => {
+        const aSavedInfo = savedPosts.find(sp => sp.post_id === a.id);
+        const bSavedInfo = savedPosts.find(sp => sp.post_id === b.id);
+        return new Date(bSavedInfo?.created_at || b.created_at).getTime() - 
+               new Date(aSavedInfo?.created_at || a.created_at).getTime();
+      });
+
+      setSavedPosts(sortedPosts);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setFavoritesLoading(false);
     }
   };
 
@@ -375,20 +436,67 @@ const Profile = () => {
                 <CardTitle>Pronostics favoris</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-500">Aucun favori enregistré</p>
+                {favoritesLoading ? (
+                  <p className="text-gray-500">Chargement des favoris...</p>
+                ) : savedPosts.length > 0 ? (
+                  <div className="space-y-4">
+                    {savedPosts.map((post) => (
+                      <div key={post.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            {post.sport && post.match_teams && (
+                              <div className="text-sm text-gray-600 mb-1">
+                                {post.sport} • {post.match_teams}
+                              </div>
+                            )}
+                            <p className="text-gray-800">{post.content}</p>
+                            {post.prediction_text && (
+                              <div className="mt-2 p-2 bg-green-50 rounded border-l-4 border-green-500">
+                                <p className="text-green-800 font-medium">{post.prediction_text}</p>
+                                <div className="flex items-center space-x-4 mt-1 text-sm text-green-600">
+                                  <span>Cote: {post.odds}</span>
+                                  <span>Confiance: {post.confidence}%</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {post.image_url && (
+                          <img
+                            src={post.image_url}
+                            alt="Post"
+                            className="mt-2 rounded-lg max-h-64 w-full object-cover"
+                          />
+                        )}
+                        
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                            <span className="flex items-center">
+                              <Heart className="w-4 h-4 mr-1" />
+                              {post.likes}
+                            </span>
+                            <span className="flex items-center">
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              {post.comments}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {formatDate(post.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Aucun favori enregistré</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
           
           <TabsContent value="followers" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Abonnés</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Aucun abonné pour le moment</p>
-              </CardContent>
-            </Card>
+            <FollowersListView userId={user?.id || ''} />
           </TabsContent>
         </Tabs>
       </div>

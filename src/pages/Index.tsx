@@ -117,6 +117,7 @@ const Index = () => {
   // Transform Post to PredictionCard format
   const transformPostToPrediction = (post: any) => ({
     id: post.id,
+    user_id: post.user_id, // Ajout du user_id pour la détection du propriétaire
     user: {
       username: post.display_name || post.username || 'Utilisateur',
       avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,

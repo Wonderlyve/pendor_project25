@@ -14,6 +14,10 @@ export interface ChannelMessage {
   media_url?: string;
   media_type?: 'image' | 'video' | 'audio' | 'file';
   media_filename?: string;
+  reply_to_id?: string;
+  reply_to_content?: string;
+  reply_to_username?: string;
+  reply_to_media_type?: string;
 }
 
 export const useChannelMessages = (channelId: string, creatorId: string) => {
@@ -81,13 +85,19 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
     }
   };
 
-  const sendMessage = async (content: string, mediaFiles?: File[]) => {
-    if (!user || (!isSubscribed && !isCreator)) {
+  const sendMessage = async (content: string, mediaFiles?: File[], replyTo?: { id: string; content?: string; username?: string; media_type?: string }) => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour envoyer des messages');
+      return false;
+    }
+
+    if (!isSubscribed && !isCreator) {
       toast.error('Vous devez être abonné au canal pour écrire des messages');
       return false;
     }
 
     if (!content.trim() && (!mediaFiles || mediaFiles.length === 0)) {
+      toast.error('Veuillez saisir un message ou ajouter un fichier');
       return false;
     }
 
@@ -135,10 +145,14 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
               .insert({
                 channel_id: channelId,
                 user_id: user.id,
-                content: '', // Media-only message
+                content: content.trim() || `Fichier: ${file.name}`, // Include content or filename
                 media_url: publicUrl,
                 media_type: mediaType,
-                media_filename: file.name
+                media_filename: file.name,
+                reply_to_id: replyTo?.id || null,
+                reply_to_content: replyTo?.content || null,
+                reply_to_username: replyTo?.username || null,
+                reply_to_media_type: replyTo?.media_type || null
               });
 
             if (insertError) throw insertError;
@@ -150,8 +164,8 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
           }
         }
 
-        // Send text message if there's content
-        if (content.trim()) {
+        // Send text message only if there's content and no media files were processed
+        if (content.trim() && mediaFiles.length === 0) {
           const { error: textError } = await supabase
             .from('channel_messages')
             .insert({
@@ -160,7 +174,11 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
               content: content.trim(),
               media_url: null,
               media_type: null,
-              media_filename: null
+              media_filename: null,
+              reply_to_id: replyTo?.id || null,
+              reply_to_content: replyTo?.content || null,
+              reply_to_username: replyTo?.username || null,
+              reply_to_media_type: replyTo?.media_type || null
             });
 
           if (textError) {
@@ -183,7 +201,11 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
             content: content.trim(),
             media_url: null,
             media_type: null,
-            media_filename: null
+            media_filename: null,
+            reply_to_id: replyTo?.id || null,
+            reply_to_content: replyTo?.content || null,
+            reply_to_username: replyTo?.username || null,
+            reply_to_media_type: replyTo?.media_type || null
           });
 
         if (error) throw error;

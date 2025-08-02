@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import LiveStreams from "./pages/LiveStreams";
 import LiveStream from "./pages/LiveStream";
+import Brief from "./pages/Brief";
+import BriefPlayer from "./pages/BriefPlayer";
 import Privacy from "./pages/Privacy";
 import About from "./pages/About";
 import Auth from "./pages/Auth";
@@ -46,6 +48,8 @@ const App = () => (
               <Route path="/channels" element={<Channels />} />
               <Route path="/lives" element={<LiveStreams />} />
               <Route path="/live/:id" element={<LiveStream />} />
+              <Route path="/brief" element={<Brief />} />
+              <Route path="/brief/:id" element={<BriefPlayer />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/settings" element={<Settings />} />

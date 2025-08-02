@@ -67,8 +67,52 @@ export const usePostActions = () => {
 
     setLoading(true);
     try {
-      // Since saved_posts table doesn't exist yet, just show a message
-      toast.success('Post sauvegardé');
+      // Check if post is already saved
+      const { data: existingSave, error: checkError } = await supabase
+        .from('saved_posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('post_id', postId)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking save status:', checkError);
+        toast.error('Erreur lors de la vérification');
+        return;
+      }
+
+      if (existingSave) {
+        // Unsave
+        const { error } = await supabase
+          .from('saved_posts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', postId);
+
+        if (error) {
+          console.error('Error unsaving post:', error);
+          toast.error('Erreur lors de la suppression');
+          return;
+        }
+
+        toast.success('Post retiré des favoris');
+      } else {
+        // Save
+        const { error } = await supabase
+          .from('saved_posts')
+          .insert({
+            user_id: user.id,
+            post_id: postId
+          });
+
+        if (error) {
+          console.error('Error saving post:', error);
+          toast.error('Erreur lors de la sauvegarde');
+          return;
+        }
+
+        toast.success('Post sauvegardé dans vos favoris');
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors de la sauvegarde');
@@ -275,8 +319,14 @@ export const usePostActions = () => {
     if (!user) return false;
 
     try {
-      // Since saved_posts table doesn't exist yet, return false
-      return false;
+      const { data } = await supabase
+        .from('saved_posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('post_id', postId)
+        .maybeSingle();
+
+      return !!data;
     } catch (error) {
       return false;
     }
