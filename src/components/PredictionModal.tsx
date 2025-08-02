@@ -35,9 +35,14 @@ interface PredictionModalProps {
 }
 
 const PredictionModal = ({ prediction }: PredictionModalProps) => {
-  // Si c'est un pari multiple, afficher tous les matchs
-  const matches = prediction.matches || [
-    {
+  // Traiter chaque match individuellement - créer un tableau où chaque match est un élément séparé
+  const matches = prediction.matches ? 
+    prediction.matches.map((match, index) => ({
+      ...match,
+      id: match.id || `match-${index}`,
+      betType: match.betType || prediction.betType
+    })) :
+    [{
       id: "1",
       teams: prediction.match,
       prediction: prediction.prediction,
@@ -45,8 +50,7 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
       league: prediction.sport,
       time: '20:00',
       betType: prediction.betType
-    }
-  ];
+    }];
 
   const isMultipleBet = prediction.betType === 'combine' || matches.length > 1;
 
