@@ -11,6 +11,7 @@ import { useComments, Comment } from '@/hooks/useComments';
 import { useAuth } from '@/hooks/useAuth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { CommentItemWithLikes } from '@/components/CommentItemWithLikes';
 
 interface CommentsBottomSheetProps {
   postId: string;
@@ -27,95 +28,7 @@ interface CommentItemProps {
   currentUserId?: string;
 }
 
-function CommentItem({ comment, level = 0, onReply, onLike, onDelete, currentUserId }: CommentItemProps) {
-  const maxLevel = 3; // Maximum nesting level
-  const canReply = level < maxLevel;
-
-  return (
-    <div className={cn("space-y-2", level > 0 && "ml-6 mt-2 border-l-2 border-border pl-4")}>
-      <div className="flex gap-3">
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarImage src={comment.profiles?.avatar_url} />
-          <AvatarFallback>
-            {comment.profiles?.display_name?.[0] || comment.profiles?.username?.[0] || 'U'}
-          </AvatarFallback>
-        </Avatar>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm truncate">
-              {comment.profiles?.display_name || comment.profiles?.username || 'Utilisateur'}
-            </span>
-            <span className="text-xs text-muted-foreground flex-shrink-0">
-              {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: fr })}
-            </span>
-            {currentUserId === comment.user_id && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <MoreVertical className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => onDelete(comment.id)} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-          
-          <p className="text-sm text-foreground mb-2">{comment.content}</p>
-          
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onLike(comment.id)}
-              className={cn(
-                "h-6 px-2 text-xs",
-                comment.is_liked && "text-red-500"
-              )}
-            >
-              <Heart className={cn("h-3 w-3 mr-1", comment.is_liked && "fill-current")} />
-              {comment.likes}
-            </Button>
-            
-            {canReply && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onReply(comment.id)}
-                className="h-6 px-2 text-xs"
-              >
-                <MessageCircle className="h-3 w-3 mr-1" />
-                Répondre
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Render replies */}
-      {comment.replies && comment.replies.length > 0 && (
-        <div className="space-y-2">
-          {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply.id}
-              comment={reply}
-              level={level + 1}
-              onReply={onReply}
-              onLike={onLike}
-              onDelete={onDelete}
-              currentUserId={currentUserId}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// CommentItem is now in its own file as CommentItemWithLikes
 
 export function CommentsBottomSheet({ postId, commentsCount, children }: CommentsBottomSheetProps) {
   const [open, setOpen] = useState(false);
@@ -176,7 +89,7 @@ export function CommentsBottomSheet({ postId, commentsCount, children }: Comment
               </div>
             ) : (
               comments.map((comment) => (
-                <CommentItem
+                <CommentItemWithLikes
                   key={comment.id}
                   comment={comment}
                   onReply={handleReply}

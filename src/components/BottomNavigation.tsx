@@ -1,18 +1,59 @@
 
 import { Home, Video, User, Plus, Crown } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import CreatePredictionModal from './CreatePredictionModal';
+import DebriefingModal from './channel-chat/DebriefingModal';
+import LoadingModal from './LoadingModal';
+import SuccessModal from './SuccessModal';
+import { useDebriefings } from '@/hooks/useDebriefings';
+import { toast } from 'sonner';
 
 const BottomNavigation = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, requireAuth } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showBriefModal, setShowBriefModal] = useState(false);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { createPublicBrief } = useDebriefings(null);
   
   const handleCreateClick = () => {
     if (requireAuth()) {
-      setShowCreateModal(true);
+      // Créer un canal si on est sur la page channels, un post si on est sur l'accueil, sinon un brief
+      if (location.pathname === '/channels') {
+        // Trigger channel creation - we'll emit a custom event
+        window.dispatchEvent(new CustomEvent('createChannel'));
+      } else if (location.pathname === '/') {
+        setShowCreateModal(true);
+      } else {
+        setShowBriefModal(true);
+      }
+    }
+  };
+
+  const handleCreateBrief = async (briefData: any) => {
+    try {
+      setShowBriefModal(false);
+      setShowLoadingModal(true);
+      
+      const success = await createPublicBrief(briefData);
+      
+      setShowLoadingModal(false);
+      
+      if (success) {
+        setShowSuccessModal(true);
+        // Rediriger vers la page Brief si on n'y est pas déjà
+        if (location.pathname !== '/brief') {
+          navigate('/brief');
+        }
+      }
+    } catch (error) {
+      setShowLoadingModal(false);
+      console.error('Erreur lors de la création du brief:', error);
+      toast.error('Erreur lors de la publication du brief');
     }
   };
 
@@ -28,7 +69,7 @@ const BottomNavigation = () => {
     { icon: Home, label: 'Accueil', active: true, action: () => navigate('/') },
     { icon: Crown, label: 'Canaux', active: false, action: () => navigate('/channels') },
     { icon: Plus, label: '', active: false, action: handleCreateClick, isCenter: true },
-    { icon: Video, label: 'Lives', active: false, action: () => navigate('/lives') },
+    { icon: Video, label: 'Brief', active: false, action: () => navigate('/brief') },
     { icon: User, label: user ? 'Profil' : 'Connexion', active: false, action: handleProfileClick },
   ];
 
@@ -71,10 +112,28 @@ const BottomNavigation = () => {
       </div>
       
       {user && (
-        <CreatePredictionModal 
-          open={showCreateModal} 
-          onOpenChange={setShowCreateModal} 
-        />
+        <>
+          <CreatePredictionModal 
+            open={showCreateModal} 
+            onOpenChange={setShowCreateModal} 
+          />
+          <DebriefingModal
+            isOpen={showBriefModal}
+            onClose={() => setShowBriefModal(false)}
+            onSubmit={handleCreateBrief}
+          />
+          <LoadingModal
+            isOpen={showLoadingModal}
+            title="Publication en cours..."
+            description="Votre brief est en cours de publication, veuillez patienter."
+          />
+          <SuccessModal
+            isOpen={showSuccessModal}
+            title="Brief publié !"
+            description="Votre brief a été publié avec succès et est maintenant visible par tous."
+            onClose={() => setShowSuccessModal(false)}
+          />
+        </>
       )}
     </>
   );

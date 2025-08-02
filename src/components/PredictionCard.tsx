@@ -1,4 +1,4 @@
-import { Heart, Share, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2, MessageCircle } from 'lucide-react';
+import { Heart, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2, MessageCircle, ArrowUpRight, Eye } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -9,6 +9,16 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import PredictionModal from './PredictionModal';
 import ProtectedComponent from './ProtectedComponent';
 import { useState, useRef, useEffect } from 'react';
@@ -17,8 +27,11 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOptimizedPosts } from '@/hooks/useOptimizedPosts';
 import { usePostActions } from '@/hooks/usePostActions';
+import { usePostViews } from '@/hooks/usePostViews';
+import { useFollows } from '@/hooks/useFollows';
 import { supabase } from '@/integrations/supabase/client';
 import { usePostLikes } from '@/hooks/usePostLikes';
+import { usePostComments } from '@/hooks/usePostComments';
 import { CommentsBottomSheet } from '@/components/CommentsBottomSheet';
 
 interface PredictionCardProps {
@@ -38,6 +51,7 @@ interface PredictionCardProps {
     analysis: string;
     likes: number;
     shares: number;
+    views: number;
     successRate: number;
     timeAgo: string;
     sport: string;
@@ -62,22 +76,25 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const { requireAuth, user } = useAuth();
   const { likePost } = useOptimizedPosts();
   const { isLiked: isPostLiked, likesCount: postLikesCount, toggleLike } = usePostLikes(prediction.id);
+  const { commentsCount } = usePostComments(prediction.id);
+  const { addView } = usePostViews();
   const { 
-    followUser, 
     savePost, 
     sharePost, 
     reportPost, 
     hidePost, 
     blockUser,
-    checkIfUserFollowed,
     checkIfPostSaved,
     checkIfUserBlocked,
     loading: actionsLoading
   } = usePostActions();
   
+  // Use real follows functionality
+  const { isFollowing, loading: followLoading, followUser, unfollowUser } = useFollows(prediction.user_id);
+  
   // Check if current user is the post owner
   const isPostOwner = user && prediction.user_id && user.id === prediction.user_id;
-  const isCurrentUser = user && prediction.user.username === user.email?.split('@')[0];
+  const isCurrentUser = isPostOwner;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -89,10 +106,10 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isFollowed, setIsFollowed] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
@@ -101,18 +118,16 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
       if (user && !actionStatesLoaded) {
         console.log('Loading action states for user:', user.id, 'post:', prediction.id);
         try {
-          const [followed, saved, blocked] = await Promise.all([
-            checkIfUserFollowed(prediction.user.username),
+          const [saved, blocked] = await Promise.all([
             checkIfPostSaved(prediction.id),
             checkIfUserBlocked(prediction.user.username)
           ]);
           
-          setIsFollowed(followed);
           setIsSaved(saved);
           setIsBlocked(blocked);
           setActionStatesLoaded(true);
           
-          console.log('Action states loaded:', { followed, saved, blocked });
+          console.log('Action states loaded:', { saved, blocked });
         } catch (error) {
           console.error('Error loading action states:', error);
         }
@@ -120,7 +135,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
     };
 
     loadActionStates();
-  }, [user, prediction.id, prediction.user.username, checkIfUserFollowed, checkIfPostSaved, checkIfUserBlocked, actionStatesLoaded]);
+  }, [user, prediction.id, prediction.user.username, checkIfPostSaved, checkIfUserBlocked, actionStatesLoaded]);
 
   const handleProfileClick = async () => {
     if (!requireAuth()) return;
@@ -195,10 +210,11 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
             toast.error('Vous ne pouvez pas vous suivre vous-même');
             return;
           }
-          await followUser(prediction.user.username);
-          // Recharger l'état après l'action
-          const newFollowState = await checkIfUserFollowed(prediction.user.username);
-          setIsFollowed(newFollowState);
+          if (isFollowing) {
+            await unfollowUser();
+          } else {
+            await followUser();
+          }
           break;
         case 'save':
           await savePost(prediction.id);
@@ -223,9 +239,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           handleEditPost();
           break;
         case 'delete':
-          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
-            handleDeletePost();
-          }
+          setShowDeleteDialog(true);
           break;
         default:
           console.log(`Action: ${action} on prediction ${prediction.id}`);
@@ -455,7 +469,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
                           className="w-full text-left p-3 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-3 disabled:opacity-50"
                         >
                           <span className="text-2xl">👤</span>
-                          <span>{isFollowed ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
+                          <span>{isFollowing ? 'Ne plus suivre' : 'Suivre'} cet utilisateur</span>
                         </button>
                       )}
                       <button 
@@ -510,7 +524,18 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
 
         {/* Match Info */}
         <div className="mb-3">
-          <div className="font-semibold text-lg text-gray-900 mb-2">{prediction.match}</div>
+          <div className="font-semibold text-lg text-gray-900 mb-2">
+            {prediction.match.length > 45 ? (
+              <>
+                {prediction.match.substring(0, 45)}...{" "}
+                <span className="text-green-600 font-medium cursor-pointer hover:underline">
+                  voir plus
+                </span>
+              </>
+            ) : (
+              prediction.match
+            )}
+          </div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
               <span className="text-gray-600">Cote: {prediction.odds}</span>
@@ -531,9 +556,9 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
                   size="sm" 
                   className="h-7 px-2 text-xs"
                   onClick={() => handleMenuAction('follow')}
-                  disabled={actionsLoading}
+                  disabled={actionsLoading || followLoading}
                 >
-                  {isFollowed ? 'Suivi' : 'Suivre'}
+                  {isFollowing ? 'Suivi' : 'Suivre'}
                 </Button>
               )}
             </ProtectedComponent>
@@ -652,66 +677,91 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
 
         {/* Analysis */}
         <div className="mb-4">
-          <p className="text-gray-700 text-sm leading-relaxed">{prediction.analysis}</p>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            {prediction.analysis.length > 45 ? (
+              <>
+                {prediction.analysis.substring(0, 45)}...{" "}
+                <span className="text-green-600 font-medium cursor-pointer hover:underline">
+                  voir plus
+                </span>
+              </>
+            ) : (
+              prediction.analysis
+            )}
+          </p>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
             <ProtectedComponent fallback={
-              <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
-                <Heart className="w-5 h-5" />
-                <span className="text-sm font-medium">{postLikesCount}</span>
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <Heart className="w-4 h-4" />
+                <span className="text-xs font-medium">{postLikesCount}</span>
               </button>
             }>
-        <CommentsBottomSheet postId={prediction.id} commentsCount={0}>
-                <button className={`flex items-center space-x-2 transition-colors ${
+              <button 
+                onClick={handleLike}
+                className={`flex items-center space-x-1 transition-colors ${
                   isPostLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
-                }`}>
-                  <Heart className={`w-5 h-5 ${isPostLiked ? 'fill-current' : ''}`} />
-                  <span className="text-sm font-medium">{postLikesCount}</span>
-                </button>
-              </CommentsBottomSheet>
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${isPostLiked ? 'fill-current' : ''}`} />
+                <span className="text-xs font-medium">{postLikesCount}</span>
+              </button>
             </ProtectedComponent>
             
             <ProtectedComponent fallback={
-              <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">0</span>
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">0</span>
               </button>
             }>
-              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={0}>
-                <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors">
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">0</span>
+              <CommentsBottomSheet postId={prediction.id.toString()} commentsCount={commentsCount}>
+                <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="text-xs font-medium">{commentsCount}</span>
                 </button>
               </CommentsBottomSheet>
             </ProtectedComponent>
 
             <ProtectedComponent fallback={
-              <button className="flex items-center space-x-2 text-gray-400 cursor-not-allowed">
-                <Share className="w-5 h-5" />
-                <span className="text-sm font-medium">{prediction.shares}</span>
+              <button className="flex items-center space-x-1 text-gray-400 cursor-not-allowed">
+                <ArrowUpRight className="w-4 h-4" />
+                <span className="text-xs font-medium">{prediction.shares}</span>
               </button>
             }>
               <button 
                 onClick={handleShare}
-                className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
+                className="flex items-center space-x-1 text-gray-600 hover:text-green-500 transition-colors"
               >
-                <Share className="w-5 h-5" />
-                <span className="text-sm font-medium">{prediction.shares}</span>
+                <ArrowUpRight className="w-4 h-4" />
+                <span className="text-xs font-medium">{prediction.shares}</span>
               </button>
             </ProtectedComponent>
+
+            {/* Vues */}
+            <button className="flex items-center space-x-1 text-gray-600">
+              <Eye className="w-4 h-4" />
+              <span className="text-xs font-medium">{prediction.views}</span>
+            </button>
           </div>
           
           <ProtectedComponent fallback={
-            <Button className="bg-gray-400 text-white text-sm px-4 py-2 h-8 cursor-not-allowed" size="sm" disabled>
+            <Button className="bg-gray-400 text-white text-xs px-3 py-1 h-7 cursor-not-allowed shrink-0" size="sm" disabled>
               Se connecter
             </Button>
           }>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-green-500 hover:bg-green-600 text-white text-sm px-6 py-2 h-8" size="sm">
+                <Button 
+                  className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7 shrink-0" 
+                  size="sm"
+                  onClick={async () => {
+                    // Add view when user clicks to see prediction
+                    await addView(prediction.id);
+                  }}
+                >
                   Voir le pronostique
                 </Button>
               </DialogTrigger>
@@ -726,6 +776,26 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
         </div>
       </CardContent>
       
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce post ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Votre post sera définitivement supprimé et ne pourra pas être récupéré.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeletePost}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

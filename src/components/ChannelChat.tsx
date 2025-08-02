@@ -1,18 +1,25 @@
+import { useState, useEffect } from 'react';
+import { Lock } from 'lucide-react';
+import { useChannelMessages, ChannelMessage } from '@/hooks/useChannelMessages';
+import { useVipPronos } from '@/hooks/useVipPronos';
+import { useDebriefings } from '@/hooks/useDebriefings';
+import { supabase } from '@/integrations/supabase/client';
+import ChatHeader from './channel-chat/ChatHeader';
+import MessagesList from './channel-chat/MessagesList';
+import MediaInput from './channel-chat/MediaInput';
+import MessageReply from './channel-chat/MessageReply';
+import VipPronoModal, { VipPronoData } from './channel-chat/VipPronoModal';
+import DebriefingModal, { DebriefingData } from './channel-chat/DebriefingModal';
+import VipPronoCard from './channel-chat/VipPronoCard';
 
-import { useState } from 'react';
-import { Send, ArrowLeft, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-
-interface ChannelMessage {
+interface ChannelInfo {
   id: string;
-  channel_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  username?: string;
-  avatar_url?: string;
+  name: string;
+  description: string;
+  creator_id: string;
+  creator_username?: string;
+  creator_badge?: string;
+  subscriber_count?: number;
 }
 
 interface ChannelChatProps {
@@ -22,108 +29,186 @@ interface ChannelChatProps {
 }
 
 const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
-  const [messages] = useState<ChannelMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [channelInfo, setChannelInfo] = useState<ChannelInfo | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ChannelMessage | null>(null);
+  const [showVipPronoModal, setShowVipPronoModal] = useState(false);
+  const [showDebriefingModal, setShowDebriefingModal] = useState(false);
 
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
-    // Mock implementation
-    console.log('Sending message:', newMessage);
-    setNewMessage('');
-  };
+  // Fetch channel info first, then use it to initialize the messages hook
+  useEffect(() => {
+    const fetchChannelInfo = async () => {
+      try {
+        const { data: channelData, error: channelError } = await supabase
+          .from('channels')
+          .select('*')
+          .eq('id', channelId)
+          .single();
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      sendMessage();
+        if (channelError) throw channelError;
+
+        // Get creator profile separately
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username, badge')
+          .eq('user_id', channelData.creator_id)
+          .single();
+
+        const { count } = await supabase
+          .from('channel_subscriptions')
+          .select('*', { count: 'exact' })
+          .eq('channel_id', channelId);
+
+        setChannelInfo({
+          ...channelData,
+          creator_username: profileData?.username || 'Utilisateur',
+          creator_badge: profileData?.badge,
+          subscriber_count: count || 0
+        });
+      } catch (error) {
+        console.error('Error fetching channel info:', error);
+      }
+    };
+
+    fetchChannelInfo();
+  }, [channelId]);
+
+  const { 
+    messages, 
+    loading, 
+    isCreator, 
+    isSubscribed,
+    sendMessage: sendChannelMessage,
+    editMessage,
+    deleteMessage
+  } = useChannelMessages(
+    channelId, 
+    channelInfo?.creator_id || ''
+  );
+
+  const { pronos, createVipProno } = useVipPronos(channelId);
+  const { debriefings, createDebriefing, likeDebriefing, deleteDebriefing } = useDebriefings(channelId);
+
+  const handleSendMessage = async (mediaFiles?: File[]) => {
+    if (!newMessage.trim() && !mediaFiles?.length) return;
+    
+    const replyData = replyingTo ? {
+      id: replyingTo.id,
+      content: replyingTo.content,
+      username: replyingTo.username,
+      media_type: replyingTo.media_type
+    } : undefined;
+    
+    const success = await sendChannelMessage(newMessage, mediaFiles, replyData);
+    if (success) {
+      setNewMessage('');
+      setReplyingTo(null);
     }
   };
 
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit'
+  const handleReply = (message: ChannelMessage) => {
+    setReplyingTo(message);
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleCreateVipProno = async (pronoData: VipPronoData) => {
+    const success = await createVipProno({
+      ...pronoData,
+      channelId
     });
+    
+    if (success) {
+      setShowVipPronoModal(false);
+    }
+  };
+
+  const handleCreateDebriefing = async (debriefingData: DebriefingData) => {
+    const success = await createDebriefing({
+      ...debriefingData,
+      channelId
+    });
+    
+    if (success) {
+      setShowDebriefingModal(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="hover:bg-gray-100"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-gray-900">{channelName}</h1>
-            <div className="flex items-center text-sm text-gray-500">
-              <Users className="w-3 h-3 mr-1" />
-              Canal VIP
+    <div className="h-screen bg-gray-50 flex flex-col">
+      <ChatHeader 
+        channelName={channelName}
+        channelInfo={channelInfo}
+        onBack={onBack}
+        onCreateVipProno={() => setShowVipPronoModal(true)}
+        onCreateDebriefing={() => setShowDebriefingModal(true)}
+        className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200"
+      />
+      
+      <div className="flex-1 pt-16 pb-24">
+        <MessagesList 
+          messages={messages}
+          pronos={pronos}
+          debriefings={debriefings}
+          loading={loading}
+          isCreator={isCreator}
+          creatorId={channelInfo?.creator_id}
+          onEditMessage={editMessage}
+          onDeleteMessage={deleteMessage}
+          onReply={handleReply}
+          onReplyToProno={(prono) => {
+            setReplyingTo({
+              id: `prono-${prono.id}`,
+              content: `${prono.description} - ${prono.prediction_text}`,
+              username: prono.creator_username || 'Créateur',
+              user_id: prono.creator_id,
+              created_at: prono.created_at,
+              media_url: null,
+              media_type: null,
+              media_filename: null
+            } as any);
+          }}
+          onLikeDebriefing={likeDebriefing}
+          onDeleteDebriefing={isCreator ? deleteDebriefing : undefined}
+        />
+      </div>
+      
+      {(isCreator || isSubscribed) ? (
+        <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white z-50">
+          <MessageReply 
+            replyingTo={replyingTo}
+            onCancelReply={handleCancelReply}
+          />
+          <MediaInput
+            newMessage={newMessage}
+            setNewMessage={setNewMessage}
+            onSendMessage={handleSendMessage}
+          />
+        </div>
+      ) : (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+          <div className="text-center py-2">
+            <div className="flex items-center justify-center space-x-2 text-gray-500">
+              <Lock className="w-4 h-4" />
+              <span className="text-sm">Vous devez être abonné pour écrire dans ce canal</span>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Messages */}
-      <div className="flex-1">
-        <ScrollArea className="h-full px-4 py-4">
-          <div className="space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">Aucun message pour le moment</p>
-                <p className="text-sm text-gray-400 mt-1">Soyez le premier à écrire !</p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div key={message.id} className="flex items-start space-x-3">
-                  <img
-                    src={message.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.user_id}`}
-                    alt={message.username}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-sm text-gray-900">
-                        {message.username}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {formatTime(message.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 break-words">
-                      {message.content}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
-      </div>
+      <VipPronoModal
+        isOpen={showVipPronoModal}
+        onClose={() => setShowVipPronoModal(false)}
+        onSubmit={handleCreateVipProno}
+      />
 
-      {/* Message Input */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        <div className="flex space-x-2">
-          <Input
-            placeholder="Tapez votre message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="flex-1"
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={!newMessage.trim()}
-            className="bg-green-500 hover:bg-green-600"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
+      <DebriefingModal
+        isOpen={showDebriefingModal}
+        onClose={() => setShowDebriefingModal(false)}
+        onSubmit={handleCreateDebriefing}
+      />
     </div>
   );
 };

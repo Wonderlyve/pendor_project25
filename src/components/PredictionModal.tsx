@@ -28,6 +28,7 @@ interface PredictionModalProps {
       odds: string;
       league: string;
       time: string;
+      betType?: string;
     }>;
   };
 }
@@ -41,7 +42,8 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
       prediction: prediction.prediction,
       odds: prediction.odds,
       league: prediction.sport,
-      time: '20:00'
+      time: '20:00',
+      betType: prediction.betType
     }
   ];
 
@@ -73,44 +75,70 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
           </div>
         )}
 
-        {/* Liste des matchs avec style similaire à l'image */}
-        <div className="space-y-3">
-          {matches.map((match, index) => (
-            <div key={match.id} className="bg-white border-l-4 border-l-blue-500 p-4 shadow-sm">
-              {/* En-tête du match avec cote à droite */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900 text-base mb-2">
-                    {match.teams}
-                  </div>
-                  
-                  {/* Détails du match */}
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <Trophy className="w-4 h-4" />
-                      <span>{match.league}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{match.time}</span>
+        {/* Tableau des matchs */}
+        <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700">
+            {isMultipleBet ? `${matches.length} matchs sélectionnés` : 'Match sélectionné'}
+          </div>
+          
+          <div className="divide-y divide-gray-200">
+            {matches.map((match, index) => (
+              <div key={match.id} className="p-3">
+                <div className="grid grid-cols-12 gap-2 items-center text-xs">
+                  {/* Équipes */}
+                  <div className="col-span-4">
+                    <div className="font-medium text-gray-900 leading-tight">{match.teams}</div>
+                    <div className="flex items-center text-gray-500 mt-1">
+                      <Trophy className="w-3 h-3 mr-1" />
+                      <span className="truncate">{match.league}</span>
                     </div>
                   </div>
                   
-                  {/* Prédiction avec style vert */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-green-600 text-lg">⚽</span>
-                    <span className="text-green-600 font-medium">{match.prediction}</span>
+                  {/* Heure */}
+                  <div className="col-span-2 text-center">
+                    <div className="flex items-center justify-center text-gray-600">
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span className="font-medium">{match.time}</span>
+                    </div>
                   </div>
-                </div>
-                
-                {/* Cote à droite */}
-                <div className="text-right ml-4">
-                  <div className="text-sm text-gray-500 mb-1">Cote</div>
-                  <div className="font-bold text-blue-600 text-2xl">{match.odds}</div>
+                  
+                  {/* Type de pari */}
+                  <div className="col-span-2 text-center">
+                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      {match.betType || '1X2'}
+                    </span>
+                  </div>
+                  
+                  {/* Pronostic */}
+                  <div className="col-span-2 text-center">
+                    <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                      {match.prediction}
+                    </span>
+                  </div>
+                  
+                  {/* Côte */}
+                  <div className="col-span-2 text-right">
+                    <span className="text-sm font-bold text-green-600">{match.odds}</span>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+          
+          {/* Total des côtes pour pari combiné */}
+          {prediction.totalOdds && isMultipleBet && (
+            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-t border-orange-200 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">🎯</span>
+                  <span className="font-semibold text-orange-800 text-sm">Côte totale combinée</span>
+                </div>
+                <span className="text-lg font-bold text-orange-600">
+                  {prediction.totalOdds}
+                </span>
+              </div>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Code de réservation - toujours affiché s'il existe */}
@@ -123,22 +151,6 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
           </div>
         )}
 
-        {/* Cote totale si pari multiple */}
-        {prediction.totalOdds && isMultipleBet && (
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-orange-800 text-sm">🎯 Pari Combiné</span>
-                <div className="text-xs text-orange-600 mt-1">{matches.length} matchs sélectionnés</div>
-              </div>
-              <div className="text-right">
-                <span className="text-lg font-bold text-orange-600">
-                  Cote: {prediction.totalOdds}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Analyse */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
