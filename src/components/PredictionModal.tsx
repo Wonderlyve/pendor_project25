@@ -74,15 +74,15 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
         </div>
 
         {/* Liste des matchs */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {matches.map((match, index) => (
-            <Card key={match.id} className="p-3">
-              <div className="space-y-2">
+            <Card key={match.id} className="p-4 border border-gray-200 rounded-lg shadow-sm">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm">{match.teams}</div>
-                    <div className="flex items-center text-gray-500 text-xs mt-1">
-                      <Trophy className="w-3 h-3 mr-1" />
+                    <div className="font-medium text-gray-900 text-base">{match.teams}</div>
+                    <div className="flex items-center text-gray-500 text-sm mt-1">
+                      <Trophy className="w-4 h-4 mr-1" />
                       <span>{match.league} • {match.time}</span>
                     </div>
                   </div>
@@ -90,14 +90,14 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
                 
                 <div className="flex items-center justify-between">
                   <div className="flex space-x-2">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                    <span className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
                       {match.betType || '1X2'}
                     </span>
-                    <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                    <span className="px-3 py-1 text-sm font-semibold bg-green-100 text-green-800 rounded-full">
                       {match.prediction}
                     </span>
                   </div>
-                  <span className="text-sm font-bold text-green-600">{match.odds}</span>
+                  <span className="text-lg font-bold text-green-600">{match.odds}</span>
                 </div>
               </div>
             </Card>
