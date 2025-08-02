@@ -1,6 +1,7 @@
 
 import { Calendar, Clock, Trophy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
 
 interface PredictionModalProps {
   prediction: {
@@ -73,42 +74,33 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
         </div>
 
         {/* Liste des matchs */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {matches.map((match, index) => (
-            <div key={match.id} className="flex items-center justify-between py-2">
-              {/* Équipes et sport */}
-              <div className="flex-1">
-                <div className="font-medium text-gray-900 text-sm">{match.teams}</div>
-                <div className="flex items-center text-gray-500 text-xs mt-1">
-                  <Trophy className="w-3 h-3 mr-1" />
-                  <span>{match.league}</span>
+            <Card key={match.id} className="p-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm">{match.teams}</div>
+                    <div className="flex items-center text-gray-500 text-xs mt-1">
+                      <Trophy className="w-3 h-3 mr-1" />
+                      <span>{match.league} • {match.time}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex space-x-2">
+                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      {match.betType || '1X2'}
+                    </span>
+                    <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                      {match.prediction}
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">{match.odds}</span>
                 </div>
               </div>
-              
-              {/* Heure */}
-              <div className="mx-4 text-sm font-medium text-gray-700">
-                {match.time}
-              </div>
-              
-              {/* Type de pari */}
-              <div className="mx-4">
-                <span className="text-sm font-medium text-blue-600">
-                  {match.betType || '1X2'}
-                </span>
-              </div>
-              
-              {/* Pronostic */}
-              <div className="mx-4">
-                <span className="px-2 py-1 text-sm font-bold bg-green-100 text-green-700 rounded">
-                  {match.prediction}
-                </span>
-              </div>
-              
-              {/* Côte */}
-              <div className="text-right">
-                <span className="text-lg font-bold text-green-600">{match.odds}</span>
-              </div>
-            </div>
+            </Card>
           ))}
         </div>
         
