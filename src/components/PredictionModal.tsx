@@ -73,36 +73,40 @@ const PredictionModal = ({ prediction }: PredictionModalProps) => {
           <span className="text-sm font-medium text-gray-700">Match sélectionné</span>
         </div>
 
-        {/* Liste des matchs */}
-        <div className="space-y-3">
-          {matches.map((match, index) => (
-            <Card key={match.id} className="p-4 border border-gray-200 rounded-lg shadow-sm">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-base">{match.teams}</div>
-                    <div className="flex items-center text-gray-500 text-sm mt-1">
-                      <Trophy className="w-4 h-4 mr-1" />
-                      <span>{match.league} • {match.time}</span>
+        {/* Liste des matchs sélectionnés */}
+        {matches.length > 0 && (
+          <div className="space-y-2">
+            <h5 className="text-sm font-medium text-gray-700">Matchs sélectionnés ({matches.length}):</h5>
+            <div className="space-y-2">
+              {matches.map((match) => (
+                <Card key={match.id} className="p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{match.teams}</div>
+                        <div className="text-xs text-gray-500">
+                          {match.league} • {match.time}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex space-x-2">
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                          {match.betType || '1X2'}
+                        </span>
+                        <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                          {match.prediction}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-green-600">{match.odds}</span>
                     </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex space-x-2">
-                    <span className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
-                      {match.betType || '1X2'}
-                    </span>
-                    <span className="px-3 py-1 text-sm font-semibold bg-green-100 text-green-800 rounded-full">
-                      {match.prediction}
-                    </span>
-                  </div>
-                  <span className="text-lg font-bold text-green-600">{match.odds}</span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* Total des côtes pour pari combiné */}
         {prediction.totalOdds && isMultipleBet && (
