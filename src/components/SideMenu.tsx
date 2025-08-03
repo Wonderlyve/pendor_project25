@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { X, User, Home, Video, TrendingUp, Settings, HelpCircle, LogOut, Bell, Bookmark, Shield, Info } from 'lucide-react';
+import { X, User, Home, Video, TrendingUp, Settings, HelpCircle, LogOut, Bell, Bookmark, Shield, Info, Upload } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -24,6 +24,11 @@ const SideMenu = ({ open, onOpenChange }: SideMenuProps) => {
     { icon: Bell, label: 'Notifications', action: () => { navigate('/notifications'); onOpenChange(false); } },
     { icon: Bookmark, label: 'Favoris', action: () => { navigate('/favorites'); onOpenChange(false); } },
   ];
+
+  // Ajouter l'option Poster pour les utilisateurs Smart
+  const smartMenuItems = user?.user_metadata?.badge === 'Smart' 
+    ? [{ icon: Upload, label: 'Poster', action: () => { navigate('/bulk-post'); onOpenChange(false); } }]
+    : [];
 
   const settingsItems = [
     { icon: Settings, label: 'Paramètres', action: () => { navigate('/settings'); onOpenChange(false); } },
@@ -101,6 +106,22 @@ const SideMenu = ({ open, onOpenChange }: SideMenuProps) => {
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
+                  </Button>
+                );
+              })}
+              
+              {/* Menu Smart uniquement pour les utilisateurs Smart */}
+              {smartMenuItems.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={`smart-${index}`}
+                    variant="ghost"
+                    className="w-full justify-start space-x-3 h-12 px-4 text-left bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200"
+                    onClick={item.action}
+                  >
+                    <Icon className="w-5 h-5 text-purple-600" />
+                    <span className="text-purple-700 font-medium">{item.label}</span>
                   </Button>
                 );
               })}
