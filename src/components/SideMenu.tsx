@@ -25,8 +25,8 @@ const SideMenu = ({ open, onOpenChange }: SideMenuProps) => {
     { icon: Bookmark, label: 'Favoris', action: () => { navigate('/favorites'); onOpenChange(false); } },
   ];
 
-  // Ajouter l'option Poster pour les utilisateurs Smart
-  const smartMenuItems = user?.user_metadata?.badge === 'Smart' 
+  // Ajouter l'option Poster pour l'utilisateur Smart
+  const smartMenuItems = user?.email === 'smart@example.com' || user?.user_metadata?.display_name === 'Smart'
     ? [{ icon: Upload, label: 'Poster', action: () => { navigate('/bulk-post'); onOpenChange(false); } }]
     : [];
 

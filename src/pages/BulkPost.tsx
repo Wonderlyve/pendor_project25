@@ -141,7 +141,7 @@ const BulkPost = () => {
     }
   };
 
-  if (!user || user.user_metadata?.badge !== 'Smart') {
+  if (!user || (user.email !== 'smart@example.com' && user.user_metadata?.display_name !== 'Smart')) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -149,7 +149,7 @@ const BulkPost = () => {
           <Alert>
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              Cette fonctionnalité est réservée aux utilisateurs Smart.
+              Cette fonctionnalité est réservée à l'utilisateur Smart.
             </AlertDescription>
           </Alert>
         </div>
