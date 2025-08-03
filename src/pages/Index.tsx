@@ -189,8 +189,8 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Search Bar et Filtres */}
-      <div className="bg-white border-b">
+      {/* Search Bar et Filtres - Fixe */}
+      <div className="bg-white border-b sticky top-[73px] z-30">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="space-y-3">
             <div className="flex items-center space-x-2">

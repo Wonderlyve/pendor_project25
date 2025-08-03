@@ -19,6 +19,7 @@ interface CSVRow {
   analysis: string;
   odds: number;
   confidence: number;
+  username?: string;
 }
 
 const BulkPost = () => {
@@ -31,9 +32,9 @@ const BulkPost = () => {
   const { user } = useAuth();
 
   const downloadTemplate = () => {
-    const csvContent = "content,sport,match_teams,prediction_text,analysis,odds,confidence\n" +
-      "Analyse du match PSG vs Real,Football,PSG vs Real Madrid,PSG gagnant,Le PSG joue à domicile et a une meilleure forme récente,1.85,85\n" +
-      "Pronostic tennis,Tennis,Nadal vs Djokovic,Nadal gagnant,Nadal excelle sur terre battue,2.10,75";
+    const csvContent = "content,sport,match_teams,prediction_text,analysis,odds,confidence,username\n" +
+      "Analyse du match PSG vs Real,Football,PSG vs Real Madrid,PSG gagnant,Le PSG joue à domicile et a une meilleure forme récente,1.85,85,winwin\n" +
+      "Pronostic tennis,Tennis,Nadal vs Djokovic,Nadal gagnant,Nadal excelle sur terre battue,2.10,75,starpro";
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -64,6 +65,11 @@ const BulkPost = () => {
       // Validation des champs requis
       if (!row.content || !row.analysis) {
         throw new Error(`Ligne ${index + 2}: Les champs 'content' et 'analysis' sont requis`);
+      }
+      
+      // Validation du nom d'utilisateur si fourni
+      if (row.username && !['winwin', 'starpro', 'Patrickprono', 'victoirepro'].includes(row.username)) {
+        throw new Error(`Ligne ${index + 2}: Le nom d'utilisateur doit être winwin, starpro, Patrickprono ou victoirepro`);
       }
       
       return row as CSVRow;
@@ -116,7 +122,8 @@ const BulkPost = () => {
           prediction_text: row.prediction_text,
           analysis: row.analysis,
           odds: row.odds,
-          confidence: row.confidence
+          confidence: row.confidence,
+          username: row.username || 'Smart' // Par défaut Smart si pas de username spécifié
         });
         successCount++;
       } catch (error) {
@@ -237,7 +244,7 @@ const BulkPost = () => {
                         <div key={index} className="p-3 border rounded-lg">
                           <p className="font-medium truncate">{row.content}</p>
                           <p className="text-sm text-muted-foreground">
-                            {row.sport} • {row.match_teams} • Cote: {row.odds} • Confiance: {row.confidence}%
+                            {row.sport} • {row.match_teams} • Cote: {row.odds} • Confiance: {row.confidence}% • Utilisateur: {row.username || 'Smart'}
                           </p>
                         </div>
                       ))}

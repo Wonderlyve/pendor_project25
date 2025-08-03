@@ -113,6 +113,7 @@ export const usePosts = () => {
     confidence: number;
     image_file?: File;
     video_file?: File;
+    username?: string;
   }) => {
     if (!user) {
       toast.error('Vous devez être connecté pour créer un post');
