@@ -189,6 +189,58 @@ export const usePosts = () => {
     }
   };
 
+  const updatePost = async (postId: string, imageFile?: File, videoFile?: File) => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour modifier un post');
+      return null;
+    }
+
+    try {
+      let image_url = null;
+      let video_url = null;
+      const updateData: any = {};
+
+      // Upload new image if provided
+      if (imageFile) {
+        image_url = await uploadFile(imageFile, 'post-images');
+        updateData.image_url = image_url;
+      }
+
+      // Upload new video if provided
+      if (videoFile) {
+        video_url = await uploadFile(videoFile, 'post-videos');
+        updateData.video_url = video_url;
+      }
+
+      // Only update if there are changes
+      if (Object.keys(updateData).length === 0) {
+        toast.info('Aucune modification à sauvegarder');
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('posts')
+        .update(updateData)
+        .eq('id', postId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating post:', error);
+        toast.error('Erreur lors de la modification du post');
+        return null;
+      }
+
+      fetchPosts(); // Refresh posts
+      return data;
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la modification du post');
+      return null;
+    }
+  };
+
   const likePost = async (postId: string) => {
     if (!user) {
       toast.error('Vous devez être connecté pour liker un post');
@@ -245,6 +297,7 @@ export const usePosts = () => {
     posts,
     loading,
     createPost,
+    updatePost,
     likePost,
     refetch: fetchPosts
   };

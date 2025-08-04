@@ -33,6 +33,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePostLikes } from '@/hooks/usePostLikes';
 import { usePostComments } from '@/hooks/usePostComments';
 import { CommentsBottomSheet } from '@/components/CommentsBottomSheet';
+import EditPostModal from '@/components/EditPostModal';
+import { usePosts } from '@/hooks/usePosts';
 
 interface PredictionCardProps {
   prediction: {
@@ -75,6 +77,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const navigate = useNavigate();
   const { requireAuth, user } = useAuth();
   const { likePost } = useOptimizedPosts();
+  const { updatePost } = usePosts();
   const { isLiked: isPostLiked, likesCount: postLikesCount, toggleLike } = usePostLikes(prediction.id);
   const { commentsCount } = usePostComments(prediction.id);
   const { addView } = usePostViews();
@@ -110,6 +113,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const [isBlocked, setIsBlocked] = useState(false);
   const [actionStatesLoaded, setActionStatesLoaded] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
 
@@ -169,7 +173,12 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   };
 
   const handleEditPost = () => {
-    toast.info('Modification du post - Fonctionnalité en développement');
+    setShowEditModal(true);
+  };
+
+  const handleSavePost = async (postId: string, imageFile?: File, videoFile?: File) => {
+    await updatePost(postId, imageFile, videoFile);
+    setShowEditModal(false);
   };
 
   const handleDeletePost = async () => {
@@ -796,6 +805,18 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal d'édition */}
+      <EditPostModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        post={{
+          id: prediction.id,
+          image_url: prediction.image,
+          video_url: prediction.video
+        }}
+        onSave={handleSavePost}
+      />
     </Card>
   );
 };
