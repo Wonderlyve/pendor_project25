@@ -55,16 +55,33 @@ export const usePosts = () => {
         return;
       }
 
+      // Récupérer tous les profils pour vérifier les custom_username
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url, badge');
+
       // Transform data to match Post interface
-      const transformedPosts = data?.map((post: any) => ({
-        ...post,
-        username: post.profiles?.username,
-        display_name: post.profiles?.display_name,
-        avatar_url: post.profiles?.avatar_url,
-        badge: post.profiles?.badge,
-        like_count: post.likes,
-        comment_count: post.comments
-      })) || [];
+      const transformedPosts = data?.map((post: any) => {
+        let profileData = post.profiles;
+        
+        // Si custom_username existe, chercher le profil correspondant
+        if (post.custom_username) {
+          const customProfile = allProfiles?.find(p => p.username === post.custom_username);
+          if (customProfile) {
+            profileData = customProfile;
+          }
+        }
+
+        return {
+          ...post,
+          username: profileData?.username,
+          display_name: profileData?.display_name,
+          avatar_url: profileData?.avatar_url,
+          badge: profileData?.badge,
+          like_count: post.likes,
+          comment_count: post.comments
+        };
+      }) || [];
 
       setPosts(transformedPosts);
     } catch (error) {

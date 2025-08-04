@@ -115,16 +115,24 @@ const Index = () => {
   };
 
   // Transform Post to PredictionCard format
-  const transformPostToPrediction = (post: any) => ({
+  const transformPostToPrediction = (post: any) => {
+    // Déterminer les données utilisateur à afficher
+    const hasCustomUsername = post.custom_username && post.custom_username !== 'Smart';
+    const displayUsername = hasCustomUsername ? post.custom_username : (post.display_name || post.username || 'Utilisateur');
+    const displayAvatar = post.avatar_url || (hasCustomUsername ? 
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.custom_username}` : 
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.user_id}`);
+    const displayBadge = post.badge || (hasCustomUsername ? 'Pro' : 'Nouveau');
+    const badgeColor = post.badge ? 'bg-blue-500' : (hasCustomUsername ? 'bg-blue-500' : 'bg-gray-500');
+
+    return {
     id: post.id,
     user_id: post.user_id, // Ajout du user_id pour la détection du propriétaire
     user: {
-      username: post.custom_username || post.display_name || post.username || 'Utilisateur',
-      avatar: post.custom_username ? 
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.custom_username}` : 
-        (post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id),
-      badge: post.custom_username ? 'Pro' : 'Nouveau',
-      badgeColor: post.custom_username ? 'bg-blue-500' : 'bg-gray-500'
+      username: displayUsername,
+      avatar: displayAvatar,
+      badge: displayBadge,
+      badgeColor: badgeColor
     },
     match: post.match_teams || 'Match non spécifié',
     prediction: post.prediction_text || 'Pronostic non spécifié',
@@ -141,7 +149,8 @@ const Index = () => {
     image: post.image_url,
     video: post.video_url,
     is_liked: post.is_liked || false
-  });
+    };
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
