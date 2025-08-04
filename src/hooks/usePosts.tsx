@@ -147,6 +147,7 @@ export const usePosts = () => {
           confidence: postData.confidence,
           image_url,
           video_url,
+          custom_username: postData.username,
           likes: 0,
           comments: 0,
           shares: 0,

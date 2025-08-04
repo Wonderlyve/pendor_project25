@@ -534,6 +534,7 @@ export type Database = {
           confidence: number | null
           content: string
           created_at: string
+          custom_username: string | null
           id: string
           image_url: string | null
           likes: number | null
@@ -554,6 +555,7 @@ export type Database = {
           confidence?: number | null
           content: string
           created_at?: string
+          custom_username?: string | null
           id?: string
           image_url?: string | null
           likes?: number | null
@@ -574,6 +576,7 @@ export type Database = {
           confidence?: number | null
           content?: string
           created_at?: string
+          custom_username?: string | null
           id?: string
           image_url?: string | null
           likes?: number | null

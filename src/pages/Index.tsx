@@ -119,10 +119,12 @@ const Index = () => {
     id: post.id,
     user_id: post.user_id, // Ajout du user_id pour la détection du propriétaire
     user: {
-      username: post.display_name || post.username || 'Utilisateur',
-      avatar: post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id,
-      badge: 'Nouveau',
-      badgeColor: 'bg-gray-500'
+      username: post.custom_username || post.display_name || post.username || 'Utilisateur',
+      avatar: post.custom_username ? 
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.custom_username}` : 
+        (post.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.user_id),
+      badge: post.custom_username ? 'Pro' : 'Nouveau',
+      badgeColor: post.custom_username ? 'bg-blue-500' : 'bg-gray-500'
     },
     match: post.match_teams || 'Match non spécifié',
     prediction: post.prediction_text || 'Pronostic non spécifié',
