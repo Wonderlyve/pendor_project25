@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Car, ShoppingCart, User, Trophy, History } from "lucide-react";
 
 const Navbar = () => {
@@ -54,9 +55,11 @@ const Navbar = () => {
               <p className="text-sm text-gray-300">Pilote #1247</p>
               <p className="text-xs text-yellow-400">Niveau Gold</p>
             </div>
-            <Button variant="outline" size="icon" className="border-yellow-500/50">
-              <User className="w-4 h-4" />
-            </Button>
+            <Avatar className="h-10 w-10 border-2 border-yellow-500/50">
+              <AvatarFallback className="bg-yellow-500/20 text-yellow-400">
+                <User className="w-5 h-5" />
+              </AvatarFallback>
+            </Avatar>
           </div>
         </div>
       </div>
