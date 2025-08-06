@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_versions: {
+        Row: {
+          apk_url: string
+          created_at: string
+          id: string
+          is_active: boolean
+          release_notes: string | null
+          updated_at: string
+          version_code: number
+          version_name: string
+        }
+        Insert: {
+          apk_url: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          release_notes?: string | null
+          updated_at?: string
+          version_code: number
+          version_name: string
+        }
+        Update: {
+          apk_url?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          release_notes?: string | null
+          updated_at?: string
+          version_code?: number
+          version_name?: string
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -351,7 +384,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
-          video_url: string
+          video_url: string | null
           views: number
         }
         Insert: {
@@ -367,7 +400,7 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
-          video_url: string
+          video_url?: string | null
           views?: number
         }
         Update: {
@@ -383,7 +416,7 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
-          video_url?: string
+          video_url?: string | null
           views?: number
         }
         Relationships: []
@@ -469,6 +502,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          from_user_id: string | null
+          id: string
+          post_id: string | null
+          read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          post_id?: string | null
+          read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          post_id?: string | null
+          read?: boolean
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_likes: {
         Row: {
           created_at: string
@@ -541,6 +607,7 @@ export type Database = {
           match_teams: string | null
           odds: number | null
           prediction_text: string | null
+          reservation_code: string | null
           shares: number | null
           sport: string | null
           updated_at: string
@@ -562,6 +629,7 @@ export type Database = {
           match_teams?: string | null
           odds?: number | null
           prediction_text?: string | null
+          reservation_code?: string | null
           shares?: number | null
           sport?: string | null
           updated_at?: string
@@ -583,6 +651,7 @@ export type Database = {
           match_teams?: string | null
           odds?: number | null
           prediction_text?: string | null
+          reservation_code?: string | null
           shares?: number | null
           sport?: string | null
           updated_at?: string
@@ -656,6 +725,123 @@ export type Database = {
           created_at?: string
           id?: string
           post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          comments: number
+          content: string | null
+          created_at: string
+          duration: number | null
+          expires_at: string
+          id: string
+          likes: number
+          location: string | null
+          media_type: string | null
+          media_url: string | null
+          updated_at: string
+          user_id: string
+          views: number
+        }
+        Insert: {
+          comments?: number
+          content?: string | null
+          created_at?: string
+          duration?: number | null
+          expires_at?: string
+          id?: string
+          likes?: number
+          location?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          updated_at?: string
+          user_id: string
+          views?: number
+        }
+        Update: {
+          comments?: number
+          content?: string | null
+          created_at?: string
+          duration?: number | null
+          expires_at?: string
+          id?: string
+          likes?: number
+          location?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          updated_at?: string
+          user_id?: string
+          views?: number
+        }
+        Relationships: []
+      }
+      story_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          story_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          story_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          story_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_likes: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
           user_id?: string
         }
         Relationships: []

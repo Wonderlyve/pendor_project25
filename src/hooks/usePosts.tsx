@@ -27,6 +27,7 @@ export interface Post {
   badge?: string;
   like_count?: number;
   comment_count?: number;
+  reservation_code?: string;
 }
 
 export const usePosts = () => {
@@ -131,6 +132,7 @@ export const usePosts = () => {
     image_file?: File;
     video_file?: File;
     username?: string;
+    reservation_code?: string;
   }) => {
     if (!user) {
       toast.error('Vous devez être connecté pour créer un post');
@@ -165,6 +167,7 @@ export const usePosts = () => {
           image_url,
           video_url,
           custom_username: postData.username,
+          reservation_code: postData.reservation_code,
           likes: 0,
           comments: 0,
           shares: 0,

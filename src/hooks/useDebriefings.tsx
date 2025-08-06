@@ -8,7 +8,7 @@ export interface Debriefing {
   id: string;
   title: string;
   description: string;
-  video_url: string;
+  video_url: string | null;
   creator_id: string;
   creator_username: string;
   likes: number;
@@ -16,7 +16,7 @@ export interface Debriefing {
   comments: number;
   isLiked: boolean;
   created_at: string;
-  channel_id: string;
+  channel_id: string | null;
   thumbnail_url?: string;
   post_link?: string;
   is_public?: boolean;
@@ -139,59 +139,95 @@ export const useDebriefings = (channelId: string | null) => {
       return false;
     }
 
+    // Validation des données
+    if (!debriefingData.title?.trim()) {
+      toast.error('Le titre est requis');
+      return false;
+    }
+
+    if (!debriefingData.description?.trim()) {
+      toast.error('La description est requise');
+      return false;
+    }
+
     try {
-      let videoUrl = '';
-      let thumbnailUrl = '';
+      let videoUrl: string | null = null;
+      let thumbnailUrl: string | null = null;
       
+      // Upload video if provided
       if (debriefingData.video) {
-        // Upload video to storage
-        const videoFileName = `${user.id}/${Date.now()}-${debriefingData.video.name}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('debriefing-videos')
-          .upload(videoFileName, debriefingData.video);
+        try {
+          const videoFileName = `${user.id}/${Date.now()}-${debriefingData.video.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('debriefing-videos')
+            .upload(videoFileName, debriefingData.video);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('Video upload error:', uploadError);
+            throw new Error(`Erreur lors de l'upload de la vidéo: ${uploadError.message}`);
+          }
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('debriefing-videos')
-          .getPublicUrl(videoFileName);
-        
-        videoUrl = urlData.publicUrl;
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('debriefing-videos')
+            .getPublicUrl(videoFileName);
+          
+          videoUrl = urlData.publicUrl;
+        } catch (error) {
+          console.error('Video processing error:', error);
+          throw new Error('Erreur lors du traitement de la vidéo');
+        }
       }
 
+      // Upload thumbnail if provided
       if (debriefingData.thumbnail) {
-        // Upload thumbnail to storage
-        const thumbnailFileName = `${user.id}/${Date.now()}-thumbnail-${debriefingData.thumbnail.name}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('debriefing-videos')
-          .upload(thumbnailFileName, debriefingData.thumbnail);
+        try {
+          const thumbnailFileName = `${user.id}/${Date.now()}-thumbnail-${debriefingData.thumbnail.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('debriefing-videos')
+            .upload(thumbnailFileName, debriefingData.thumbnail);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('Thumbnail upload error:', uploadError);
+            throw new Error(`Erreur lors de l'upload de l'image: ${uploadError.message}`);
+          }
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('debriefing-videos')
-          .getPublicUrl(thumbnailFileName);
-        
-        thumbnailUrl = urlData.publicUrl;
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('debriefing-videos')
+            .getPublicUrl(thumbnailFileName);
+          
+          thumbnailUrl = urlData.publicUrl;
+        } catch (error) {
+          console.error('Thumbnail processing error:', error);
+          throw new Error('Erreur lors du traitement de l\'image');
+        }
+      }
+
+      // Validate that at least video or thumbnail is provided for public briefs
+      if (isPublicBrief && !videoUrl && !thumbnailUrl && !debriefingData.postLink?.trim()) {
+        toast.error('Un brief public doit contenir au moins une vidéo, une image ou un lien');
+        return false;
       }
 
       // Create debriefing in database
       const debriefingInsert = {
-        title: debriefingData.title,
-        description: debriefingData.description,
-        video_url: videoUrl || null,
-        thumbnail_url: thumbnailUrl || null,
-        post_link: debriefingData.postLink || null,
+        title: debriefingData.title.trim(),
+        description: debriefingData.description.trim(),
+        video_url: videoUrl,
+        thumbnail_url: thumbnailUrl,
+        post_link: debriefingData.postLink?.trim() || null,
         creator_id: user.id,
         channel_id: isPublicBrief ? null : channelId,
         is_public: isPublicBrief,
         likes: 0,
-        views: 0
+        views: 0,
+        comments: 0
       };
+
+      console.log('Inserting debriefing:', debriefingInsert);
 
       const { data, error } = await supabase
         .from('debriefings')
@@ -199,14 +235,19 @@ export const useDebriefings = (channelId: string | null) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        throw new Error(`Erreur lors de l'enregistrement: ${error.message}`);
+      }
+
+      console.log('Debriefing created successfully:', data);
 
       // Get creator username
       const { data: profileData } = await supabase
         .from('profiles')
         .select('username')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       const newDebriefing: Debriefing = {
         ...data,
@@ -214,14 +255,16 @@ export const useDebriefings = (channelId: string | null) => {
         isLiked: false
       };
 
-      // Add to the beginning of the list (newest first)
-      setDebriefings(prev => [newDebriefing, ...prev]);
+      // Add to the beginning of the list (newest first) only if it's for the current context
+      if (isPublicBrief || channelId === null) {
+        setDebriefings(prev => [newDebriefing, ...prev]);
+      }
       
       toast.success(isPublicBrief ? 'Brief publié avec succès !' : 'Débriefing créé avec succès !');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating debriefing:', error);
-      toast.error('Erreur lors de la création du débriefing');
+      toast.error(error.message || 'Erreur lors de la création du débriefing');
       return false;
     }
   };

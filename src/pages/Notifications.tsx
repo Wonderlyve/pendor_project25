@@ -32,6 +32,8 @@ const Notifications = () => {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'new_post':
+        return '🎯';
       case 'new_prediction':
         return '🎯';
       case 'follow':
@@ -42,6 +44,17 @@ const Notifications = () => {
         return '💬';
       default:
         return '🔔';
+    }
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    
+    // Rediriger vers le post si post_id existe
+    if (notification.post_id) {
+      navigate(`/?post=${notification.post_id}`);
     }
   };
 
@@ -121,7 +134,7 @@ const Notifications = () => {
                 className={`cursor-pointer transition-all hover:shadow-md ${
                   !notification.read ? 'border-blue-200 bg-blue-50' : ''
                 }`}
-                onClick={() => !notification.read && markAsRead(notification.id)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-3">

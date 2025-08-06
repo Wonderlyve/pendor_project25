@@ -214,7 +214,7 @@ const Brief = () => {
                     <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs flex items-center space-x-3">
                       <div className="flex items-center space-x-1">
                         <Eye className="w-3 h-3" />
-                        <span>2.3K</span>
+                        <span>{formatViews(brief.views)}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Heart className="w-3 h-3" />

@@ -115,3 +115,21 @@
     }
   }
 }
+
+@keyframes storyProgress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.story-progress-bar {
+  animation: storyProgress 6s linear forwards;
+  animation-play-state: running;
+}
+
+.story-progress-bar.paused {
+  animation-play-state: paused;
+}
