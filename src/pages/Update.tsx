@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Download, Smartphone } from 'lucide-react';
+import { ArrowLeft, Upload, Link as LinkIcon, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
@@ -15,14 +15,11 @@ const Update = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [versions, setVersions] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     version_name: '',
-    version_code: '',
-    release_notes: '',
-    apk_file: null as File | null
+    description: '',
+    update_url: ''
   });
 
   // Vérifier si l'utilisateur est Smart
@@ -52,65 +49,35 @@ const Update = () => {
     );
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.name.endsWith('.apk')) {
-      setFormData({ ...formData, apk_file: file });
-    } else {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un fichier APK valide",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const uploadApkFile = async (file: File, versionName: string) => {
-    const fileName = `${versionName}-${Date.now()}.apk`;
-    const { data, error } = await supabase.storage
-      .from('apk-files')
-      .upload(fileName, file);
-
-    if (error) throw error;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('apk-files')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
 
     try {
-      if (!formData.apk_file) {
+      if (!formData.update_url) {
         toast({
           title: "Erreur",
-          description: "Veuillez sélectionner un fichier APK",
+          description: "Veuillez entrer un lien de mise à jour",
           variant: "destructive"
         });
         return;
       }
 
-      // Upload APK file
-      const apkUrl = await uploadApkFile(formData.apk_file, formData.version_name);
-
-      // Désactiver toutes les versions précédentes
+      // Désactiver tous les posts de mise à jour précédents
       await supabase
-        .from('app_versions')
+        .from('update_posts')
         .update({ is_active: false })
         .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      // Créer la nouvelle version
+      // Créer le nouveau post de mise à jour
       const { error: insertError } = await supabase
-        .from('app_versions')
+        .from('update_posts')
         .insert({
+          user_id: user?.id,
           version_name: formData.version_name,
-          version_code: parseInt(formData.version_code),
-          apk_url: apkUrl,
-          release_notes: formData.release_notes,
+          description: formData.description,
+          update_url: formData.update_url,
           is_active: true
         });
 
@@ -118,15 +85,14 @@ const Update = () => {
 
       toast({
         title: "Succès",
-        description: "Nouvelle version publiée avec succès"
+        description: "Post de mise à jour créé avec succès"
       });
 
       // Reset form
       setFormData({
         version_name: '',
-        version_code: '',
-        release_notes: '',
-        apk_file: null
+        description: '',
+        update_url: ''
       });
 
     } catch (error: any) {
@@ -163,73 +129,55 @@ const Update = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="h-5 w-5" />
-                  Publier une nouvelle version
+                  Créer un post de mise à jour
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="version_name">Nom de version</Label>
-                      <Input
-                        id="version_name"
-                        placeholder="ex: 1.2.0"
-                        value={formData.version_name}
-                        onChange={(e) => setFormData({ ...formData, version_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="version_code">Code de version</Label>
-                      <Input
-                        id="version_code"
-                        type="number"
-                        placeholder="ex: 120"
-                        value={formData.version_code}
-                        onChange={(e) => setFormData({ ...formData, version_code: e.target.value })}
-                        required
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="version_name">Nom de version</Label>
+                    <Input
+                      id="version_name"
+                      placeholder="ex: Version 1.2.0"
+                      value={formData.version_name}
+                      onChange={(e) => setFormData({ ...formData, version_name: e.target.value })}
+                      required
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="release_notes">Notes de version</Label>
+                    <Label htmlFor="description">Description de la mise à jour</Label>
                     <Textarea
-                      id="release_notes"
-                      placeholder="Décrivez les nouveautés et corrections..."
-                      value={formData.release_notes}
-                      onChange={(e) => setFormData({ ...formData, release_notes: e.target.value })}
+                      id="description"
+                      placeholder="Décrivez les nouveautés et améliorations..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={4}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="apk_file">Fichier APK</Label>
+                    <Label htmlFor="update_url">Lien de mise à jour</Label>
                     <Input
-                      id="apk_file"
-                      type="file"
-                      accept=".apk"
-                      onChange={handleFileChange}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                      id="update_url"
+                      type="url"
+                      placeholder="https://example.com/download-app"
+                      value={formData.update_url}
+                      onChange={(e) => setFormData({ ...formData, update_url: e.target.value })}
                       required
                     />
-                    {formData.apk_file && (
-                      <p className="text-sm text-muted-foreground">
-                        Fichier sélectionné: {formData.apk_file.name}
-                      </p>
-                    )}
                   </div>
 
                   <Button type="submit" disabled={uploading} className="w-full">
                     {uploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Publication en cours...
+                        Création en cours...
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Publier la mise à jour
+                        Créer le post de mise à jour
                       </>
                     )}
                   </Button>
@@ -240,7 +188,7 @@ const Update = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
+                  <LinkIcon className="h-5 w-5" />
                   Informations importantes
                 </CardTitle>
               </CardHeader>
@@ -250,10 +198,10 @@ const Update = () => {
                     ⚠️ Attention
                   </h4>
                   <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
-                    <li>• Une seule version peut être active à la fois</li>
-                    <li>• Tous les utilisateurs avec une version antérieure recevront une notification</li>
-                    <li>• Assurez-vous que le fichier APK fonctionne correctement avant publication</li>
-                    <li>• Les notes de version seront visibles par tous les utilisateurs</li>
+                    <li>• Un seul post de mise à jour peut être actif à la fois</li>
+                    <li>• Le post apparaîtra sur le feed principal de tous les utilisateurs</li>
+                    <li>• Le lien s'ouvrira quand les utilisateurs cliqueront sur "Mettre à jour"</li>
+                    <li>• Assurez-vous que le lien de téléchargement fonctionne correctement</li>
                   </ul>
                 </div>
               </CardContent>

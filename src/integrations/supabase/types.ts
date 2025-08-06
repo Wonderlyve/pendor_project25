@@ -846,6 +846,39 @@ export type Database = {
         }
         Relationships: []
       }
+      update_posts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          update_url: string
+          updated_at: string
+          user_id: string
+          version_name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          update_url: string
+          updated_at?: string
+          user_id: string
+          version_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          update_url?: string
+          updated_at?: string
+          user_id?: string
+          version_name?: string
+        }
+        Relationships: []
+      }
       vip_prono_reactions: {
         Row: {
           created_at: string

@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PostSkeleton from '@/optimization/PostSkeleton';
 import { supabase } from '@/integrations/supabase/client';
-import UpdateNotificationPost from '@/components/UpdateNotificationPost';
+import SimpleUpdatePost from '@/components/SimpleUpdatePost';
 
 const Index = () => {
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
@@ -318,7 +318,7 @@ const Index = () => {
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-4 pb-20 space-y-4">
         {/* Update Notification Post */}
-        <UpdateNotificationPost />
+        <SimpleUpdatePost />
         
         {initialLoading ? (
           <div className="space-y-4">
