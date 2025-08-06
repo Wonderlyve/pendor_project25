@@ -175,6 +175,7 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string
+          currency: string
           description: string | null
           id: string
           is_private: boolean
@@ -185,6 +186,7 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id: string
+          currency?: string
           description?: string | null
           id?: string
           is_private?: boolean
@@ -195,6 +197,7 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string
+          currency?: string
           description?: string | null
           id?: string
           is_private?: boolean

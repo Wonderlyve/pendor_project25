@@ -11,6 +11,7 @@ export interface Channel {
   creator_id: string;
   is_private: boolean;
   price: number;
+  currency: string;
   created_at: string;
   updated_at: string;
   creator_username?: string;
@@ -93,6 +94,7 @@ export const useChannels = () => {
     name: string;
     description: string;
     price: number;
+    currency: string;
   }) => {
     if (!user) {
       toast.error('Vous devez être connecté pour créer un canal');
@@ -106,6 +108,7 @@ export const useChannels = () => {
           name: channelData.name,
           description: channelData.description,
           price: channelData.price,
+          currency: channelData.currency,
           creator_id: user.id,
           is_private: true
         })

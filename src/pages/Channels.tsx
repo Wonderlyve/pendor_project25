@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -18,6 +19,15 @@ import { useChannels, Channel } from '@/hooks/useChannels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const getCurrencySymbol = (currency: string) => {
+  switch (currency) {
+    case 'EUR': return '€';
+    case 'USD': return '$';
+    case 'CDF': return 'FC';
+    default: return '€';
+  }
+};
+
 const Channels = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -28,7 +38,8 @@ const Channels = () => {
   const [newChannel, setNewChannel] = useState({
     name: '',
     description: '',
-    price: 0
+    price: 0,
+    currency: 'EUR'
   });
   
 
@@ -75,7 +86,7 @@ const Channels = () => {
     const result = await createChannelHook(newChannel);
     if (result) {
       setShowCreateModal(false);
-      setNewChannel({ name: '', description: '', price: 0 });
+      setNewChannel({ name: '', description: '', price: 0, currency: 'EUR' });
     }
   };
 
@@ -83,7 +94,8 @@ const Channels = () => {
     const defaultChannelData = {
       name: `Canal de ${userProfile?.username || user?.email?.split('@')[0] || 'Utilisateur'}`,
       description: 'Canal gratuit ouvert à tous',
-      price: 0
+      price: 0,
+      currency: 'EUR'
     };
 
     const result = await createChannelHook(defaultChannelData);
@@ -202,16 +214,34 @@ const Channels = () => {
                   placeholder="Décrivez ce que vos abonnés recevront..."
                 />
               </div>
-              <div>
-                <Label htmlFor="channelPrice">Prix mensuel (€)</Label>
-                <Input
-                  id="channelPrice"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={newChannel.price}
-                  onChange={(e) => setNewChannel(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="channelPrice">Prix mensuel</Label>
+                  <Input
+                    id="channelPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newChannel.price}
+                    onChange={(e) => setNewChannel(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="channelCurrency">Devise</Label>
+                  <Select 
+                    value={newChannel.currency} 
+                    onValueChange={(value) => setNewChannel(prev => ({ ...prev, currency: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Devise" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="CDF">CDF (FC)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button onClick={createChannel} className="w-full">
                 Créer le canal
@@ -279,7 +309,7 @@ const Channels = () => {
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-green-600">
-                        {channel.price > 0 ? `${channel.price}€/mois` : 'Gratuit'}
+                        {channel.price > 0 ? `${channel.price} ${getCurrencySymbol(channel.currency)}/mois` : 'Gratuit'}
                       </div>
                     </div>
                   </div>
