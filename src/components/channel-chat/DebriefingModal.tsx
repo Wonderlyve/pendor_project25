@@ -43,6 +43,18 @@ const DebriefingModal = ({ isOpen, onClose, onSubmit }: DebriefingModalProps) =>
       return;
     }
 
+    // Additional validation for title length
+    if (title.trim().length > 200) {
+      toast.error('Le titre ne peut pas dépasser 200 caractères');
+      return;
+    }
+
+    // Additional validation for description length
+    if (description.trim().length > 1000) {
+      toast.error('La description ne peut pas dépasser 1000 caractères');
+      return;
+    }
+
     onSubmit({
       title: title.trim(),
       description: description.trim(),

@@ -60,6 +60,8 @@ interface PredictionCardProps {
     image?: string;
     video?: string;
     totalOdds?: string;
+    reservationCode?: string;
+    betType?: string;
     matches?: Array<{
       id: string;
       teams: string;
@@ -67,6 +69,7 @@ interface PredictionCardProps {
       odds: string;
       league: string;
       time: string;
+      betType?: string;
     }>;
     is_liked?: boolean;
   };
