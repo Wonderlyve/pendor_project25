@@ -328,45 +328,40 @@ const Channels = () => {
 
         {/* Channels List */}
         {channels.length > 0 ? (
-          <div className="space-y-4">
+          <div className="bg-white rounded-lg border shadow-sm">
             {channels
               .filter(channel => 
                 channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 channel.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 channel.creator_username.toLowerCase().includes(searchQuery.toLowerCase())
               )
-              .map((channel) => (
-              <Card 
-                key={channel.id} 
-                className="overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => joinChannel(channel)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <Lock className="w-4 h-4 text-orange-500" />
-                        <CardTitle className="text-lg">{channel.name}</CardTitle>
-                      </div>
-                      <p className="text-gray-600 text-sm">
-                        {channel.description.length > 30 
-                          ? `${channel.description.substring(0, 30)}... voir tout`
-                          : channel.description
-                        }
-                      </p>
+              .map((channel, index) => (
+              <div key={channel.id}>
+                <div 
+                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => joinChannel(channel)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2 flex-1">
+                      <Lock className="w-4 h-4 text-orange-500" />
+                      <h3 className="font-medium text-gray-900">{channel.name}</h3>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-green-600">
-                        {channel.price > 0 ? `${channel.price} ${getCurrencySymbol(channel.currency)}/mois` : 'Gratuit'}
-                      </div>
+                    <div className="font-bold text-green-600 text-sm">
+                      {channel.price > 0 ? `${channel.price} ${getCurrencySymbol(channel.currency)}/mois` : 'Gratuit'}
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-0">
+                  
+                  <p className="text-gray-600 text-sm mb-3">
+                    {channel.description.length > 80 
+                      ? `${channel.description.substring(0, 80)}...`
+                      : channel.description
+                    }
+                  </p>
+                  
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">{channel.creator_username}</span>
+                        <span className="text-sm font-medium text-gray-700">{channel.creator_username}</span>
                         {channel.creator_badge && (
                           <Badge variant="outline" className="text-xs">
                             {channel.creator_badge}
@@ -375,7 +370,7 @@ const Channels = () => {
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Users className="w-3 h-3 mr-1" />
-                        {channel.subscriber_count} abonnés
+                        {channel.subscriber_count}
                       </div>
                     </div>
                     <div className="flex items-center text-xs text-gray-500">
@@ -383,8 +378,15 @@ const Channels = () => {
                       {isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre'}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                {index < channels.filter(channel => 
+                  channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  channel.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  channel.creator_username.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length - 1 && (
+                  <div className="border-b border-gray-200" />
+                )}
+              </div>
             ))}
           </div>
         ) : (
