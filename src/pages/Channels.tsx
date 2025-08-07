@@ -39,7 +39,8 @@ const Channels = () => {
     name: '',
     description: '',
     price: 0,
-    currency: 'EUR'
+    currency: 'EUR',
+    subscription_code: ''
   });
   
 
@@ -86,7 +87,7 @@ const Channels = () => {
     const result = await createChannelHook(newChannel);
     if (result) {
       setShowCreateModal(false);
-      setNewChannel({ name: '', description: '', price: 0, currency: 'EUR' });
+      setNewChannel({ name: '', description: '', price: 0, currency: 'EUR', subscription_code: '' });
     }
   };
 
@@ -108,6 +109,9 @@ const Channels = () => {
   const joinChannel = async (channel: Channel) => {
     if (isSubscribed(channel.id)) {
       setSelectedChannel(channel);
+    } else if (channel.price > 0) {
+      // Rediriger vers la page d'abonnement pour les canaux payants
+      navigate(`/channel-subscription/${channel.id}`);
     } else {
       await subscribeToChannel(channel.id);
     }
@@ -243,6 +247,21 @@ const Channels = () => {
                   </Select>
                 </div>
               </div>
+              {newChannel.price > 0 && (
+                <div>
+                  <Label htmlFor="subscriptionCode">Code d'abonnement</Label>
+                  <Input
+                    id="subscriptionCode"
+                    type="text"
+                    placeholder="Code pour les abonnements"
+                    value={newChannel.subscription_code}
+                    onChange={(e) => setNewChannel(prev => ({ ...prev, subscription_code: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Les utilisateurs pourront s'abonner avec ce code
+                  </p>
+                </div>
+              )}
               <Button onClick={createChannel} className="w-full">
                 Créer le canal
               </Button>
