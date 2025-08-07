@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft } from 'lucide-react';
+import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,8 @@ const Channels = () => {
     currency: 'EUR',
     subscription_code: ''
   });
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
 
   // Check user badge from profiles table
@@ -173,11 +175,32 @@ const Channels = () => {
               <p className="text-green-100 text-sm">Analyses exclusives des pros</p>
             </div>
           </div>
-          <Crown className="w-8 h-8 text-yellow-300" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSearch(!showSearch)}
+            className="text-white hover:bg-white/20"
+          >
+            {showSearch ? <X className="w-6 h-6" /> : <Search className="w-6 h-6" />}
+          </Button>
         </div>
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Search Field */}
+        {showSearch && (
+          <div className="bg-white rounded-lg border p-3 shadow-sm">
+            <Input
+              type="text"
+              placeholder="Rechercher des canaux par nom..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border-none focus:ring-0 p-0 text-base"
+              autoFocus
+            />
+          </div>
+        )}
+
         {/* Create Channel Button - Visible for all users */}
         <Button 
           className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white"
@@ -306,7 +329,13 @@ const Channels = () => {
         {/* Channels List */}
         {channels.length > 0 ? (
           <div className="space-y-4">
-            {channels.map((channel) => (
+            {channels
+              .filter(channel => 
+                channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                channel.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                channel.creator_username.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((channel) => (
               <Card 
                 key={channel.id} 
                 className="overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors"
