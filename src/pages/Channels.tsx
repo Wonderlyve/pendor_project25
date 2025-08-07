@@ -341,41 +341,44 @@ const Channels = () => {
                   className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => joinChannel(channel)}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2 flex-1">
-                      <Lock className="w-4 h-4 text-orange-500" />
-                      <h3 className="font-medium text-gray-900">{channel.name}</h3>
+                  <div className="flex items-start space-x-4">
+                    {/* Channel Thumbnail */}
+                    <div className="w-16 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Lock className="w-6 h-6 text-white" />
                     </div>
-                    <div className="font-bold text-green-600 text-sm">
-                      {channel.price > 0 ? `${channel.price} ${getCurrencySymbol(channel.currency)}/mois` : 'Gratuit'}
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mb-3">
-                    {channel.description.length > 80 
-                      ? `${channel.description.substring(0, 80)}...`
-                      : channel.description
-                    }
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-700">{channel.creator_username}</span>
+                    
+                    {/* Channel Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 text-base leading-tight">{channel.name}</h3>
+                        <div className="font-bold text-green-600 text-sm ml-2">
+                          {channel.price > 0 ? `${channel.price} ${getCurrencySymbol(channel.currency)}/mois` : 'Gratuit'}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-sm text-gray-600">{channel.creator_username}</span>
                         {channel.creator_badge && (
                           <Badge variant="outline" className="text-xs">
                             {channel.creator_badge}
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Users className="w-3 h-3 mr-1" />
-                        {channel.subscriber_count}
+                      
+                      <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                        {channel.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-xs text-gray-500">
+                          <Users className="w-3 h-3 mr-1" />
+                          {channel.subscriber_count} abonnés
+                        </div>
+                        <div className="flex items-center text-xs text-gray-500">
+                          <MessageCircle className="w-4 h-4 mr-1" />
+                          {isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre'}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      {isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre'}
                     </div>
                   </div>
                 </div>
