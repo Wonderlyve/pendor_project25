@@ -178,6 +178,7 @@ export type Database = {
           currency: string
           description: string | null
           id: string
+          image_url: string | null
           is_private: boolean
           name: string
           price: number
@@ -190,6 +191,7 @@ export type Database = {
           currency?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           is_private?: boolean
           name: string
           price?: number
@@ -202,6 +204,7 @@ export type Database = {
           currency?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           is_private?: boolean
           name?: string
           price?: number
@@ -510,6 +513,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          channel_id: string | null
           content: string
           created_at: string
           from_user_id: string | null
@@ -520,6 +524,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          channel_id?: string | null
           content: string
           created_at?: string
           from_user_id?: string | null
@@ -530,6 +535,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          channel_id?: string | null
           content?: string
           created_at?: string
           from_user_id?: string | null
@@ -539,7 +545,15 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post_likes: {
         Row: {
@@ -612,6 +626,7 @@ export type Database = {
           likes: number | null
           match_teams: string | null
           odds: number | null
+          post_type: string | null
           prediction_text: string | null
           reservation_code: string | null
           shares: number | null
@@ -634,6 +649,7 @@ export type Database = {
           likes?: number | null
           match_teams?: string | null
           odds?: number | null
+          post_type?: string | null
           prediction_text?: string | null
           reservation_code?: string | null
           shares?: number | null
@@ -656,6 +672,7 @@ export type Database = {
           likes?: number | null
           match_teams?: string | null
           odds?: number | null
+          post_type?: string | null
           prediction_text?: string | null
           reservation_code?: string | null
           shares?: number | null

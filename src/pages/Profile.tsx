@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Camera, Edit, Settings, Heart, MessageCircle, BarChart3, Trophy, Users, Star } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Settings, Heart, MessageCircle, BarChart3, Trophy, Users, Star, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -344,6 +344,17 @@ const Profile = () => {
           className="absolute top-4 right-4 text-white hover:bg-white/20"
         >
           <Settings className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="pb-4">
+        <Button
+          onClick={() => navigate('/my-briefings')}
+          className="w-full bg-black hover:bg-gray-800 text-white rounded-none"
+        >
+          <Video className="w-4 h-4 mr-2" />
+          Mes Briefings
         </Button>
       </div>
 

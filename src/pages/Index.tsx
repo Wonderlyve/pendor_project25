@@ -14,6 +14,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import PostSkeleton from '@/optimization/PostSkeleton';
 import { supabase } from '@/integrations/supabase/client';
 import SimpleUpdatePost from '@/components/SimpleUpdatePost';
+import { useVideoOptimization } from '@/hooks/useVideoOptimization';
+import { useMemo } from 'react';
 
 const Index = () => {
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
@@ -29,8 +31,37 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Extraire les URLs des vidéos pour l'optimisation
+  const videoUrls = useMemo(() => 
+    posts
+      .map(post => post.video_url)
+      .filter((video): video is string => Boolean(video)),
+    [posts]
+  );
+
+  // Initialiser l'optimisation vidéo
+  const { preloadVideos } = useVideoOptimization({
+    videos: videoUrls,
+    currentIndex: 0,
+    autoPreload: true,
+    enablePrefetch: true
+  });
+  
   // Gérer l'affichage d'un post spécifique depuis une notification
   const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null);
+
+  // Précharger les vidéos importantes au démarrage
+  useEffect(() => {
+    if (videoUrls.length > 0) {
+      // Précharger les 3 premières vidéos avec haute priorité
+      const priorityVideos = videoUrls.slice(0, 3);
+      preloadVideos(priorityVideos, 'high');
+      
+      // Précharger les 3 suivantes avec priorité moyenne
+      const mediumPriorityVideos = videoUrls.slice(3, 6);
+      preloadVideos(mediumPriorityVideos, 'medium');
+    }
+  }, [videoUrls, preloadVideos]);
 
   // Charger les posts masqués et utilisateurs bloqués
   useEffect(() => {
@@ -159,6 +190,7 @@ const Index = () => {
     return {
     id: post.id,
     user_id: post.user_id, // Ajout du user_id pour la détection du propriétaire
+    post_type: post.post_type || 'prediction', // Ajout du type de post
     user: {
       username: displayUsername,
       avatar: displayAvatar,
@@ -212,22 +244,28 @@ const Index = () => {
             
             <div className="flex items-center space-x-2">
               {user && <NotificationIcon />}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleProfileClick}
-                className="text-white hover:bg-white/20"
-              >
-                {user ? (
+              {user ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleProfileClick}
+                  className="text-white hover:bg-white/20"
+                >
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">
                       {user.email?.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                ) : (
-                  <User className="h-6 w-6" />
-                )}
-              </Button>
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  onClick={handleProfileClick}
+                  className="text-white hover:bg-white/20 px-3 py-2 text-sm"
+                >
+                  Se connecter
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -316,7 +354,10 @@ const Index = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 py-4 pb-20 space-y-4">
+      <div 
+        className="max-w-2xl mx-auto px-4 py-4 pb-20 space-y-4"
+        data-prefetch-videos={JSON.stringify(videoUrls.slice(0, 5))}
+      >
         {/* Update Notification Post */}
         <SimpleUpdatePost />
         

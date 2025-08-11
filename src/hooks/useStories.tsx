@@ -211,6 +211,40 @@ export const useStories = () => {
 
   useEffect(() => {
     fetchStories();
+
+    // Setup realtime subscription for stories
+    const channel = supabase
+      .channel('stories-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'stories'
+        },
+        async (payload) => {
+          const newStory = payload.new as any;
+          
+          // Fetch profile for the new story
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_id, username, display_name, avatar_url')
+            .eq('user_id', newStory.user_id)
+            .single();
+
+          const storyWithProfile = {
+            ...newStory,
+            profiles: profile || null,
+          };
+
+          setStories(prev => [storyWithProfile, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {

@@ -101,6 +101,8 @@
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
     touch-action: manipulation;
+    /* Disable pull-to-refresh for PWA */
+    overscroll-behavior-y: contain;
   }
 
   /* Ensure mobile-first responsive behavior */
@@ -126,7 +128,7 @@
 }
 
 .story-progress-bar {
-  animation: storyProgress 6s linear forwards;
+  animation: storyProgress 60s linear forwards;
   animation-play-state: running;
 }
 

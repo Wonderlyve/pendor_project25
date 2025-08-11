@@ -9,13 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
+import { ChannelImageUpload } from '@/components/ChannelImageUpload';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BottomNavigation from '@/components/BottomNavigation';
 import ChannelChat from '@/components/ChannelChat';
 import { useAuth } from '@/hooks/useAuth';
 import { useChannels, Channel } from '@/hooks/useChannels';
+import { useChannelNotifications } from '@/hooks/useChannelNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -31,7 +32,8 @@ const getCurrencySymbol = (currency: string) => {
 const Channels = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { channels, loading, createChannel: createChannelHook, subscribeToChannel, isSubscribed } = useChannels();
+  const { channels, loading, createChannel: createChannelHook, subscribeToChannel, deleteChannel: deleteChannelHook, isSubscribed } = useChannels();
+  const { getUnreadCountForChannel, markChannelNotificationsAsRead } = useChannelNotifications();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [showWarningDialog, setShowWarningDialog] = useState(false);
@@ -40,7 +42,8 @@ const Channels = () => {
     description: '',
     price: 0,
     currency: 'EUR',
-    subscription_code: ''
+    subscription_code: '',
+    image_url: ''
   });
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,7 +92,7 @@ const Channels = () => {
     const result = await createChannelHook(newChannel);
     if (result) {
       setShowCreateModal(false);
-      setNewChannel({ name: '', description: '', price: 0, currency: 'EUR', subscription_code: '' });
+      setNewChannel({ name: '', description: '', price: 0, currency: 'EUR', subscription_code: '', image_url: '' });
     }
   };
 
@@ -109,7 +112,13 @@ const Channels = () => {
   };
 
   const joinChannel = async (channel: Channel) => {
-    if (isSubscribed(channel.id)) {
+    // Marquer les notifications de ce canal comme lues
+    await markChannelNotificationsAsRead(channel.id);
+    
+    // Les créateurs peuvent accéder directement à leurs canaux
+    if (user?.id === channel.creator_id) {
+      setSelectedChannel(channel);
+    } else if (isSubscribed(channel.id)) {
       setSelectedChannel(channel);
     } else if (channel.price > 0) {
       // Rediriger vers la page d'abonnement pour les canaux payants
@@ -285,6 +294,10 @@ const Channels = () => {
                   </p>
                 </div>
               )}
+              <ChannelImageUpload
+                onImageUrlChange={(url) => setNewChannel(prev => ({ ...prev, image_url: url || '' }))}
+                currentImageUrl={newChannel.image_url}
+              />
               <Button onClick={createChannel} className="w-full">
                 Créer le canal
               </Button>
@@ -343,8 +356,25 @@ const Channels = () => {
                 >
                   <div className="flex items-start space-x-4">
                     {/* Channel Thumbnail */}
-                    <div className="w-16 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Lock className="w-6 h-6 text-white" />
+                    <div className="w-16 h-20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      {channel.image_url ? (
+                        <img 
+                          src={channel.image_url} 
+                          alt={channel.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                          <Lock className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                      {getUnreadCountForChannel(channel.id) > 0 && (
+                        <div className="absolute -top-3 -right-3 bg-red-500 rounded-full min-w-[24px] h-6 flex items-center justify-center shadow-lg border-2 border-white z-10">
+                          <span className="text-white text-xs font-bold px-1">
+                            {getUnreadCountForChannel(channel.id) > 99 ? '99+' : getUnreadCountForChannel(channel.id)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Channel Info */}
@@ -374,10 +404,10 @@ const Channels = () => {
                           <Users className="w-3 h-3 mr-1" />
                           {channel.subscriber_count} abonnés
                         </div>
-                        <div className="flex items-center text-xs text-gray-500">
-                          <MessageCircle className="w-4 h-4 mr-1" />
-                          {isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre'}
-                        </div>
+                         <div className="flex items-center text-xs text-gray-500">
+                           <MessageCircle className="w-4 h-4 mr-1" />
+                           {user?.id === channel.creator_id ? 'Gérer' : (isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre')}
+                         </div>
                       </div>
                     </div>
                   </div>

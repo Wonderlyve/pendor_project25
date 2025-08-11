@@ -358,7 +358,56 @@ export const useDebriefings = (channelId: string | null) => {
       setDebriefings([]);
       setLoading(false);
     }
-  }, [channelId]);
+
+    // Setup realtime subscription for debriefings
+    const channel = supabase
+      .channel('debriefings-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'debriefings'
+        },
+        async (payload) => {
+          const newDebriefing = payload.new as any;
+          
+          // Only add if it matches current context
+          if (
+            (channelId && newDebriefing.channel_id === channelId) ||
+            (!channelId && newDebriefing.is_public)
+          ) {
+            // Get creator username
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('username')
+              .eq('user_id', newDebriefing.creator_id)
+              .single();
+
+            // Check if current user has liked this debriefing
+            const { data: likeData } = await supabase
+              .from('debriefing_likes')
+              .select('id')
+              .eq('debriefing_id', newDebriefing.id)
+              .eq('user_id', user?.id)
+              .maybeSingle();
+
+            const debriefingWithInfo = {
+              ...newDebriefing,
+              creator_username: profileData?.username || 'Utilisateur',
+              isLiked: !!likeData
+            };
+
+            setDebriefings(prev => [debriefingWithInfo, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [channelId, user?.id]);
 
   return {
     debriefings,

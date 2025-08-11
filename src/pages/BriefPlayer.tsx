@@ -52,7 +52,15 @@ const BriefPlayer = () => {
     if (!video) return;
 
     const handleLoadedMetadata = () => {
-      setDuration(video.duration);
+      const videoDuration = video.duration;
+      // Vérifier que la durée est valide (pas NaN, pas Infinity)
+      if (videoDuration && isFinite(videoDuration) && videoDuration > 0) {
+        setDuration(videoDuration);
+      } else {
+        setDuration(0);
+        console.warn('Durée vidéo invalide:', videoDuration);
+      }
+      
       // Auto-play the video when metadata is loaded
       video.play().then(() => {
         setIsPlaying(true);
@@ -63,7 +71,11 @@ const BriefPlayer = () => {
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
+      const currentVideoTime = video.currentTime;
+      // Vérifier que le temps actuel est valide
+      if (currentVideoTime && isFinite(currentVideoTime) && currentVideoTime >= 0) {
+        setCurrentTime(currentVideoTime);
+      }
     };
 
     const handlePlay = () => {
@@ -74,16 +86,30 @@ const BriefPlayer = () => {
       setIsPlaying(false);
     };
 
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const handleError = (e) => {
+      console.error('Erreur vidéo:', e);
+      setIsPlaying(false);
+    };
+
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+    video.addEventListener('error', handleError);
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('error', handleError);
     };
   }, [briefData]);
 
@@ -120,7 +146,10 @@ const BriefPlayer = () => {
     return views.toString();
   };
 
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Calcul précis de la progression avec vérifications
+  const progressPercentage = (duration > 0 && currentTime >= 0 && isFinite(currentTime) && isFinite(duration)) 
+    ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
+    : 0;
 
   if (!briefData) {
     return (

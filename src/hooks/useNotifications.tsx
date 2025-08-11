@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePWABadge } from '@/hooks/usePWABadge';
 
 interface Notification {
   id: string;
@@ -18,6 +19,9 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
+
+  // Utiliser le hook PWA Badge pour mettre à jour l'icône de l'app
+  usePWABadge(unreadCount);
 
   const playNotificationSound = () => {
     // Créer un son de notification
