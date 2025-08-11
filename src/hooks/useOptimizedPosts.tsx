@@ -337,148 +337,41 @@ export const useOptimizedPosts = () => {
     }
   };
 
-  // Écouter les nouveaux posts en temps réel
+  // Écouter les nouveaux posts en temps réel - Simplifié
   useEffect(() => {
+    if (!lastPostTimestamp) return;
+
     // Nettoyer l'ancien canal s'il existe
     if (channelRef.current) {
-      console.log('Cleaning up existing posts channel');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
-    // Créer un nouveau canal pour écouter les nouveaux posts
-    const channelName = 'posts-realtime';
-    
-    console.log('Creating posts realtime channel:', channelName);
-    
-    try {
-      const channel = supabase.channel(channelName);
-      
-      // Écouter les nouveaux posts avec insertion automatique
-      channel.on(
+    const channel = supabase
+      .channel('posts-updates')
+      .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'posts'
         },
-        async (payload: any) => {
-          console.log('Nouveau post détecté:', payload);
-          
-          // Récupérer le post complet avec les informations du profil
-          const { data: newPost, error } = await supabase
-            .from('posts')
-            .select(`
-              *,
-              profiles:user_id (
-                username,
-                display_name,
-                avatar_url
-              )
-            `)
-            .eq('id', payload.new.id)
-            .single();
-            
-          if (newPost && !error) {
-            const transformedPost = {
-              ...newPost,
-              username: newPost.profiles?.username,
-              display_name: newPost.profiles?.display_name,
-              avatar_url: newPost.profiles?.avatar_url,
-              like_count: newPost.likes
-            };
-            
-            // Ajouter le nouveau post en haut de la liste
-            setPosts(prev => [transformedPost, ...prev]);
-            setLastPostTimestamp(transformedPost.created_at);
-          }
+        () => {
+          // Simplement actualiser la liste quand un nouveau post est détecté
+          refreshPostsIfNeeded();
         }
-      );
+      )
+      .subscribe();
 
-      // Écouter les mises à jour des posts (pour les likes)
-      channel.on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'posts'
-        },
-        (payload: any) => {
-          console.log('Post mis à jour:', payload);
-          // Mettre à jour le post spécifique dans la liste
-          setPosts(prev => prev.map(post => 
-            post.id === payload.new.id 
-              ? { ...post, ...payload.new, like_count: payload.new.likes }
-              : post
-          ));
-        }
-      );
-
-      // Écouter les likes en temps réel
-      channel.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'post_likes'
-        },
-        async (payload: any) => {
-          console.log('Like event:', payload);
-          // Recharger les informations du post pour avoir les likes à jour
-          const postId = payload.new?.post_id || payload.old?.post_id;
-          if (postId) {
-            const { data: updatedPost } = await supabase
-              .from('posts')
-              .select('likes')
-              .eq('id', postId)
-              .single();
-            
-            if (updatedPost) {
-              setPosts(prev => prev.map(post => 
-                post.id === postId 
-                  ? { 
-                      ...post, 
-                      likes: updatedPost.likes,
-                      like_count: updatedPost.likes
-                    }
-                  : post
-              ));
-            }
-          }
-        }
-      );
-
-      channel.subscribe((status: string) => {
-        console.log('Posts realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to posts realtime updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Channel subscription failed, retrying...');
-          // Retry après un délai
-          setTimeout(() => {
-            channel.unsubscribe();
-            channel.subscribe();
-          }, 2000);
-        }
-      });
-
-      channelRef.current = channel;
-    } catch (error) {
-      console.error('Error setting up posts realtime channel:', error);
-    }
+    channelRef.current = channel;
 
     return () => {
       if (channelRef.current) {
-        console.log('Unsubscribing from posts realtime channel');
-        try {
-          supabase.removeChannel(channelRef.current);
-        } catch (error) {
-          console.error('Error removing posts realtime channel:', error);
-        }
+        supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, []);
+  }, [lastPostTimestamp, refreshPostsIfNeeded]);
 
   // Vérification périodique pour les nouveaux posts (fallback)
   useEffect(() => {
