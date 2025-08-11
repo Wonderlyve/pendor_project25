@@ -3,9 +3,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Car, ShoppingCart, User, Trophy, History } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Trophy },
@@ -51,15 +55,27 @@ const Navbar = () => {
 
           {/* User Account */}
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm text-gray-300">Pilote #1247</p>
-              <p className="text-xs text-yellow-400">Niveau Gold</p>
-            </div>
-            <Avatar className="h-10 w-10 border-2 border-yellow-500/50">
-              <AvatarFallback className="bg-yellow-500/20 text-yellow-400">
-                <User className="w-5 h-5" />
-              </AvatarFallback>
-            </Avatar>
+            {user ? (
+              <>
+                <div className="hidden sm:block text-right">
+                  <p className="text-sm text-gray-300">Pilote #1247</p>
+                  <p className="text-xs text-yellow-400">Niveau Gold</p>
+                </div>
+                <Avatar className="h-10 w-10 border-2 border-yellow-500/50">
+                  <AvatarFallback className="bg-yellow-500/20 text-yellow-400">
+                    <User className="w-5 h-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                className="text-sm border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
+                onClick={() => navigate('/auth')}
+              >
+                Se connecter
+              </Button>
+            )}
           </div>
         </div>
       </div>

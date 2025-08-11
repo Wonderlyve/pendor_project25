@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useChannelMessages, ChannelMessage } from '@/hooks/useChannelMessages';
 import { useVipPronos } from '@/hooks/useVipPronos';
 import { useDebriefings } from '@/hooks/useDebriefings';
+import { useChannels } from '@/hooks/useChannels';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import ChatHeader from './channel-chat/ChatHeader';
 import MessagesList from './channel-chat/MessagesList';
 import MediaInput from './channel-chat/MediaInput';
@@ -34,6 +37,9 @@ const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
   const [replyingTo, setReplyingTo] = useState<ChannelMessage | null>(null);
   const [showVipPronoModal, setShowVipPronoModal] = useState(false);
   const [showDebriefingModal, setShowDebriefingModal] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+
+  const { deleteChannel } = useChannels();
 
   // Fetch channel info first, then use it to initialize the messages hook
   useEffect(() => {
@@ -136,6 +142,14 @@ const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
     }
   };
 
+  const handleDeleteChannel = async () => {
+    const success = await deleteChannel(channelId);
+    if (success) {
+      setShowDeleteConfirmation(false);
+      onBack(); // Retourner à la liste des canaux
+    }
+  };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       <ChatHeader 
@@ -144,6 +158,7 @@ const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
         onBack={onBack}
         onCreateVipProno={() => setShowVipPronoModal(true)}
         onCreateDebriefing={() => setShowDebriefingModal(true)}
+        onDeleteChannel={() => setShowDeleteConfirmation(true)}
         className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200"
       />
       
@@ -209,6 +224,27 @@ const ChannelChat = ({ channelId, channelName, onBack }: ChannelChatProps) => {
         onClose={() => setShowDebriefingModal(false)}
         onSubmit={handleCreateDebriefing}
       />
+
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le canal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce canal ? Cette action est irréversible et tous les messages, 
+              pronos VIP et débriefings seront définitivement supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteChannel}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

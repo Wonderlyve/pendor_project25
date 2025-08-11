@@ -40,10 +40,13 @@ const UpdateNotificationPost = () => {
         setLatestVersion(activeVersion);
         setUpdateAvailable(true);
         
-        // Vérifier si l'utilisateur a déjà refusé cette version
+        // Vérifier si l'utilisateur a déjà refusé cette version spécifique
         const dismissedVersion = localStorage.getItem('dismissed_update_post');
         if (dismissedVersion === activeVersion.version_code.toString()) {
           setIsDismissed(true);
+        } else {
+          // Nouvelle version ou pas encore ignorée, s'assurer qu'elle est visible
+          setIsDismissed(false);
         }
       }
     } catch (error) {

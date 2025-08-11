@@ -77,19 +77,11 @@ const DebriefingCommentsSheet: React.FC<DebriefingCommentsSheetProps> = ({
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="bottom" className="h-[80vh] max-h-[600px] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <SheetTitle>{title} ({totalComments})</SheetTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </SheetHeader>
         
         {/* Comments list - scrollable area */}
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="p-4">
+            <div className="p-4 pt-8">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-gray-500">Chargement des commentaires...</div>

@@ -48,10 +48,13 @@ const UpdateChecker = () => {
         setLatestVersion(activeVersion);
         setUpdateAvailable(true);
         
-        // Vérifier si l'utilisateur a déjà refusé cette version
+        // Vérifier si l'utilisateur a déjà refusé cette version spécifique
         const dismissedVersion = localStorage.getItem('dismissed_version');
         if (dismissedVersion !== activeVersion.version_code.toString()) {
           setShowUpdateDialog(true);
+        } else {
+          // Version déjà ignorée, ne pas afficher la dialog
+          setShowUpdateDialog(false);
         }
       }
     } catch (error) {

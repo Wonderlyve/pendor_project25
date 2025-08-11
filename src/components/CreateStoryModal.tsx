@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Camera, Video, Upload, X } from 'lucide-react';
+import { Camera, Video, Upload, X, AlertTriangle } from 'lucide-react';
 import { useStories } from '@/hooks/useStories';
 import { VideoOptimizer } from '@/optimization/VideoOptimizer';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ open, onOpen
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFormatWarning, setShowFormatWarning] = useState(false);
+  const [showDurationWarning, setShowDurationWarning] = useState(false);
   
   const { createStory } = useStories();
 
@@ -36,6 +37,13 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ open, onOpen
           // Vérifier si la vidéo est verticale (hauteur > largeur)
           if (videoInfo.width >= videoInfo.height) {
             setShowFormatWarning(true);
+            event.target.value = ''; // Reset l'input
+            return;
+          }
+
+          // Vérifier si la vidéo dépasse 2 minutes (120 secondes)
+          if (videoInfo.duration > 120) {
+            setShowDurationWarning(true);
             event.target.value = ''; // Reset l'input
             return;
           }
@@ -60,62 +68,68 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ open, onOpen
 
     try {
       setLoading(true);
-      
-      let mediaUrl = '';
-      let mediaType: 'image' | 'video' | undefined;
-
-      // Upload du fichier vers Supabase Storage
-      if (mediaFile) {
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { data: userData } = await supabase.auth.getUser();
-        
-        if (!userData.user) {
-          toast.error('Vous devez être connecté');
-          return;
-        }
-
-        const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `${userData.user.id}/${Date.now()}.${fileExt}`;
-        
-        const { data, error } = await supabase.storage
-          .from('stories')
-          .upload(fileName, mediaFile);
-
-        if (error) {
-          console.error('Upload error:', error);
-          toast.error('Erreur lors de l\'upload du fichier');
-          return;
-        }
-
-        const { data: publicUrl } = supabase.storage
-          .from('stories')
-          .getPublicUrl(fileName);
-          
-        mediaUrl = publicUrl.publicUrl;
-        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-      }
-
-      await createStory({
-        content: content.trim() || undefined,
-        media_url: mediaUrl || undefined,
-        media_type: mediaType,
-        location: location.trim() || undefined,
-        duration: 86400, // 24h par défaut
-      });
-
-      toast.success('Story créée avec succès!');
-      
-      // Reset form
-      setContent('');
-      setLocation('');
-      setMediaFile(null);
-      setMediaPreview(null);
-      onOpenChange(false);
+      await createSingleStory();
     } catch (error) {
       toast.error('Erreur lors de la création de la story');
     } finally {
       setLoading(false);
     }
+  };
+
+  const createSingleStory = async () => {
+    let mediaUrl = '';
+    let mediaType: 'image' | 'video' | undefined;
+
+    // Upload du fichier vers Supabase Storage
+    if (mediaFile) {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        toast.error('Vous devez être connecté');
+        return;
+      }
+
+      const fileExt = mediaFile.name.split('.').pop();
+      const fileName = `${userData.user.id}/${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('stories')
+        .upload(fileName, mediaFile);
+
+      if (error) {
+        console.error('Upload error:', error);
+        toast.error('Erreur lors de l\'upload du fichier');
+        return;
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from('stories')
+        .getPublicUrl(fileName);
+        
+      mediaUrl = publicUrl.publicUrl;
+      mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
+    }
+
+    await createStory({
+      content: content.trim() || undefined,
+      media_url: mediaUrl || undefined,
+      media_type: mediaType,
+      location: location.trim() || undefined,
+      duration: 86400, // 24h par défaut
+    });
+
+    toast.success('Story créée avec succès!');
+    resetForm();
+  };
+
+
+  const resetForm = () => {
+    setContent('');
+    setLocation('');
+    setMediaFile(null);
+    setMediaPreview(null);
+    onOpenChange(false);
   };
 
   const removeMedia = () => {
@@ -175,6 +189,10 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ open, onOpen
                   <Upload className="w-4 h-4 mr-2" />
                   Choisir un fichier
                 </Button>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Video className="w-3 h-3" />
+                <span>Vidéos acceptées : format vertical, max 2 minutes</span>
               </div>
               <input
                 id="media-input"
@@ -246,6 +264,27 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ open, onOpen
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowFormatWarning(false)}>
+              Compris
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Popup d'avertissement pour durée vidéo */}
+      <AlertDialog open={showDurationWarning} onOpenChange={setShowDurationWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Vidéo trop longue
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Votre vidéo dépasse la limite autorisée de 2 minutes. Les stories n'acceptent que les vidéos de maximum 2 minutes. 
+              Veuillez sélectionner une vidéo plus courte ou la raccourcir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDurationWarning(false)} className="bg-destructive hover:bg-destructive/90">
               Compris
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -3,6 +3,7 @@ import { Home, Video, User, Plus, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useChannelNotifications } from '@/hooks/useChannelNotifications';
 import CreatePredictionModal from './CreatePredictionModal';
 import DebriefingModal from './channel-chat/DebriefingModal';
 import LoadingModal from './LoadingModal';
@@ -15,6 +16,7 @@ const BottomNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, requireAuth } = useAuth();
+  const { unreadChannelCount } = useChannelNotifications();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBriefModal, setShowBriefModal] = useState(false);
   const [showStoryModal, setShowStoryModal] = useState(false);
@@ -80,9 +82,9 @@ const BottomNavigation = () => {
   
   const navItems = [
     { icon: Home, label: 'Accueil', active: true, action: () => navigate('/') },
-    { icon: User, label: 'Statut', active: false, action: () => navigate('/story') },
+    { icon: User, label: 'Brief', active: false, action: () => navigate('/story') },
     { icon: Plus, label: '', active: false, action: handleCreateClick, isCenter: true },
-    { icon: Crown, label: 'Canaux', active: false, action: () => navigate('/channels') },
+    { icon: Crown, label: 'Canaux', active: false, action: () => navigate('/channels'), hasNotification: unreadChannelCount > 0, notificationCount: unreadChannelCount },
     { icon: Video, label: 'Briefing', active: false, action: () => navigate('/brief') },
   ];
 
@@ -110,13 +112,22 @@ const BottomNavigation = () => {
               <button
                 key={index}
                 onClick={item.action}
-                className={`flex-1 py-2 px-1 flex flex-col items-center justify-center space-y-1 transition-colors ${
+                className={`flex-1 py-2 px-1 flex flex-col items-center justify-center space-y-1 transition-colors relative ${
                   item.active
                     ? 'text-primary bg-blue-50'
                     : 'text-gray-600 hover:text-primary hover:bg-gray-50'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {item.hasNotification && (
+                    <div className="absolute -top-2 -right-2 bg-red-500 rounded-full min-w-[18px] h-4 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium px-1">
+                        {item.notificationCount > 99 ? '99+' : item.notificationCount}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
               </button>
             );

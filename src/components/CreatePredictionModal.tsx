@@ -34,6 +34,7 @@ interface CreatePredictionModalProps {
 const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProps) => {
   const { createPost } = useOptimizedPosts();
   
+  const [postType, setPostType] = useState<'prediction' | 'news'>('prediction');
   const [betType, setBetType] = useState<'simple' | 'combine' | 'loto' | 'multiple'>('simple');
   const [matches, setMatches] = useState<Match[]>([
     { id: 1, team1: '', team2: '', prediction: '', odds: '', league: '', time: '', betType: '1X2' }
@@ -48,6 +49,10 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // News form states
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsDetails, setNewsDetails] = useState('');
   
   // États pour le formulaire temporaire
   const [tempMatch, setTempMatch] = useState<Partial<Match>>({
@@ -144,7 +149,20 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
     try {
       let postData;
       
-      if (betType === 'loto') {
+      if (postType === 'news') {
+        postData = {
+          content: newsDetails,
+          sport: 'News',
+          match_teams: newsTitle,
+          prediction_text: newsTitle,
+          analysis: newsDetails,
+          confidence: 0,
+          odds: 0,
+          post_type: 'news',
+          image_file: selectedImage,
+          video_file: selectedVideo
+        };
+      } else if (betType === 'loto') {
         postData = {
           analysis,
           confidence,
@@ -152,6 +170,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
           sport: 'Loto',
           prediction_text: `Numéros: ${lotoNumbers.join(', ')}`,
           reservation_code: reservationCode || null,
+          post_type: 'prediction',
           image_file: selectedImage,
           video_file: selectedVideo
         };
@@ -176,6 +195,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
           odds: totalOdds,
           reservation_code: reservationCode || null,
           bet_type: betType,
+          post_type: 'prediction',
           matches_data: matchesData ? JSON.stringify(matchesData) : null,
           image_file: selectedImage,
           video_file: selectedVideo
@@ -219,6 +239,9 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
     setSelectedVideo(null);
     setBetType('simple');
     setLotoNumbers([]);
+    setPostType('prediction');
+    setNewsTitle('');
+    setNewsDetails('');
   };
 
   const handleSuccessClose = () => {
@@ -227,6 +250,9 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
   };
 
   const isFormValid = () => {
+    if (postType === 'news') {
+      return newsTitle.trim() && newsDetails.trim();
+    }
     if (betType === 'loto') {
       return lotoNumbers.length >= 1 && analysis.trim();
     }
@@ -243,7 +269,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-green-500" />
-              <span>Nouveau Pronostic</span>
+              <span>{postType === 'news' ? 'Nouvelle Actualité' : 'Nouveau Pronostic'}</span>
             </DialogTitle>
           </DialogHeader>
           
@@ -258,25 +284,69 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                 />
               </div>
 
-              {/* Type de pari */}
+              {/* Type de post */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Type de pari
+                  Type de post
                 </label>
-                <Select value={betType} onValueChange={(value: 'simple' | 'combine' | 'loto' | 'multiple') => setBetType(value)}>
+                <Select value={postType} onValueChange={(value: 'prediction' | 'news') => setPostType(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="simple">Pari Simple</SelectItem>
-                    <SelectItem value="combine">Pari Combiné</SelectItem>
-                    <SelectItem value="multiple">Paris Multiple</SelectItem>
-                    <SelectItem value="loto">Pronostic Loto</SelectItem>
+                    <SelectItem value="prediction">Pronostic</SelectItem>
+                    <SelectItem value="news">Actualité</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {betType === 'loto' && (
+              {postType === 'prediction' && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Type de pari
+                  </label>
+                  <Select value={betType} onValueChange={(value: 'simple' | 'combine' | 'loto' | 'multiple') => setBetType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="simple">Pari Simple</SelectItem>
+                      <SelectItem value="combine">Pari Combiné</SelectItem>
+                      <SelectItem value="multiple">Paris Multiple</SelectItem>
+                      <SelectItem value="loto">Pronostic Loto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {postType === 'news' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Titre de l'actualité
+                    </label>
+                    <Input
+                      placeholder="Titre de votre actualité..."
+                      value={newsTitle}
+                      onChange={(e) => setNewsTitle(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Détails
+                    </label>
+                    <Textarea
+                      placeholder="Détails de votre actualité..."
+                      value={newsDetails}
+                      onChange={(e) => setNewsDetails(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {postType === 'prediction' && betType === 'loto' && (
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
                     Choisissez vos numéros (1-6 numéros) : {lotoNumbers.length}/6
@@ -308,7 +378,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                 </div>
               )}
 
-              {betType !== 'loto' && (
+              {postType === 'prediction' && betType !== 'loto' && (
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-2 block">
                       Sport / Compétition
@@ -321,7 +391,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                   </div>
               )}
 
-              {betType === 'combine' && (
+              {postType === 'prediction' && betType === 'combine' && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-orange-800 text-sm">Cote totale calculée</span>
@@ -332,7 +402,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                 </div>
               )}
 
-              {betType === 'multiple' && (
+              {postType === 'prediction' && betType === 'multiple' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="flex items-center justify-center">
                     <span className="font-medium text-blue-800 text-sm">📊 Paris Multiple - Chaque match analysé séparément</span>
@@ -340,7 +410,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                 </div>
               )}
 
-              {betType !== 'loto' && (
+              {postType === 'prediction' && betType !== 'loto' && (
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
                     {betType === 'combine' ? 'Matchs du combiné' : betType === 'multiple' ? 'Matchs multiples' : 'Match'}
@@ -589,38 +659,42 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                 </div>
               )}
 
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  {betType === 'loto' ? 'Analyse de votre grille' : 'Analyse détaillée'}
-                </label>
-                <Textarea
-                  placeholder={betType === 'loto' ? 'Expliquez votre stratégie, vos numéros fétiches...' : 'Expliquez votre analyse, les statistiques, la forme des équipes...'}
-                  value={analysis}
-                  onChange={(e) => setAnalysis(e.target.value)}
-                  rows={4}
-                  className="text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Niveau de confiance: {confidence}/5
-                </label>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setConfidence(star)}
-                      className={`text-2xl ${
-                        star <= confidence ? 'text-yellow-400' : 'text-gray-300'
-                      }`}
-                    >
-                      ⭐
-                    </button>
-                  ))}
+              {postType !== 'news' && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    {betType === 'loto' ? 'Analyse de votre grille' : 'Analyse détaillée'}
+                  </label>
+                  <Textarea
+                    placeholder={betType === 'loto' ? 'Expliquez votre stratégie, vos numéros fétiches...' : 'Expliquez votre analyse, les statistiques, la forme des équipes...'}
+                    value={analysis}
+                    onChange={(e) => setAnalysis(e.target.value)}
+                    rows={4}
+                    className="text-sm"
+                  />
                 </div>
-              </div>
+              )}
+
+              {postType !== 'news' && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Niveau de confiance: {confidence}/5
+                  </label>
+                  <div className="flex space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setConfidence(star)}
+                        className={`text-2xl ${
+                          star <= confidence ? 'text-yellow-400' : 'text-gray-300'
+                        }`}
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <Card className="p-3">
                 <FileUpload
@@ -632,7 +706,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
               </Card>
 
               {/* Code de réservation */}
-              {betType !== 'loto' && (
+              {postType !== 'news' && betType !== 'loto' && (
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
                     Code de réservation (optionnel)
