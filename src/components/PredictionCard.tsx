@@ -739,11 +739,13 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
                 </div>
               </div>
             ) : prediction.image && (
-              <img
-                src={prediction.image}
-                alt="Contenu du post"
-                className="w-full h-48 object-cover"
-              />
+              <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                <img
+                  src={prediction.image}
+                  alt="Contenu du post"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
             )}
           </div>
         )}

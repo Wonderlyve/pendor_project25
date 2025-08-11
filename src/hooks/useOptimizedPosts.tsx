@@ -347,15 +347,14 @@ export const useOptimizedPosts = () => {
     }
 
     // Créer un nouveau canal pour écouter les nouveaux posts
-    const sessionId = Math.random().toString(36).substring(2, 15);
-    const channelName = `posts-realtime-${sessionId}`;
+    const channelName = 'posts-realtime';
     
     console.log('Creating posts realtime channel:', channelName);
     
     try {
       const channel = supabase.channel(channelName);
       
-      // Écouter les nouveaux posts
+      // Écouter les nouveaux posts avec insertion automatique
       channel.on(
         'postgres_changes',
         {
@@ -363,10 +362,36 @@ export const useOptimizedPosts = () => {
           schema: 'public',
           table: 'posts'
         },
-        (payload: any) => {
+        async (payload: any) => {
           console.log('Nouveau post détecté:', payload);
-          // Actualiser automatiquement quand un nouveau post est ajouté
-          refreshPostsIfNeeded();
+          
+          // Récupérer le post complet avec les informations du profil
+          const { data: newPost, error } = await supabase
+            .from('posts')
+            .select(`
+              *,
+              profiles:user_id (
+                username,
+                display_name,
+                avatar_url
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+            
+          if (newPost && !error) {
+            const transformedPost = {
+              ...newPost,
+              username: newPost.profiles?.username,
+              display_name: newPost.profiles?.display_name,
+              avatar_url: newPost.profiles?.avatar_url,
+              like_count: newPost.likes
+            };
+            
+            // Ajouter le nouveau post en haut de la liste
+            setPosts(prev => [transformedPost, ...prev]);
+            setLastPostTimestamp(transformedPost.created_at);
+          }
         }
       );
 
@@ -423,41 +448,18 @@ export const useOptimizedPosts = () => {
         }
       );
 
-      // Écouter les vues en temps réel
-      channel.on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'post_views'
-        },
-        async (payload: any) => {
-          console.log('View event:', payload);
-          // Recharger les informations du post pour avoir les vues à jour
-          const postId = payload.new?.post_id;
-          if (postId) {
-            const { data: updatedPost } = await supabase
-              .from('posts')
-              .select('views')
-              .eq('id', postId)
-              .single();
-            
-            if (updatedPost) {
-              setPosts(prev => prev.map(post => 
-                post.id === postId 
-                  ? { 
-                      ...post, 
-                      views: updatedPost.views
-                    }
-                  : post
-              ));
-            }
-          }
-        }
-      );
-
       channel.subscribe((status: string) => {
         console.log('Posts realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to posts realtime updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel subscription failed, retrying...');
+          // Retry après un délai
+          setTimeout(() => {
+            channel.unsubscribe();
+            channel.subscribe();
+          }, 2000);
+        }
       });
 
       channelRef.current = channel;
@@ -476,7 +478,7 @@ export const useOptimizedPosts = () => {
         channelRef.current = null;
       }
     };
-  }, [refreshPostsIfNeeded]);
+  }, []);
 
   // Vérification périodique pour les nouveaux posts (fallback)
   useEffect(() => {
