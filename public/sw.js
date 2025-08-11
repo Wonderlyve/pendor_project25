@@ -15,16 +15,31 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Ne pas cacher les requêtes API Supabase pour permettre les mises à jour en temps réel
+  if (event.request.url.includes('supabase.co') || 
+      event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Pour les autres ressources, utiliser la stratégie Network First
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+        // Si la requête réseau réussit, mettre en cache
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseClone);
+            });
         }
-        return fetch(event.request);
-      }
-    )
+        return response;
+      })
+      .catch(() => {
+        // En cas d'échec réseau, utiliser le cache
+        return caches.match(event.request);
+      })
   );
 });
 
