@@ -38,25 +38,44 @@ const DebriefingCard = ({ debriefing, isCreator, onLike, onDelete }: DebriefingC
     if (!video) return;
 
     const handleLoadedMetadata = () => {
-      setDuration(video.duration);
+      const videoDuration = video.duration;
+      // Vérifier que la durée est valide (pas NaN, pas Infinity)
+      if (videoDuration && isFinite(videoDuration) && videoDuration > 0) {
+        setDuration(videoDuration);
+      } else {
+        setDuration(0);
+        console.warn('Durée vidéo invalide:', videoDuration);
+      }
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
+      const currentVideoTime = video.currentTime;
+      // Vérifier que le temps actuel est valide
+      if (currentVideoTime && isFinite(currentVideoTime) && currentVideoTime >= 0) {
+        setCurrentTime(currentVideoTime);
+      }
     };
 
     const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const handleError = (e) => {
+      console.error('Erreur vidéo:', e);
       setIsPlaying(false);
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('error', handleError);
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('error', handleError);
     };
   }, []);
 
@@ -97,7 +116,10 @@ const DebriefingCard = ({ debriefing, isCreator, onLike, onDelete }: DebriefingC
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Calcul précis de la progression avec vérifications
+  const progressPercentage = (duration > 0 && currentTime >= 0 && isFinite(currentTime) && isFinite(duration)) 
+    ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
+    : 0;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Crown, MoreVertical, Plus, Info, Heart, UserMinus, Share, Bell, BellOff, FileText } from 'lucide-react';
+import { ArrowLeft, Users, Crown, MoreVertical, Plus, Info, Heart, UserMinus, Share, Bell, BellOff, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -22,10 +22,11 @@ interface ChatHeaderProps {
   onBack: () => void;
   onCreateVipProno?: () => void;
   onCreateDebriefing?: () => void;
+  onDeleteChannel?: () => void;
   className?: string;
 }
 
-const ChatHeader = ({ channelName, channelInfo, onBack, onCreateVipProno, onCreateDebriefing, className }: ChatHeaderProps) => {
+const ChatHeader = ({ channelName, channelInfo, onBack, onCreateVipProno, onCreateDebriefing, onDeleteChannel, className }: ChatHeaderProps) => {
   const { user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -60,6 +61,12 @@ const ChatHeader = ({ channelName, channelInfo, onBack, onCreateVipProno, onCrea
   const handleToggleNotifications = () => {
     setNotificationsEnabled(!notificationsEnabled);
     toast.success(`Notifications ${!notificationsEnabled ? 'activées' : 'désactivées'} !`);
+  };
+
+  const handleDeleteChannel = () => {
+    if (onDeleteChannel) {
+      onDeleteChannel();
+    }
   };
 
   return (
@@ -116,11 +123,16 @@ const ChatHeader = ({ channelName, channelInfo, onBack, onCreateVipProno, onCrea
                   <Plus className="w-4 h-4 mr-2" />
                   Créer prono VIP
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCreateDebriefing}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Créer un débriefing
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                 <DropdownMenuItem onClick={handleCreateDebriefing}>
+                   <FileText className="w-4 h-4 mr-2" />
+                   Créer un débriefing
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem onClick={handleDeleteChannel} className="text-red-600">
+                   <Trash2 className="w-4 h-4 mr-2" />
+                   Supprimer le canal
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={handleChannelInfo}>
