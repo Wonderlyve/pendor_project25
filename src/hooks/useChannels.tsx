@@ -14,6 +14,7 @@ export interface Channel {
   currency: string;
   subscription_code?: string;
   image_url?: string;
+  share_code?: string;
   created_at: string;
   updated_at: string;
   creator_username?: string;
@@ -193,6 +194,51 @@ export const useChannels = () => {
     }
   };
 
+  const getChannelByShareCode = async (shareCode: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('share_code', shareCode)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching channel by share code:', error);
+      return null;
+    }
+  };
+
+  const generateShareLink = (channel: Channel) => {
+    if (!channel.share_code) return null;
+    return `${window.location.origin}/join-channel/${channel.share_code}`;
+  };
+
+  const shareChannel = async (channel: Channel) => {
+    const shareLink = generateShareLink(channel);
+    if (!shareLink) {
+      toast.error('Impossible de générer le lien de partage');
+      return;
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Rejoignez le canal ${channel.name}`,
+          text: `Découvrez les analyses exclusives de ${channel.creator_username}`,
+          url: shareLink
+        });
+      } else {
+        await navigator.clipboard.writeText(shareLink);
+        toast.success('Lien copié dans le presse-papiers !');
+      }
+    } catch (error) {
+      console.error('Error sharing channel:', error);
+      toast.error('Erreur lors du partage');
+    }
+  };
+
   return {
     channels,
     loading,
@@ -201,6 +247,9 @@ export const useChannels = () => {
     subscribeToChannel,
     deleteChannel,
     isSubscribed,
+    getChannelByShareCode,
+    shareChannel,
+    generateShareLink,
     refetch: fetchChannels
   };
 };

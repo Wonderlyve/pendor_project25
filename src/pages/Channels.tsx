@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft, Search, X } from 'lucide-react';
+import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft, Search, X, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,7 @@ const getCurrencySymbol = (currency: string) => {
 const Channels = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { channels, loading, createChannel: createChannelHook, subscribeToChannel, deleteChannel: deleteChannelHook, isSubscribed } = useChannels();
+  const { channels, loading, createChannel: createChannelHook, subscribeToChannel, deleteChannel: deleteChannelHook, isSubscribed, shareChannel } = useChannels();
   const { getUnreadCountForChannel, markChannelNotificationsAsRead } = useChannelNotifications();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -404,10 +404,24 @@ const Channels = () => {
                           <Users className="w-3 h-3 mr-1" />
                           {channel.subscriber_count} abonnés
                         </div>
-                         <div className="flex items-center text-xs text-gray-500">
-                           <MessageCircle className="w-4 h-4 mr-1" />
-                           {user?.id === channel.creator_id ? 'Gérer' : (isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre')}
-                         </div>
+                        <div className="flex items-center space-x-2">
+                          {user?.id === channel.creator_id && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                shareChannel(channel);
+                              }}
+                              className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                              title="Partager le canal"
+                            >
+                              <Share2 className="w-4 h-4 text-gray-500" />
+                            </button>
+                          )}
+                          <div className="flex items-center text-xs text-gray-500">
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            {user?.id === channel.creator_id ? 'Gérer' : (isSubscribed(channel.id) ? 'Entrer' : 'Rejoindre')}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

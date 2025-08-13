@@ -182,6 +182,7 @@ export type Database = {
           is_private: boolean
           name: string
           price: number
+          share_code: string | null
           subscription_code: string | null
           updated_at: string
         }
@@ -195,6 +196,7 @@ export type Database = {
           is_private?: boolean
           name: string
           price?: number
+          share_code?: string | null
           subscription_code?: string | null
           updated_at?: string
         }
@@ -208,6 +210,7 @@ export type Database = {
           is_private?: boolean
           name?: string
           price?: number
+          share_code?: string | null
           subscription_code?: string | null
           updated_at?: string
         }
@@ -975,6 +978,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_share_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_follower_count: {
         Args: { user_id: string }
         Returns: number
