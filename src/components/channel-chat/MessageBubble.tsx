@@ -5,6 +5,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { ReactionDisplay } from './ReactionDisplay';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import ImageViewer from '../ImageViewer';
 
 interface MessageBubbleProps {
   message: ChannelMessage;
@@ -26,6 +27,7 @@ const MessageBubble = ({ message, isCreator, creatorId, onEdit, onDelete, onRepl
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [startX, setStartX] = useState(0);
   const messageRef = useRef<HTMLDivElement>(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
   
   const { groupedReactions, toggleReaction } = useMessageReactions(message.id);
   
@@ -134,7 +136,14 @@ const MessageBubble = ({ message, isCreator, creatorId, onEdit, onDelete, onRepl
               {formatTime(message.created_at)}
             </span>
           )}
-          <span className="font-medium text-sm text-gray-700">
+          <span 
+            className="font-medium text-sm text-gray-700 cursor-pointer hover:underline"
+            onClick={() => {
+              if (message.user_id) {
+                window.location.href = `/profile?userId=${message.user_id}`;
+              }
+            }}
+          >
             {message.username}
           </span>
           {isFromCreator && (
@@ -228,11 +237,13 @@ const MessageBubble = ({ message, isCreator, creatorId, onEdit, onDelete, onRepl
                     {message.media_url && (
                       <div className={message.content ? "mt-2" : ""}>
                         {message.media_type === 'image' && (
-                          <img 
-                            src={message.media_url} 
-                            alt={message.media_filename || 'Image'} 
-                            className="max-w-full h-auto rounded-lg"
-                          />
+                          <div className="w-full h-48 rounded-lg overflow-hidden cursor-pointer" onClick={() => setShowImageViewer(true)}>
+                            <img 
+                              src={message.media_url} 
+                              alt={message.media_filename || 'Image'} 
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>
                         )}
                         {message.media_type === 'video' && (
                           <video 
@@ -303,6 +314,16 @@ const MessageBubble = ({ message, isCreator, creatorId, onEdit, onDelete, onRepl
           onReactionClick={handleReactionClick}
         />
       </div>
+      
+      {/* Image Viewer */}
+      {message.media_type === 'image' && message.media_url && (
+        <ImageViewer
+          isOpen={showImageViewer}
+          onClose={() => setShowImageViewer(false)}
+          imageUrl={message.media_url}
+          altText={message.media_filename || 'Image du message'}
+        />
+      )}
     </div>
   );
 };

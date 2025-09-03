@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Crown, MoreVertical, Plus, Info, Heart, UserMinus, Share, Bell, BellOff, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Crown, MoreVertical, Plus, Info, Heart, UserMinus, Share, Bell, BellOff, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -63,12 +63,6 @@ const ChatHeader = ({ channelName, channelInfo, onBack, onCreateVipProno, onCrea
     toast.success(`Notifications ${!notificationsEnabled ? 'activées' : 'désactivées'} !`);
   };
 
-  const handleDeleteChannel = () => {
-    if (onDeleteChannel) {
-      onDeleteChannel();
-    }
-  };
-
   return (
     <div className={`bg-white border-b border-gray-200 px-4 py-3 ${className || 'sticky top-0 z-10'}`}>
       <div className="flex items-center justify-between w-full">
@@ -123,16 +117,11 @@ const ChatHeader = ({ channelName, channelInfo, onBack, onCreateVipProno, onCrea
                   <Plus className="w-4 h-4 mr-2" />
                   Créer prono VIP
                 </DropdownMenuItem>
-                 <DropdownMenuItem onClick={handleCreateDebriefing}>
-                   <FileText className="w-4 h-4 mr-2" />
-                   Créer un débriefing
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator />
-                 <DropdownMenuItem onClick={handleDeleteChannel} className="text-red-600">
-                   <Trash2 className="w-4 h-4 mr-2" />
-                   Supprimer le canal
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleCreateDebriefing}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Créer un débriefing
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={handleChannelInfo}>

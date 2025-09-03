@@ -39,14 +39,6 @@ const MediaPreview = ({ mediaFiles, onRemove }: MediaPreviewProps) => {
                   src={media.preview} 
                   alt="Preview" 
                   className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : media.type === 'video' && media.preview ? (
-                <video 
-                  src={media.preview} 
-                  className="w-full h-full object-cover"
-                  muted
-                  preload="metadata"
                 />
               ) : (
                 <div className="flex flex-col items-center space-y-1">
