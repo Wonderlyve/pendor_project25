@@ -78,7 +78,7 @@ self.addEventListener('message', (event) => {
       silent: false,
       persistent: true,
       sticky: true,
-      tag: 'pendor-notification',
+      tag: 'pendor-notification-' + Date.now(),
       renotify: true,
       timestamp: Date.now(),
       dir: 'auto',
@@ -86,22 +86,28 @@ self.addEventListener('message', (event) => {
       data: {
         url: data?.url || '/',
         timestamp: Date.now(),
+        notificationId: Date.now(),
         ...data
       },
       actions: [
         {
           action: 'view',
-          title: '👀 Voir',
+          title: 'Voir',
+          icon: '/icon-192.png'
+        },
+        {
+          action: 'settings',
+          title: 'Paramètres',
           icon: '/icon-192.png'
         },
         {
           action: 'dismiss', 
-          title: '❌ Ignorer'
+          title: 'Ignorer'
         }
       ]
     };
     
-    self.registration.showNotification(title || 'Nouveau pronostic', options);
+    self.registration.showNotification(title || 'Pendor', options);
   }
 });
 
@@ -121,28 +127,34 @@ self.addEventListener('push', (event) => {
       silent: false,
       persistent: true,
       sticky: true,
-      tag: 'pendor-notification',
+      tag: 'pendor-notification-' + Date.now(),
       renotify: true,
       timestamp: Date.now(),
       data: {
         url: data.url || '/',
+        notificationId: Date.now(),
         ...data
       },
       actions: [
         {
           action: 'view',
-          title: '👀 Voir',
+          title: 'Voir',
+          icon: '/icon-192.png'
+        },
+        {
+          action: 'settings',
+          title: 'Paramètres',
           icon: '/icon-192.png'
         },
         {
           action: 'dismiss',
-          title: '❌ Ignorer'
+          title: 'Ignorer'
         }
       ]
     };
     
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Nouveau pronostic', options)
+      self.registration.showNotification(data.title || 'Pendor', options)
     );
   }
 });
@@ -155,7 +167,19 @@ self.addEventListener('notificationclick', (event) => {
   
   if (event.action === 'view') {
     event.waitUntil(
-      self.clients.openWindow('/')
+      self.clients.openWindow(event.notification.data?.url || '/')
+    );
+  } else if (event.action === 'settings') {
+    event.waitUntil(
+      self.clients.openWindow('/settings')
+    );
+  } else if (event.action === 'dismiss') {
+    // Just close the notification
+    return;
+  } else {
+    // Default click behavior (no action button clicked)
+    event.waitUntil(
+      self.clients.openWindow(event.notification.data?.url || '/')
     );
   }
 });

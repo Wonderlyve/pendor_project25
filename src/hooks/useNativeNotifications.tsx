@@ -104,16 +104,22 @@ export const useNativeNotifications = () => {
           requireInteraction: true, // Important pour l'écran de verrouillage
           silent: false,
           vibrate: [200, 100, 200, 100, 200],
-          tag: 'pendor-notification',
+          tag: 'pendor-notification-' + Date.now(),
           renotify: true,
           sticky: true, // Garde la notification visible
           persistent: true,
           timestamp: Date.now(),
           dir: 'auto',
           lang: 'fr',
+          actions: [
+            { action: 'view', title: 'Voir' },
+            { action: 'settings', title: 'Paramètres' },
+            { action: 'dismiss', title: 'Ignorer' }
+          ],
           data: {
             url: data?.url || '/',
             timestamp: Date.now(),
+            notificationId: Date.now(),
             ...data
           }
         } as NotificationOptions);
@@ -141,7 +147,8 @@ export const useNativeNotifications = () => {
             data: {
               ...data,
               url: data?.url || '/',
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              notificationId: Date.now()
             }
           }
         });
@@ -159,20 +166,25 @@ export const useNativeNotifications = () => {
             sound: 'beep.wav',
             smallIcon: 'res://drawable/ic_stat_icon_config_sample',
             iconColor: '#3B82F6',
+            largeIcon: '/icon-192.png',
             attachments: data?.image ? [
-              { id: 'icon', url: 'public/icon-192.png' },
+              { id: 'icon', url: '/icon-192.png' },
               { id: 'image', url: data.image }
-            ] : [{ id: 'icon', url: 'public/icon-192.png' }],
+            ] : [{ id: 'icon', url: '/icon-192.png' }],
             actionTypeId: "OPEN_ACTION",
             extra: {
               ...data,
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              notificationId: Date.now()
             },
             schedule: undefined, // Notification immédiate
             summaryText: 'Pendor',
             group: 'pendor-notifications',
             groupSummary: false,
-            channelId: 'pendor-channel'
+            channelId: 'pendor-channel',
+            ongoing: false,
+            autoCancel: true,
+            inboxList: data?.messages ? data.messages : undefined
           }
         ]
       });
