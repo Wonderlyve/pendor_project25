@@ -72,20 +72,31 @@ self.addEventListener('message', (event) => {
       body: body || 'Nouvelle notification',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      vibrate: [200, 100, 200],
-      requireInteraction: false,
+      image: data?.image || null,
+      vibrate: [200, 100, 200, 100, 200],
+      requireInteraction: true,
       silent: false,
+      persistent: true,
+      sticky: true,
       tag: 'pendor-notification',
       renotify: true,
-      data: data,
+      timestamp: Date.now(),
+      dir: 'auto',
+      lang: 'fr',
+      data: {
+        url: data?.url || '/',
+        timestamp: Date.now(),
+        ...data
+      },
       actions: [
         {
           action: 'view',
-          title: 'Voir'
+          title: '👀 Voir',
+          icon: '/icon-192.png'
         },
         {
           action: 'dismiss', 
-          title: 'Ignorer'
+          title: '❌ Ignorer'
         }
       ]
     };
@@ -104,16 +115,28 @@ self.addEventListener('push', (event) => {
       body: data.body || 'Nouvelle notification',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      vibrate: [200, 100, 200],
+      image: data.image || null,
+      vibrate: [200, 100, 200, 100, 200],
       requireInteraction: true,
+      silent: false,
+      persistent: true,
+      sticky: true,
+      tag: 'pendor-notification',
+      renotify: true,
+      timestamp: Date.now(),
+      data: {
+        url: data.url || '/',
+        ...data
+      },
       actions: [
         {
           action: 'view',
-          title: 'Voir'
+          title: '👀 Voir',
+          icon: '/icon-192.png'
         },
         {
           action: 'dismiss',
-          title: 'Ignorer'
+          title: '❌ Ignorer'
         }
       ]
     };

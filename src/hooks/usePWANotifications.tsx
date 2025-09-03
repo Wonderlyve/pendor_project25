@@ -23,7 +23,20 @@ export const usePWANotifications = () => {
   const requestNotificationPermission = async () => {
     if ('Notification' in window) {
       if (Notification.permission === 'default') {
+        // Demander explicitement toutes les permissions nécessaires
         const permission = await Notification.requestPermission();
+        
+        // Vérifier les permissions du service worker
+        if ('serviceWorker' in navigator && 'pushManager' in window) {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            console.log('Push subscription status:', subscription ? 'Active' : 'Inactive');
+          } catch (error) {
+            console.log('Push manager not available:', error);
+          }
+        }
+        
         return permission === 'granted';
       }
       return Notification.permission === 'granted';

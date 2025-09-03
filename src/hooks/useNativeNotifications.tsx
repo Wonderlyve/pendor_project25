@@ -12,6 +12,25 @@ export const useNativeNotifications = () => {
     }
 
     try {
+      // Créer un canal de notification pour Android
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await LocalNotifications.createChannel({
+            id: 'pendor-channel',
+            name: 'Notifications Pendor',
+            description: 'Canal pour les notifications de l\'application Pendor',
+            sound: 'beep.wav',
+            importance: 5, // Importance maximale
+            visibility: 1, // Visible sur l'écran de verrouillage
+            lights: true,
+            lightColor: '#3B82F6',
+            vibration: true
+          });
+        } catch (channelError) {
+          console.log('Channel creation error (might already exist):', channelError);
+        }
+      }
+
       // Request permissions for local notifications
       const localPermission = await LocalNotifications.requestPermissions();
       console.log('Local notifications permission:', localPermission);
@@ -76,16 +95,27 @@ export const useNativeNotifications = () => {
         // Play sound first
         await playNotificationSound();
         
-        // Create notification with enhanced options for PWA
+        // Create notification with enhanced options for PWA and lock screen
         const notification = new Notification(title, {
           body,
           icon: '/icon-192.png',
           badge: '/icon-192.png',
-          requireInteraction: false,
-          silent: false, // Allow sound
-          tag: 'pendor-notification', // Group notifications
+          image: data?.image || null,
+          requireInteraction: true, // Important pour l'écran de verrouillage
+          silent: false,
+          vibrate: [200, 100, 200, 100, 200],
+          tag: 'pendor-notification',
           renotify: true,
-          data: data
+          sticky: true, // Garde la notification visible
+          persistent: true,
+          timestamp: Date.now(),
+          dir: 'auto',
+          lang: 'fr',
+          data: {
+            url: data?.url || '/',
+            timestamp: Date.now(),
+            ...data
+          }
         } as NotificationOptions);
 
         // Handle notification click
@@ -93,20 +123,27 @@ export const useNativeNotifications = () => {
           window.focus();
           notification.close();
           if (data?.postId) {
-            // Navigate to post if available
             window.location.href = `/?post=${data.postId}`;
+          } else if (data?.url) {
+            window.location.href = data.url;
           }
         };
 
-        // Auto close after 5 seconds
-        setTimeout(() => {
-          notification.close();
-        }, 5000);
+        // Ne pas fermer automatiquement pour l'écran de verrouillage
+        return;
       } else if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         // Use service worker for better PWA support
         navigator.serviceWorker.controller.postMessage({
           type: 'SHOW_NOTIFICATION',
-          payload: { title, body, data }
+          payload: { 
+            title, 
+            body, 
+            data: {
+              ...data,
+              url: data?.url || '/',
+              timestamp: Date.now()
+            }
+          }
         });
       }
       return;
@@ -120,9 +157,22 @@ export const useNativeNotifications = () => {
             body,
             id: Date.now(),
             sound: 'beep.wav',
-            attachments: [{ id: 'icon', url: 'public/icon-192.png' }],
-            actionTypeId: "",
-            extra: data
+            smallIcon: 'res://drawable/ic_stat_icon_config_sample',
+            iconColor: '#3B82F6',
+            attachments: data?.image ? [
+              { id: 'icon', url: 'public/icon-192.png' },
+              { id: 'image', url: data.image }
+            ] : [{ id: 'icon', url: 'public/icon-192.png' }],
+            actionTypeId: "OPEN_ACTION",
+            extra: {
+              ...data,
+              timestamp: Date.now()
+            },
+            schedule: undefined, // Notification immédiate
+            summaryText: 'Pendor',
+            group: 'pendor-notifications',
+            groupSummary: false,
+            channelId: 'pendor-channel'
           }
         ]
       });
