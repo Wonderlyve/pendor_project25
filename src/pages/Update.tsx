@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,9 @@ const Update = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [updatePosts, setUpdatePosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const channelRef = useRef<any>(null);
   const [formData, setFormData] = useState({
     version_name: '',
     description: '',
@@ -30,6 +33,62 @@ const Update = () => {
   
   const isSmartUser = user?.email === 'smart@example.com' || user?.email?.includes('padmin') || user?.user_metadata?.display_name === 'Smart';
   console.log('Is Smart user:', isSmartUser);
+
+  // Fonction pour charger les posts de mise à jour
+  const fetchUpdatePosts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('update_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching update posts:', error);
+      } else {
+        setUpdatePosts(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Écouter les nouveaux posts de mise à jour en temps réel
+  useEffect(() => {
+    fetchUpdatePosts();
+
+    // Nettoyer l'ancien canal s'il existe
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    const channel = supabase
+      .channel('update-posts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'update_posts'
+        },
+        () => {
+          fetchUpdatePosts();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [fetchUpdatePosts]);
 
   if (!isSmartUser) {
     return (
@@ -94,6 +153,9 @@ const Update = () => {
         description: '',
         update_url: ''
       });
+
+      // Actualiser la liste
+      fetchUpdatePosts();
 
     } catch (error: any) {
       toast({
@@ -182,6 +244,47 @@ const Update = () => {
                     )}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LinkIcon className="h-5 w-5" />
+                  Posts de mise à jour existants
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-sm text-muted-foreground mt-2">Chargement...</p>
+                  </div>
+                ) : updatePosts.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">Aucun post de mise à jour</p>
+                ) : (
+                  <div className="space-y-3">
+                    {updatePosts.map((post) => (
+                      <div key={post.id} className={`p-3 rounded-lg border ${post.is_active ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{post.version_name}</h4>
+                          <span className={`px-2 py-1 text-xs rounded-full ${post.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {post.is_active ? 'Actif' : 'Inactif'}
+                          </span>
+                        </div>
+                        {post.description && (
+                          <p className="text-sm text-muted-foreground mb-2">{post.description}</p>
+                        )}
+                        <a href={post.update_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                          {post.update_url}
+                        </a>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Créé le {new Date(post.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

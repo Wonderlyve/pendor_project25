@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Camera, Edit, Settings, Heart, MessageCircle, BarChart3, Trophy, Users, Star, Video } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useFollows } from '@/hooks/useFollows';
 import FollowsList from '@/components/FollowsList';
 import FollowersListView from '@/components/FollowersListView';
+import ImageViewer from '@/components/ImageViewer';
 
 interface UserPost {
   id: string;
@@ -33,7 +34,10 @@ interface UserPost {
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { followersCount, followingCount, fetchCounts } = useFollows(user?.id);
+  const [searchParams] = useSearchParams();
+  const profileUserId = searchParams.get('userId') || user?.id;
+  const isOwnProfile = profileUserId === user?.id;
+  const { followersCount, followingCount, fetchCounts } = useFollows(profileUserId);
   const [profile, setProfile] = useState({
     username: '',
     display_name: '',
@@ -50,14 +54,18 @@ const Profile = () => {
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newBio, setNewBio] = useState('');
   const [showFollowsList, setShowFollowsList] = useState<'followers' | 'following' | null>(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState('');
 
   useEffect(() => {
-    if (user) {
+    if (profileUserId) {
       fetchProfile();
       fetchUserPosts();
-      fetchSavedPosts();
+      if (isOwnProfile) {
+        fetchSavedPosts();
+      }
     }
-  }, [user]);
+  }, [profileUserId, isOwnProfile]);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -65,7 +73,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', profileUserId)
         .single();
 
       if (error) {
@@ -85,14 +93,14 @@ const Profile = () => {
   };
 
   const fetchUserPosts = async () => {
-    if (!user) return;
+    if (!profileUserId) return;
     
     setPostsLoading(true);
     try {
       const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', profileUserId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -337,6 +345,21 @@ const Profile = () => {
           </div>
         </div>
         
+        {isOwnProfile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setNewDisplayName(profile.display_name);
+              setNewBio(profile.bio);
+              setShowEditModal(true);
+            }}
+            className="absolute top-4 right-16 text-white hover:bg-white/20"
+          >
+            <Edit className="w-5 h-5" />
+          </Button>
+        )}
+        
         <Button
           variant="ghost"
           size="icon"
@@ -350,11 +373,11 @@ const Profile = () => {
       {/* Quick Actions */}
       <div className="pb-4">
         <Button
-          onClick={() => navigate('/my-briefings')}
+          onClick={() => navigate(`/my-briefings${profileUserId ? `?userId=${profileUserId}` : ''}`)}
           className="w-full bg-black hover:bg-gray-800 text-white rounded-none"
         >
           <Video className="w-4 h-4 mr-2" />
-          Mes Briefings
+          Voir mes videos
         </Button>
       </div>
 
@@ -412,7 +435,11 @@ const Profile = () => {
                           <img
                             src={post.image_url}
                             alt="Post"
-                            className="mt-2 rounded-lg max-h-64 w-full object-cover"
+                            className="mt-2 rounded-lg max-h-64 w-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                            onClick={() => {
+                              setSelectedImageUrl(post.image_url || '');
+                              setShowImageViewer(true);
+                            }}
                           />
                         )}
                         
@@ -477,7 +504,11 @@ const Profile = () => {
                           <img
                             src={post.image_url}
                             alt="Post"
-                            className="mt-2 rounded-lg max-h-64 w-full object-cover"
+                            className="mt-2 rounded-lg max-h-64 w-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                            onClick={() => {
+                              setSelectedImageUrl(post.image_url || '');
+                              setShowImageViewer(true);
+                            }}
                           />
                         )}
                         
@@ -507,7 +538,7 @@ const Profile = () => {
           </TabsContent>
           
           <TabsContent value="followers" className="mt-4">
-            <FollowersListView userId={user?.id || ''} />
+            <FollowersListView userId={profileUserId || ''} />
           </TabsContent>
         </Tabs>
       </div>
@@ -561,10 +592,18 @@ const Profile = () => {
         <FollowsList
           isOpen={!!showFollowsList}
           onClose={() => setShowFollowsList(null)}
-          userId={user?.id || ''}
+          userId={profileUserId || ''}
           type={showFollowsList}
         />
       )}
+      
+      {/* Image Viewer */}
+      <ImageViewer
+        isOpen={showImageViewer}
+        onClose={() => setShowImageViewer(false)}
+        imageUrl={selectedImageUrl}
+        altText="Image du post"
+      />
       
       <BottomNavigation />
     </div>

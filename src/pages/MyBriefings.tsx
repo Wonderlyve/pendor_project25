@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Eye, Heart, MessageCircle, Play, Trash2, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -28,22 +28,51 @@ interface Briefing {
 const MyBriefings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const targetUserId = searchParams.get('userId') || user?.id;
+  const isOwnProfile = targetUserId === user?.id;
   const [briefings, setBriefings] = useState<Briefing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [targetUserProfile, setTargetUserProfile] = useState<{ username: string; display_name: string } | null>(null);
 
   useEffect(() => {
-    fetchMyBriefings();
-  }, [user]);
+    if (targetUserId) {
+      fetchMyBriefings();
+      if (!isOwnProfile) {
+        fetchTargetUserProfile();
+      }
+    }
+  }, [targetUserId, isOwnProfile]);
+
+  const fetchTargetUserProfile = async () => {
+    if (!targetUserId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, display_name')
+        .eq('user_id', targetUserId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+      } else {
+        setTargetUserProfile(data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const fetchMyBriefings = async () => {
-    if (!user) return;
+    if (!targetUserId) return;
     
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('debriefings')
         .select('*')
-        .eq('creator_id', user.id)
+        .eq('creator_id', targetUserId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -61,7 +90,12 @@ const MyBriefings = () => {
   };
 
   const deleteBriefing = async (briefingId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce briefing ?')) {
+    if (!isOwnProfile) {
+      toast.error('Vous ne pouvez supprimer que vos propres vidéos');
+      return;
+    }
+
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?')) {
       return;
     }
 
@@ -75,7 +109,7 @@ const MyBriefings = () => {
       if (error) throw error;
 
       setBriefings(prev => prev.filter(b => b.id !== briefingId));
-      toast.success('Briefing supprimé avec succès');
+      toast.success('Vidéo supprimée avec succès');
     } catch (error) {
       console.error('Error deleting briefing:', error);
       toast.error('Erreur lors de la suppression');
@@ -102,7 +136,9 @@ const MyBriefings = () => {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-2xl font-bold text-white ml-4">Mes Briefings</h1>
+            <h1 className="text-2xl font-bold text-white ml-4">
+              {isOwnProfile ? 'Mes Vidéos' : `Vidéos de ${targetUserProfile?.display_name || targetUserProfile?.username || 'l\'utilisateur'}`}
+            </h1>
           </div>
         </div>
         <div className="p-4">
@@ -127,7 +163,9 @@ const MyBriefings = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-white ml-4">Mes Briefings</h1>
+          <h1 className="text-2xl font-bold text-white ml-4">
+            {isOwnProfile ? 'Mes Vidéos' : `Vidéos de ${targetUserProfile?.display_name || targetUserProfile?.username || 'l\'utilisateur'}`}
+          </h1>
         </div>
       </div>
 
@@ -137,14 +175,16 @@ const MyBriefings = () => {
             <CardContent className="text-center py-8">
               <div className="text-gray-500">
                 <Play className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg font-medium mb-2">Aucun briefing</p>
-                <p>Vous n'avez pas encore créé de briefings vidéo.</p>
-                <Button
-                  onClick={() => navigate('/channels')}
-                  className="mt-4 bg-green-500 hover:bg-green-600"
-                >
-                  Créer un briefing
-                </Button>
+                <p className="text-lg font-medium mb-2">Aucune vidéo</p>
+                <p>{isOwnProfile ? 'Vous n\'avez pas encore créé de vidéos.' : 'Cet utilisateur n\'a pas encore créé de vidéos.'}</p>
+                {isOwnProfile && (
+                  <Button
+                    onClick={() => navigate('/channels')}
+                    className="mt-4 bg-green-500 hover:bg-green-600"
+                  >
+                    Créer une vidéo
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -232,14 +272,16 @@ const MyBriefings = () => {
                             </Button>
                           )}
                           
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-red-600 hover:bg-red-100"
-                            onClick={() => deleteBriefing(briefing.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isOwnProfile && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-red-600 hover:bg-red-100"
+                              onClick={() => deleteBriefing(briefing.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePWABadge } from '@/hooks/usePWABadge';
+import { useNativeNotifications } from '@/hooks/useNativeNotifications';
+import { usePWANotifications } from '@/hooks/usePWANotifications';
 
 interface Notification {
   id: string;
@@ -19,39 +21,22 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const channelRef = useRef<any>(null);
+  const { showLocalNotification, playNotificationSound } = useNativeNotifications();
+  const { playPWANotificationSound } = usePWANotifications();
 
   // Utiliser le hook PWA Badge pour mettre à jour l'icône de l'app
   usePWABadge(unreadCount);
 
-  const playNotificationSound = () => {
-    // Créer un son de notification
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5);
-  };
-
-  const showBrowserNotification = (notification: Notification) => {
+  const showNotification = async (notification: Notification) => {
     // Vérifier les paramètres des notifications push
     const pushNotificationsEnabled = localStorage.getItem('pushNotifications');
     
-    if (pushNotificationsEnabled === 'true' && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification('Nouveau pronostic', {
-        body: notification.content,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
+    if (pushNotificationsEnabled === 'true') {
+      await showLocalNotification(
+        'Nouveau pronostic', 
+        notification.content,
+        { notificationId: notification.id, postId: notification.post_id }
+      );
     }
   };
 
@@ -170,14 +155,16 @@ export const useNotifications = () => {
           console.log('New notification:', payload);
           const newNotification = payload.new as Notification;
           
+          // Enhanced notification handling for PWA and native
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
           
-          // Jouer le son de notification
+          // Play sound - enhanced for PWA
           playNotificationSound();
+          playPWANotificationSound();
           
-          // Afficher la notification du navigateur
-          showBrowserNotification(newNotification);
+          // Show notification
+          showNotification(newNotification);
         }
       )
       .subscribe((status: string) => {

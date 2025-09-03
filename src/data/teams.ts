@@ -36,11 +36,11 @@ export const betTypes = {
   "1X2": ["1", "X", "2"],
   "Double Chance": ["1X", "12", "X2"],
   "Les Deux Équipes Marquent": ["Oui", "Non"],
-  "Over/Under 2.5": ["Over", "Under"],
+  "Over/Under": ["Over", "Under"], // Format personnalisable
   "Score Exact": ["1-0", "2-0", "2-1", "0-0", "1-1", "2-2", "0-1", "0-2", "1-2"],
   "Buteur": ["Premier", "Dernier", "À tout moment"],
-  "Nombre de Corners": ["Over 9.5", "Under 9.5"],
-  "Cartons": ["Over 3.5", "Under 3.5"],
+  "Nombre de Corners": ["Over", "Under"], // Format personnalisable
+  "Cartons": ["Over", "Under"], // Format personnalisable
   "Personnalisé": []
 } as const;
 

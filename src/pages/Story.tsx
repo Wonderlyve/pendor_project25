@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { useVideoControl } from '@/hooks/useVideoControl';
 import { videoControlManager } from '@/optimization/VideoControlManager';
 
-import StoryVideo from '@/components/StoryVideo';
+import SmartVideo from '@/components/SmartVideo';
 
 const Story = () => {
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -371,19 +371,30 @@ const Story = () => {
                 >
                   {story.media_url ? (
                     story.media_type === 'video' ? (
-                      <StoryVideo
-                        story={story}
+                      <SmartVideo
+                        src={story.media_url}
+                        poster={story.media_url + '#t=0.1'}
                         isActive={index === currentStoryIndex}
                         isPaused={isPaused}
+                        autoPlay={true}
+                        muted={false}
+                        loop={false}
+                        preload="auto"
+                        className="w-full h-full object-cover"
+                        nearbyVideos={stories.map(s => s.media_url).filter(Boolean)}
+                        currentIndex={index}
                         onVideoStateChange={(isPlaying) => {
-                          // Callback optionnel pour les changements d'état
                           console.log(`Vidéo ${story.id} ${isPlaying ? 'en lecture' : 'en pause'}`);
                         }}
-                        onVideoEnd={index === currentStoryIndex ? goToNextStory : undefined}
+                        onEnded={index === currentStoryIndex ? goToNextStory : undefined}
                         onVideoReady={() => {
                           if (index === currentStoryIndex && !isPaused) {
                             startTimer();
                           }
+                        }}
+                        onError={(error) => {
+                          console.error('Erreur vidéo:', error);
+                          toast.error('Erreur de lecture vidéo');
                         }}
                       />
                     ) : (

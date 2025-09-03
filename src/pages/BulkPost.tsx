@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Download, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,27 +20,42 @@ interface CSVRow {
   odds: number;
   confidence: number;
   username?: string;
+  bet_type?: string; // 'simple' or 'combine'
+  match_time?: string;
 }
 
 const BulkPost = () => {
   const [file, setFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<CSVRow[]>([]);
+  const [images, setImages] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<{ success: number; failed: number }>({ success: 0, failed: 0 });
+  const [templateType, setTemplateType] = useState<'simple' | 'combine'>('simple');
   const { createPost } = usePosts();
   const { user } = useAuth();
 
   const downloadTemplate = () => {
-    const csvContent = "content,sport,match_teams,prediction_text,analysis,odds,confidence,username\n" +
-      "Analyse du match PSG vs Real,Football,PSG vs Real Madrid,PSG gagnant,Le PSG joue à domicile et a une meilleure forme récente,1.85,85,winwin\n" +
-      "Pronostic tennis,Tennis,Nadal vs Djokovic,Nadal gagnant,Nadal excelle sur terre battue,2.10,75,starpro";
+    let csvContent = "";
+    let filename = "";
     
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    if (templateType === 'simple') {
+      csvContent = "content,sport,match_teams,prediction_text,analysis,odds,confidence,username,bet_type,match_time\n" +
+        "Analyse du match PSG vs Real,Football,PSG vs Real Madrid,PSG gagnant,Le PSG joue à domicile et a une meilleure forme récente,1.85,85,winwin,simple,2024-12-15 21:00:00\n" +
+        "Pronostic tennis,Tennis,Nadal vs Djokovic,Nadal gagnant,Nadal excelle sur terre battue,2.10,75,starpro,simple,2024-12-16 15:30:00";
+      filename = 'template_posts_simple.csv';
+    } else {
+      csvContent = "content,sport,match_teams,prediction_text,analysis,odds,confidence,username,bet_type,match_time\n" +
+        "Combiné 3 matchs Football,Football,PSG vs Real Madrid | Barcelona vs Bayern | Liverpool vs City,PSG gagnant | Barcelona gagnant | Liverpool gagnant,Excellent combiné avec 3 équipes favorites à domicile,8.50,90,winwin,combine,2024-12-15 20:00:00\n" +
+        "Combiné Tennis + Football,Multi-Sport,Djokovic vs Nadal | Chelsea vs Arsenal,Djokovic gagnant | Chelsea gagnant,Deux favoris logiques pour ce combiné,4.20,80,starpro,combine,2024-12-16 14:00:00";
+      filename = 'template_posts_combine.csv';
+    }
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'template_posts.csv';
+    a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -72,6 +87,16 @@ const BulkPost = () => {
         throw new Error(`Ligne ${index + 2}: Le nom d'utilisateur doit être winwin, starpro, Patrickprono ou victoirepro`);
       }
       
+      // Validation du type de pari
+      if (row.bet_type && !['simple', 'combine'].includes(row.bet_type)) {
+        throw new Error(`Ligne ${index + 2}: Le type de pari doit être 'simple' ou 'combine'`);
+      }
+      
+      // Valeur par défaut pour bet_type
+      if (!row.bet_type) {
+        row.bet_type = 'simple';
+      }
+      
       return row as CSVRow;
     });
   };
@@ -93,15 +118,36 @@ const BulkPost = () => {
           setCsvData([]);
         }
       };
-      reader.readAsText(selectedFile);
+      reader.readAsText(selectedFile, 'UTF-8');
     } else {
       toast.error('Veuillez sélectionner un fichier CSV valide');
+    }
+  };
+
+  const handleImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedImages = Array.from(event.target.files || []);
+    const validImages = selectedImages.filter(file => 
+      file.type.startsWith('image/') && file.size <= 10 * 1024 * 1024 // Max 10MB
+    );
+    
+    if (validImages.length !== selectedImages.length) {
+      toast.error('Certains fichiers ont été ignorés (taille > 10MB ou format non supporté)');
+    }
+    
+    setImages(validImages);
+    if (validImages.length > 0) {
+      toast.success(`${validImages.length} images importées`);
     }
   };
 
   const processAllPosts = async () => {
     if (csvData.length === 0) {
       toast.error('Aucune donnée à traiter');
+      return;
+    }
+
+    if (images.length > 0 && images.length !== csvData.length) {
+      toast.error(`Le nombre d'images (${images.length}) doit correspondre au nombre de posts (${csvData.length}) ou être vide`);
       return;
     }
 
@@ -114,6 +160,7 @@ const BulkPost = () => {
 
     for (let i = 0; i < csvData.length; i++) {
       const row = csvData[i];
+      const image = images[i] || null;
       
       try {
         await createPost({
@@ -123,7 +170,10 @@ const BulkPost = () => {
           analysis: row.analysis,
           odds: row.odds,
           confidence: row.confidence,
-          username: row.username || 'Smart' // Par défaut Smart si pas de username spécifié
+          username: row.username || 'Smart',
+          bet_type: row.bet_type || 'simple',
+          match_time: row.match_time,
+          image_file: image
         });
         successCount++;
       } catch (error) {
@@ -184,13 +234,46 @@ const BulkPost = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Téléchargez le modèle CSV pour voir le format requis avec des exemples.
-                </p>
-                <Button onClick={downloadTemplate} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Télécharger le modèle
-                </Button>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Choisissez le type de posts à créer et téléchargez le modèle CSV correspondant.
+                  </p>
+                  
+                  {/* Sélecteur de type */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant={templateType === 'simple' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTemplateType('simple')}
+                    >
+                      Paris Simples
+                    </Button>
+                    <Button
+                      variant={templateType === 'combine' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTemplateType('combine')}
+                    >
+                      Paris Combinés
+                    </Button>
+                  </div>
+                  
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm font-medium mb-1">
+                      {templateType === 'simple' ? 'Paris Simples' : 'Paris Combinés'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {templateType === 'simple' 
+                        ? 'Un pari par ligne avec un seul match et une seule prédiction.'
+                        : 'Plusieurs matchs combinés sur une même ligne. Séparez les matchs et prédictions par " | ".'
+                      }
+                    </p>
+                  </div>
+                  
+                  <Button onClick={downloadTemplate} variant="outline" className="w-full">
+                    <Download className="w-4 h-4 mr-2" />
+                    Télécharger le modèle {templateType === 'simple' ? 'Paris Simples' : 'Paris Combinés'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -199,13 +282,13 @@ const BulkPost = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="w-5 h-5" />
-                  Importer le fichier CSV
+                  Importer les fichiers
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="csv-file">Fichier CSV</Label>
+                    <Label htmlFor="csv-file">Fichier CSV (UTF-8)</Label>
                     <Input
                       id="csv-file"
                       type="file"
@@ -213,13 +296,45 @@ const BulkPost = () => {
                       onChange={handleFileChange}
                       className="mt-1"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Le fichier CSV doit être encodé en UTF-8 pour supporter les accents
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="images-file">Images (optionnel)</Label>
+                    <Input
+                      id="images-file"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImagesChange}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sélectionnez des images dans l'ordre correspondant aux posts CSV (max 10MB chacune)
+                    </p>
                   </div>
                   
                   {file && (
                     <Alert>
                       <FileText className="h-4 w-4" />
                       <AlertDescription>
-                        Fichier sélectionné: {file.name} ({csvData.length} posts détectés)
+                        Fichier CSV: {file.name} ({csvData.length} posts détectés)
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {images.length > 0 && (
+                    <Alert>
+                      <ImageIcon className="h-4 w-4" />
+                      <AlertDescription>
+                        {images.length} images importées
+                        {csvData.length > 0 && images.length !== csvData.length && (
+                          <span className="text-orange-600 ml-2">
+                            ⚠️ Le nombre d'images ({images.length}) ne correspond pas au nombre de posts ({csvData.length})
+                          </span>
+                        )}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -242,10 +357,29 @@ const BulkPost = () => {
                     <div className="max-h-60 overflow-y-auto space-y-2">
                       {csvData.slice(0, 5).map((row, index) => (
                         <div key={index} className="p-3 border rounded-lg">
-                          <p className="font-medium truncate">{row.content}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {row.sport} • {row.match_teams} • Cote: {row.odds} • Confiance: {row.confidence}% • Utilisateur: {row.username || 'Smart'}
-                          </p>
+                          <div className="flex gap-3">
+                            {images[index] && (
+                              <div className="flex-shrink-0">
+                                <img
+                                  src={URL.createObjectURL(images[index])}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium truncate">{row.content}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {row.sport} • {row.match_teams} • Cote: {row.odds} • Confiance: {row.confidence}% • Type: {row.bet_type === 'combine' ? 'Combiné' : 'Simple'} • Utilisateur: {row.username || 'Smart'}
+                                {row.match_time && ` • Match: ${new Date(row.match_time).toLocaleString('fr-FR')}`}
+                              </p>
+                              {images[index] && (
+                                <p className="text-xs text-green-600 mt-1">
+                                  📷 Image associée: {images[index].name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       ))}
                       {csvData.length > 5 && (

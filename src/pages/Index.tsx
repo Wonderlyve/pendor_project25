@@ -212,7 +212,8 @@ const Index = () => {
     image: post.image_url,
     video: post.video_url,
     reservationCode: post.reservation_code,
-    betType: post.bet_type,
+     betType: post.bet_type,
+     matches: post.matches_data ? JSON.parse(post.matches_data) : undefined,
     is_liked: post.is_liked || false
     };
   };

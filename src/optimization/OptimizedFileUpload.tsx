@@ -128,7 +128,7 @@ const OptimizedFileUpload = ({ onImageSelect, onVideoSelect, selectedImage, sele
 
   return (
     <div className="space-y-3">
-      <div className="flex space-x-3">
+      <div className="flex space-x-2">
         <Button 
           type="button"
           variant="outline" 
