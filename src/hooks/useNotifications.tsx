@@ -28,10 +28,19 @@ export const useNotifications = () => {
   usePWABadge(unreadCount);
 
   const showNotification = async (notification: Notification) => {
-    // Vérifier les paramètres des notifications push
-    const pushNotificationsEnabled = localStorage.getItem('pushNotifications');
+    // Vérifier les paramètres des notifications push et initialiser si nécessaire
+    let pushNotificationsEnabled = localStorage.getItem('pushNotifications');
     
-    if (pushNotificationsEnabled === 'true') {
+    // Si pas défini, vérifier les permissions et initialiser
+    if (pushNotificationsEnabled === null) {
+      const hasPermission = 'Notification' in window && Notification.permission === 'granted';
+      pushNotificationsEnabled = hasPermission ? 'true' : 'false';
+      localStorage.setItem('pushNotifications', pushNotificationsEnabled);
+    }
+    
+    // Afficher la notification si activée ou si les permissions sont accordées
+    if (pushNotificationsEnabled === 'true' || 
+        ('Notification' in window && Notification.permission === 'granted')) {
       await showLocalNotification(
         'Nouveau pronostic', 
         notification.content,
@@ -122,6 +131,24 @@ export const useNotifications = () => {
       console.error('Error:', error);
     }
   };
+
+  // Initialiser les permissions de notification automatiquement
+  useEffect(() => {
+    const initializeNotificationPermissions = async () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            localStorage.setItem('pushNotifications', 'true');
+          }
+        } catch (error) {
+          console.log('Notification permission request failed:', error);
+        }
+      }
+    };
+    
+    initializeNotificationPermissions();
+  }, []);
 
   // Écouter les nouvelles notifications en temps réel
   useEffect(() => {
