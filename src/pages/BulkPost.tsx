@@ -62,10 +62,33 @@ const BulkPost = () => {
 
   const parseCSV = (text: string): CSVRow[] => {
     const lines = text.split('\n').filter(line => line.trim() !== '');
-    const headers = lines[0].split(',').map(h => h.trim());
+    
+    // Fonction pour parser une ligne CSV avec support des guillemets
+    const parseCsvLine = (line: string): string[] => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+    
+    const headers = parseCsvLine(lines[0]).map(h => h.replace(/"/g, '').trim());
     
     return lines.slice(1).map((line, index) => {
-      const values = line.split(',').map(v => v.trim());
+      const values = parseCsvLine(line).map(v => v.replace(/"/g, '').trim());
       const row: any = {};
       
       headers.forEach((header, i) => {
