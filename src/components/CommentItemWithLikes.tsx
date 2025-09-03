@@ -1,7 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React from 'react';
+import { Heart, Reply, MoreVertical, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Heart, MessageCircle, MoreVertical, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -21,6 +23,7 @@ export function CommentItemWithLikes({ comment, level = 0, onReply, onLike, onDe
   const maxLevel = 3; // Maximum nesting level
   const canReply = level < maxLevel;
   const { isLiked, likesCount, toggleLike } = useCommentLikes(comment.id);
+  const navigate = useNavigate();
 
   const handleLike = async () => {
     await toggleLike();
@@ -28,10 +31,19 @@ export function CommentItemWithLikes({ comment, level = 0, onReply, onLike, onDe
     onLike(comment.id);
   };
 
+  const handleProfileClick = () => {
+    if (comment.user_id) {
+      navigate(`/profile?userId=${comment.user_id}`);
+    }
+  };
+
   return (
     <div className={cn("space-y-2", level > 0 && "ml-6 mt-2 border-l-2 border-border pl-4")}>
       <div className="flex gap-3">
-        <Avatar className="h-8 w-8 flex-shrink-0">
+        <Avatar 
+          className="h-8 w-8 flex-shrink-0 cursor-pointer hover:opacity-75" 
+          onClick={handleProfileClick}
+        >
           <AvatarImage src={comment.profiles?.avatar_url} />
           <AvatarFallback>
             {comment.profiles?.display_name?.[0] || comment.profiles?.username?.[0] || 'U'}
@@ -40,7 +52,10 @@ export function CommentItemWithLikes({ comment, level = 0, onReply, onLike, onDe
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm truncate">
+            <span 
+              className="font-medium text-sm truncate cursor-pointer hover:underline"
+              onClick={handleProfileClick}
+            >
               {comment.profiles?.display_name || comment.profiles?.username || 'Utilisateur'}
             </span>
             <span className="text-xs text-muted-foreground flex-shrink-0">
@@ -86,7 +101,7 @@ export function CommentItemWithLikes({ comment, level = 0, onReply, onLike, onDe
                 onClick={() => onReply(comment.id)}
                 className="h-6 px-2 text-xs"
               >
-                <MessageCircle className="h-3 w-3 mr-1" />
+                <Reply className="h-3 w-3 mr-1" />
                 Répondre
               </Button>
             )}

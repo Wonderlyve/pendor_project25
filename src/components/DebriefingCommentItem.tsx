@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, Reply, MoreVertical, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DebriefingComment } from '@/hooks/useDebriefingComments';
@@ -21,6 +22,7 @@ const DebriefingCommentItem: React.FC<DebriefingCommentItemProps> = ({
   onDelete
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const maxLevel = 2; // Limiter le niveau de nesting
 
   const formatTimeAgo = (timestamp: string) => {
@@ -34,18 +36,28 @@ const DebriefingCommentItem: React.FC<DebriefingCommentItemProps> = ({
     return `Il y a ${Math.floor(diffInMinutes / 1440)}j`;
   };
 
+  const handleProfileClick = () => {
+    if (comment.user_id) {
+      navigate(`/profile?userId=${comment.user_id}`);
+    }
+  };
+
   return (
     <div className={`flex space-x-3 ${level > 0 ? 'ml-8 mt-3' : ''}`}>
       <img
         src={comment.user_avatar}
         alt={comment.user_username}
-        className="w-8 h-8 rounded-full flex-shrink-0"
+        className="w-8 h-8 rounded-full flex-shrink-0 cursor-pointer hover:opacity-75"
+        onClick={handleProfileClick}
       />
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="font-medium text-sm text-gray-900">
+            <span 
+              className="font-medium text-sm text-gray-900 cursor-pointer hover:underline"
+              onClick={handleProfileClick}
+            >
               {comment.user_username}
             </span>
             <span className="text-xs text-gray-500">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFollows } from '@/hooks/useFollows';
 import FollowButton from '@/components/FollowButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +18,13 @@ interface FollowUser {
 
 const FollowersListView = ({ userId }: FollowersListViewProps) => {
   const { getFollowers } = useFollows();
+  const navigate = useNavigate();
   const [followers, setFollowers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const handleProfileClick = (targetUserId: string) => {
+    navigate(`/profile?userId=${targetUserId}`);
+  };
 
   useEffect(() => {
     if (userId) {
@@ -64,7 +70,10 @@ const FollowersListView = ({ userId }: FollowersListViewProps) => {
           <div className="space-y-3">
             {followers.map((user) => (
               <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center space-x-3">
+                <div 
+                  className="flex items-center space-x-3 cursor-pointer hover:opacity-75 flex-1"
+                  onClick={() => handleProfileClick(user.user_id)}
+                >
                   <img
                     src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.user_id}`}
                     alt={user.display_name}

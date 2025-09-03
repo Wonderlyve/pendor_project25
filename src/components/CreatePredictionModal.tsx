@@ -46,6 +46,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [lotoNumbers, setLotoNumbers] = useState<number[]>([]);
+  const [customNumber, setCustomNumber] = useState<number>(2.5);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -164,13 +165,17 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
         };
       } else if (betType === 'loto') {
         postData = {
+          content: `Numéros: ${lotoNumbers.join(', ')} - ${analysis}`,
           analysis,
           confidence,
           odds: 0,
           sport: 'Loto',
+          match_teams: 'Loto',
           prediction_text: `Numéros: ${lotoNumbers.join(', ')}`,
           reservation_code: reservationCode || null,
+          bet_type: 'loto',
           post_type: 'prediction',
+          matches_data: JSON.stringify({ lotoNumbers }),
           image_file: selectedImage,
           video_file: selectedVideo
         };
@@ -201,6 +206,8 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
           video_file: selectedVideo
         };
       }
+
+      console.log('Données du post à créer:', postData);
 
       const result = await createPost(postData);
       
@@ -239,6 +246,7 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
     setSelectedVideo(null);
     setBetType('simple');
     setLotoNumbers([]);
+    setCustomNumber(2.5);
     setPostType('prediction');
     setNewsTitle('');
     setNewsDetails('');
@@ -500,16 +508,77 @@ const CreatePredictionModal = ({ open, onOpenChange }: CreatePredictionModalProp
                         </Select>
                         
                         {tempMatch.betType && tempMatch.betType !== 'Personnalisé' && betTypes[tempMatch.betType as keyof typeof betTypes].length > 0 && (
-                          <Select value={tempMatch.prediction || ''} onValueChange={(value) => updateTempMatch('prediction', value)}>
-                            <SelectTrigger className="text-sm">
-                              <SelectValue placeholder="Pronostic" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white">
-                              {betTypes[tempMatch.betType as keyof typeof betTypes].map((option) => (
-                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <>
+                            {(tempMatch.betType === 'Over/Under' || tempMatch.betType === 'Nombre de Corners' || tempMatch.betType === 'Cartons') ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <Select value={tempMatch.prediction?.split(' ')[0] || ''} onValueChange={(value) => updateTempMatch('prediction', `${value} ${customNumber}`)}>
+                                    <SelectTrigger className="text-sm flex-1">
+                                      <SelectValue placeholder="Over/Under" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                      {betTypes[tempMatch.betType as keyof typeof betTypes].map((option) => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="flex items-center space-x-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newValue = Math.max(0.5, customNumber - 0.5);
+                                        setCustomNumber(newValue);
+                                        if (tempMatch.prediction?.split(' ')[0]) {
+                                          updateTempMatch('prediction', `${tempMatch.prediction.split(' ')[0]} ${newValue}`);
+                                        }
+                                      }}
+                                      className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold"
+                                    >
+                                      ↓
+                                    </button>
+                                    <input
+                                      type="number"
+                                      step="0.5"
+                                      min="0.5"
+                                      value={customNumber}
+                                      onChange={(e) => {
+                                        const newValue = parseFloat(e.target.value) || 0.5;
+                                        setCustomNumber(newValue);
+                                        if (tempMatch.prediction?.split(' ')[0]) {
+                                          updateTempMatch('prediction', `${tempMatch.prediction.split(' ')[0]} ${newValue}`);
+                                        }
+                                      }}
+                                      className="w-16 h-8 text-center text-sm border border-gray-300 rounded"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newValue = customNumber + 0.5;
+                                        setCustomNumber(newValue);
+                                        if (tempMatch.prediction?.split(' ')[0]) {
+                                          updateTempMatch('prediction', `${tempMatch.prediction.split(' ')[0]} ${newValue}`);
+                                        }
+                                      }}
+                                      className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-sm font-bold"
+                                    >
+                                      ↑
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <Select value={tempMatch.prediction || ''} onValueChange={(value) => updateTempMatch('prediction', value)}>
+                                <SelectTrigger className="text-sm">
+                                  <SelectValue placeholder="Pronostic" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                  {betTypes[tempMatch.betType as keyof typeof betTypes].map((option) => (
+                                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </>
                         )}
                         
                         {(tempMatch.betType === 'Personnalisé' || !tempMatch.betType || betTypes[tempMatch.betType as keyof typeof betTypes]?.length === 0) && (

@@ -1,5 +1,4 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -10,7 +9,7 @@ interface Match {
   odds: string;
   league: string;
   time: string;
-  betType?: string;
+  betType?: string; // Type spécifique du match (ex: double chance, 1x2, under/over…)
 }
 
 interface MultipleBetModalProps {
@@ -33,30 +32,111 @@ interface MultipleBetModalProps {
     sport: string;
     totalOdds?: string;
     reservationCode?: string;
-    betType?: string;
+    betType?: string; // simple, combine, multiple
+    selectedBetType?: string; // Type de pari choisi par l'utilisateur
     matches?: Match[];
+    matches_data?: string;
   };
 }
 
 const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalProps) => {
-  // Préparer les matchs pour l'affichage
-  const matches = prediction.matches ? 
-    prediction.matches.map((match, index) => ({
-      ...match,
-      id: match.id || `match-${index}`,
-      betType: match.betType || prediction.betType
-    })) :
-    [{
-      id: "1",
-      teams: prediction.match,
-      prediction: prediction.prediction,
-      odds: prediction.odds,
+  // Normalisation d'un match individuel
+  const normalizeMatch = (match: any, index: number, fallbackData: any) => ({
+    id: match.id || `match-${index}`,
+    teams:
+      match.homeTeam && match.awayTeam
+        ? `${match.homeTeam} vs ${match.awayTeam}`
+        : match.team1 && match.team2 
+        ? `${match.team1} vs ${match.team2}`
+        : match.teams || match.match || fallbackData.match,
+    prediction: match.pronostic || match.prediction || fallbackData.prediction,
+    odds: match.odd || match.odds || fallbackData.odds,
+    league: match.sport || match.league || fallbackData.sport,
+    time: match.time || match.heure || '20:00',
+    // Récupération prioritaire du type de pari choisi par l'utilisateur
+    betType: match.selectedBetType || match.betType || match.typeProno || match.type_pari || 
+             match.typePari || match.bet_type || match.pariType || match.typeOfBet || 
+             match.marketType || match.customBet || match.betOption || match.option || 
+             // Ne pas utiliser de fallback automatique vers 1X2, préserver le type réel
+             null,
+  });
+
+  // Division de matchs multiples séparés par "|"
+  const splitMultipleMatches = (matchString: string, predictionString: string, oddsString: string) => {
+    const matchParts = matchString.split('|').map(m => m.trim());
+    const predictionParts = predictionString.split('|').map(p => p.trim());
+    const oddsParts = oddsString.split('|').map(o => o.trim());
+
+    return matchParts.map((match, index) => ({
+      id: `split-${index}`,
+      teams: match,
+      prediction: predictionParts[index] || predictionParts[0] || predictionString,
+      odds: oddsParts[index] || oddsParts[0] || oddsString,
       league: prediction.sport,
       time: '20:00',
-      betType: prediction.betType
-    }];
+      // Garder le type null si pas spécifié pour les matchs séparés
+      betType: null,
+    }));
+  };
 
-  const isMultipleBet = prediction.betType === 'combine' || prediction.betType === 'multiple' || matches.length > 1;
+  // Préparer les matchs
+  let matches: Match[] = [];
+
+  if (prediction.matches_data) {
+    try {
+      const matchesData = JSON.parse(prediction.matches_data);
+
+      if (Array.isArray(matchesData)) {
+        matches = matchesData.map((match, index) => normalizeMatch(match, index, prediction));
+      } else if (matchesData.lotoNumbers) {
+        matches = [
+          {
+            id: 'loto-1',
+            teams: 'Loto',
+            prediction: `Numéros: ${matchesData.lotoNumbers.join(', ')}`,
+            odds: '',
+            league: 'Loto',
+            time: '',
+            betType: 'Loto',
+          },
+        ];
+      } else if (matchesData.homeTeam || matchesData.teams || matchesData.team1) {
+        matches = [normalizeMatch(matchesData, 0, prediction)];
+      }
+    } catch (error) {
+      console.error('Erreur parsing matches_data:', error);
+    }
+  }
+
+  if (matches.length === 0 && prediction.matches && prediction.matches.length > 0) {
+    matches = prediction.matches.map((match, index) => normalizeMatch(match, index, prediction));
+  }
+
+  if (matches.length === 0) {
+    if (prediction.match && prediction.match.includes('|')) {
+      matches = splitMultipleMatches(
+        prediction.match,
+        prediction.prediction || '',
+        prediction.odds || ''
+      );
+    } else {
+      matches = [
+        {
+          id: 'default-1',
+          teams: prediction.match,
+          prediction: prediction.prediction,
+          odds: prediction.odds,
+          league: prediction.sport,
+          time: '20:00',
+          // Utiliser le type de pari principal s'il existe
+          betType: prediction.betType === 'simple' ? prediction.selectedBetType || null : null,
+        },
+      ];
+    }
+  }
+
+  const isMultipleBet =
+    prediction.betType === 'combine' || prediction.betType === 'multiple' || matches.length > 1;
   const betTypeLabel = prediction.betType === 'combine' ? 'Pari Combiné' : 'Paris Multiples';
 
   return (
@@ -70,13 +150,14 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
             </Badge>
           </DialogTitle>
         </DialogHeader>
-        
-        <ScrollArea className="flex-1">
-          <div className="space-y-4">
+
+        {/* Zone scrollable améliorée */}
+        <div className="flex-1 overflow-y-auto px-4 pr-2">
+          <div className="space-y-4 pb-4 pr-2">
             {/* Bannière publicitaire */}
             <div className="relative">
-              <img 
-                src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png" 
+              <img
+                src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png"
                 alt="Winner.bet Application"
                 className="w-full h-auto rounded-lg"
               />
@@ -96,58 +177,38 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
               </div>
             </div>
 
-            {/* Tableau des matchs optimisé mobile */}
+            {/* Matchs sélectionnés */}
             <div className="space-y-3">
               <h4 className="font-medium text-sm text-muted-foreground">
-                {betTypeLabel} ({matches.length} match{matches.length > 1 ? 's' : ''})
+                Matchs sélectionnés ({matches.length} match{matches.length > 1 ? 's' : ''})
               </h4>
-              
-              <div className="border rounded-lg overflow-hidden">
-                {/* Header du tableau */}
-                <div className="bg-muted/30 px-3 py-2 border-b">
-                  <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground">
-                    <div className="col-span-5">Équipes</div>
-                    <div className="col-span-4">Pronostic</div>
-                    <div className="col-span-3 text-center">Côte</div>
+
+              {matches.map((match, index) => (
+                <div
+                  key={match.id || index}
+                  className="p-3 mb-2 border rounded-xl shadow-sm bg-background"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm mb-1">{match.teams}</p>
+                      <p className="text-muted-foreground text-xs">
+                        ⚽ {match.league} • ⏰ {match.time}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        🎯 Type :{' '}
+                        <span className="font-medium">
+                          {match.betType || 'Standard'}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="text-right ml-3">
+                      <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+                        {match.prediction}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Corps du tableau */}
-                <div className="divide-y">
-                  {matches.map((match, index) => (
-                    <div key={match.id} className="px-3 py-3">
-                      <div className="grid grid-cols-12 gap-2 items-center">
-                        {/* Équipes */}
-                        <div className="col-span-5">
-                          <div className="text-sm font-medium text-foreground leading-tight">
-                            {match.teams}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {match.league} • {match.time}
-                          </div>
-                        </div>
-                        
-                        {/* Pronostic */}
-                        <div className="col-span-4">
-                          <Badge variant="secondary" className="text-xs mb-1">
-                            {match.betType || '1X2'}
-                          </Badge>
-                          <div className="text-sm font-medium text-foreground">
-                            {match.prediction}
-                          </div>
-                        </div>
-                        
-                        {/* Côte */}
-                        <div className="col-span-3 text-center">
-                          <div className="text-sm font-bold text-green-600">
-                            {match.odds}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Côte totale pour pari combiné */}
@@ -210,7 +271,7 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

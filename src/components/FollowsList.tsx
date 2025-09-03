@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useFollows } from '@/hooks/useFollows';
@@ -21,8 +22,14 @@ interface FollowUser {
 
 const FollowsList = ({ isOpen, onClose, userId, type }: FollowsListProps) => {
   const { getFollowers, getFollowing } = useFollows();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const handleProfileClick = (targetUserId: string) => {
+    navigate(`/profile?userId=${targetUserId}`);
+    onClose();
+  };
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -74,7 +81,10 @@ const FollowsList = ({ isOpen, onClose, userId, type }: FollowsListProps) => {
             <div className="space-y-3">
               {users.map((user) => (
                 <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div className="flex items-center space-x-3">
+                  <div 
+                    className="flex items-center space-x-3 cursor-pointer hover:opacity-75 flex-1"
+                    onClick={() => handleProfileClick(user.user_id)}
+                  >
                     <img
                       src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.user_id}`}
                       alt={user.display_name}
