@@ -30,6 +30,7 @@ import Update from "./pages/Update";
 import UpdateChecker from "./components/UpdateChecker";
 import NotFound from "./pages/NotFound";
 import Story from "./pages/Story";
+import SmartFeed from "./pages/SmartFeed";
 
 // Create QueryClient with proper configuration
 const queryClient = new QueryClient({
@@ -54,6 +55,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/smart-feed" element={<SmartFeed />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/my-briefings" element={<MyBriefings />} />
               <Route path="/channels" element={<Channels />} />

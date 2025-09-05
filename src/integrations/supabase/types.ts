@@ -558,6 +558,38 @@ export type Database = {
           },
         ]
       }
+      post_boosts: {
+        Row: {
+          boost_type: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          boost_type?: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          boost_type?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_boosts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_likes: {
         Row: {
           created_at: string
@@ -591,6 +623,91 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      post_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          post_id: string
+          reason: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          post_id: string
+          reason: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          post_id?: string
+          reason?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_scores: {
+        Row: {
+          author_reliability_score: number
+          content_quality_score: number
+          created_at: string
+          engagement_score: number
+          freshness_score: number
+          id: string
+          post_id: string
+          report_penalty: number
+          updated_at: string
+          visibility_score: number
+        }
+        Insert: {
+          author_reliability_score?: number
+          content_quality_score?: number
+          created_at?: string
+          engagement_score?: number
+          freshness_score?: number
+          id?: string
+          post_id: string
+          report_penalty?: number
+          updated_at?: string
+          visibility_score?: number
+        }
+        Update: {
+          author_reliability_score?: number
+          content_quality_score?: number
+          created_at?: string
+          engagement_score?: number
+          freshness_score?: number
+          id?: string
+          post_id?: string
+          report_penalty?: number
+          updated_at?: string
+          visibility_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_scores_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -905,6 +1022,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           version_name?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          favorite_bet_types: string[] | null
+          favorite_sports: string[] | null
+          feed_preferences: Json | null
+          id: string
+          notification_settings: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          favorite_bet_types?: string[] | null
+          favorite_sports?: string[] | null
+          feed_preferences?: Json | null
+          id?: string
+          notification_settings?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          favorite_bet_types?: string[] | null
+          favorite_sports?: string[] | null
+          feed_preferences?: Json | null
+          id?: string
+          notification_settings?: Json | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
