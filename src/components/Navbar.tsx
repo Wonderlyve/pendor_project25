@@ -16,7 +16,6 @@ const Navbar = () => {
     { id: "garage", label: "Garage", icon: Car },
     { id: "shop", label: "Boutique", icon: ShoppingCart },
     { id: "history", label: "Historique", icon: History },
-    { id: "profile", label: "Profil", icon: User },
   ];
 
   return (
