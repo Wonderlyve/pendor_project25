@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_clicks: {
+        Row: {
+          ad_id: string
+          created_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          ad_id: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          ad_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ads: {
+        Row: {
+          button_action: string
+          button_text: string
+          clicks: number
+          created_at: string
+          creator_id: string
+          description: string
+          external_url: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          landing_description: string | null
+          landing_images: string[] | null
+          landing_title: string | null
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          button_action: string
+          button_text: string
+          clicks?: number
+          created_at?: string
+          creator_id: string
+          description: string
+          external_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          landing_description?: string | null
+          landing_images?: string[] | null
+          landing_title?: string | null
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          button_action?: string
+          button_text?: string
+          clicks?: number
+          created_at?: string
+          creator_id?: string
+          description?: string
+          external_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          landing_description?: string | null
+          landing_images?: string[] | null
+          landing_title?: string | null
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: []
+      }
       app_versions: {
         Row: {
           apk_url: string
@@ -1084,35 +1162,47 @@ export type Database = {
       }
       vip_pronos: {
         Row: {
+          bet_type: string | null
           channel_id: string
           created_at: string
           creator_id: string
           description: string
           id: string
           image_url: string | null
+          match_teams: string | null
+          matches_data: string | null
           prediction_text: string
+          sport: string | null
           total_odds: number
           updated_at: string
         }
         Insert: {
+          bet_type?: string | null
           channel_id: string
           created_at?: string
           creator_id: string
           description: string
           id?: string
           image_url?: string | null
+          match_teams?: string | null
+          matches_data?: string | null
           prediction_text: string
+          sport?: string | null
           total_odds: number
           updated_at?: string
         }
         Update: {
+          bet_type?: string | null
           channel_id?: string
           created_at?: string
           creator_id?: string
           description?: string
           id?: string
           image_url?: string | null
+          match_teams?: string | null
+          matches_data?: string | null
           prediction_text?: string
+          sport?: string | null
           total_odds?: number
           updated_at?: string
         }
@@ -1131,18 +1221,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_share_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_follower_count: {
-        Args: { user_id: string }
-        Returns: number
-      }
-      get_following_count: {
-        Args: { user_id: string }
-        Returns: number
-      }
+      generate_share_code: { Args: never; Returns: string }
+      get_follower_count: { Args: { user_id: string }; Returns: number }
+      get_following_count: { Args: { user_id: string }; Returns: number }
       is_following: {
         Args: { follower_id: string; following_id: string }
         Returns: boolean

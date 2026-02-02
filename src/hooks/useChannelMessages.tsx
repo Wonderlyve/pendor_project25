@@ -277,9 +277,9 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
   useEffect(() => {
     fetchMessages();
 
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('channel-messages')
+    // Set up real-time subscription with unique channel name
+    const realtimeChannel = supabase
+      .channel(`channel-messages-${channelId}`)
       .on(
         'postgres_changes',
         {
@@ -290,6 +290,15 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
         },
         async (payload) => {
           console.log('New message received:', payload);
+          
+          // Check if message already exists to avoid duplicates
+          setMessages(prev => {
+            const exists = prev.some(msg => msg.id === payload.new.id);
+            if (exists) return prev;
+            
+            // We'll add the message immediately with placeholder data, then update
+            return prev;
+          });
           
           // Fetch the complete message with user profile data
           const { data: profile } = await supabase
@@ -308,10 +317,19 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
             avatar_url: profile?.avatar_url,
             media_url: payload.new.media_url,
             media_type: payload.new.media_type as 'image' | 'video' | 'audio' | 'file' | undefined,
-            media_filename: payload.new.media_filename
+            media_filename: payload.new.media_filename,
+            reply_to_id: payload.new.reply_to_id,
+            reply_to_content: payload.new.reply_to_content,
+            reply_to_username: payload.new.reply_to_username,
+            reply_to_media_type: payload.new.reply_to_media_type
           };
           
-          setMessages(prev => [...prev, formattedMessage]);
+          setMessages(prev => {
+            // Check again to avoid duplicates
+            const exists = prev.some(msg => msg.id === formattedMessage.id);
+            if (exists) return prev;
+            return [...prev, formattedMessage];
+          });
         }
       )
       .on(
@@ -322,8 +340,28 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
           table: 'channel_messages',
           filter: `channel_id=eq.${channelId}`
         },
-        () => {
-          fetchMessages();
+        async (payload) => {
+          // Update the message in place
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, avatar_url')
+            .eq('user_id', payload.new.user_id)
+            .single();
+
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === payload.new.id) {
+              return {
+                ...msg,
+                content: payload.new.content,
+                media_url: payload.new.media_url,
+                media_type: payload.new.media_type as 'image' | 'video' | 'audio' | 'file' | undefined,
+                media_filename: payload.new.media_filename,
+                username: profile?.username || msg.username,
+                avatar_url: profile?.avatar_url || msg.avatar_url
+              };
+            }
+            return msg;
+          }));
         }
       )
       .on(
@@ -334,14 +372,15 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
           table: 'channel_messages',
           filter: `channel_id=eq.${channelId}`
         },
-        () => {
-          fetchMessages();
+        (payload) => {
+          // Remove the deleted message
+          setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(realtimeChannel);
     };
   }, [channelId]);
 
