@@ -141,37 +141,39 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0 pb-4">
+      <DialogContent className="max-w-md mx-auto max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-border/40">
           <DialogTitle className="flex items-center justify-between">
-            <span className="text-lg font-semibold">Détails du {betTypeLabel}</span>
-            <Badge variant="outline" className="text-xs">
+            <span className="text-lg font-bold text-foreground">Détails du {betTypeLabel}</span>
+            <Badge variant="secondary" className="text-xs font-semibold bg-primary/10 text-primary border-0">
               {matches.length} match{matches.length > 1 ? 's' : ''}
             </Badge>
           </DialogTitle>
         </DialogHeader>
 
         {/* Zone scrollable améliorée */}
-        <div className="flex-1 overflow-y-auto px-4 pr-2">
-          <div className="space-y-4 pb-4 pr-2">
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-4 p-5">
             {/* Bannière publicitaire */}
-            <div className="relative">
+            <div className="relative overflow-hidden rounded-xl shadow-sm">
               <img
                 src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png"
                 alt="Winner.bet Application"
-                className="w-full h-auto rounded-lg"
+                className="w-full h-auto"
               />
             </div>
 
             {/* Informations utilisateur */}
-            <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-              <Avatar className="h-10 w-10">
+            <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl border border-border/30">
+              <Avatar className="h-12 w-12 ring-2 ring-primary/20">
                 <AvatarImage src={prediction.user.avatar} alt={prediction.user.username} />
-                <AvatarFallback>{prediction.user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {prediction.user.username.charAt(0).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <div className="font-medium text-sm">{prediction.user.username}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="font-semibold text-foreground">{prediction.user.username}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
                   {prediction.successRate}% de réussite • Badge {prediction.user.badge}
                 </div>
               </div>
@@ -179,47 +181,50 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
 
             {/* Matchs sélectionnés */}
             <div className="space-y-3">
-              <h4 className="font-medium text-sm text-muted-foreground">
+              <h4 className="font-semibold text-sm text-primary flex items-center gap-2">
+                <span>⚡</span>
                 Matchs sélectionnés ({matches.length} match{matches.length > 1 ? 's' : ''})
               </h4>
 
-              {matches.map((match, index) => (
-                <div
-                  key={match.id || index}
-                  className="p-3 mb-2 border rounded-xl shadow-sm bg-background"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm mb-1">{match.teams}</p>
-                      <p className="text-muted-foreground text-xs">
-                        ⚽ {match.league} • ⏰ {match.time}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        🎯 Type :{' '}
-                        <span className="font-medium">
-                          {match.betType || 'Standard'}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="text-right ml-3">
-                      <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+              <div className="space-y-2.5">
+                {matches.map((match, index) => (
+                  <div
+                    key={match.id || index}
+                    className="p-4 border border-border/40 rounded-xl bg-card shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground leading-tight mb-2">{match.teams}</p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <span>⚽</span> {match.league}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span>⏰</span> {match.time}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                          <span>🎯</span> Type : <span className="font-semibold text-foreground">{match.betType || 'Standard'}</span>
+                        </p>
+                      </div>
+                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 font-semibold text-xs px-3 py-1.5 whitespace-nowrap">
                         {match.prediction}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Côte totale pour pari combiné */}
             {prediction.totalOdds && prediction.betType === 'combine' && (
-              <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 p-3 rounded-lg">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 p-4 rounded-xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">🎯</span>
-                    <span className="font-semibold text-orange-800 text-sm">Côte totale combinée</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🎯</span>
+                    <span className="font-semibold text-amber-800 text-sm">Côte totale combinée</span>
                   </div>
-                  <span className="text-lg font-bold text-orange-600">
+                  <span className="text-xl font-bold text-amber-600">
                     {prediction.totalOdds}
                   </span>
                 </div>
@@ -228,42 +233,44 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
 
             {/* Code de réservation */}
             {prediction.reservationCode && (
-              <div className="bg-green-500 text-white p-4 rounded-lg text-center">
-                <div className="text-sm font-medium mb-1">CODE DE RÉSERVATION</div>
-                <div className="text-xl font-bold tracking-widest">
+              <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white p-5 rounded-xl text-center shadow-lg">
+                <div className="text-xs font-medium mb-2 opacity-90 uppercase tracking-wider">Code de réservation</div>
+                <div className="text-2xl font-bold tracking-[0.2em]">
                   {prediction.reservationCode}
                 </div>
               </div>
             )}
 
             {/* Analyse */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-3">
+            <div className="bg-sky-50/80 border border-sky-200/60 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">💡</span>
-                <span className="font-medium text-blue-900 text-sm">Analyse détaillée</span>
+                <span className="font-semibold text-sky-900 text-sm">Analyse détaillée</span>
               </div>
-              <p className="text-blue-800 text-sm leading-relaxed">{prediction.analysis}</p>
+              <p className="text-sky-800 text-sm leading-relaxed">{prediction.analysis}</p>
             </div>
 
             {/* Niveau de confiance */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <span className="text-lg">🔥</span>
-                  <span className="font-medium text-yellow-800 text-sm">Niveau de confiance</span>
+                  <span className="font-semibold text-amber-800 text-sm">Niveau de confiance</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex space-x-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
                     {[...Array(5)].map((_, i) => (
                       <div
                         key={i}
-                        className={`w-3 h-3 rounded-full transition-colors ${
-                          i < prediction.confidence ? 'bg-yellow-400' : 'bg-yellow-200'
+                        className={`w-3 h-3 rounded-full transition-all ${
+                          i < prediction.confidence 
+                            ? 'bg-amber-400 shadow-sm shadow-amber-400/50' 
+                            : 'bg-amber-200/60'
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-yellow-700 font-medium text-sm">
+                  <span className="text-amber-700 font-bold text-sm">
                     {prediction.confidence}/5
                     {prediction.confidence === 5 ? ' 🚀' : prediction.confidence >= 4 ? ' 🔥' : ''}
                   </span>
