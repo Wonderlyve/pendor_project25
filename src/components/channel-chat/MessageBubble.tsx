@@ -6,6 +6,7 @@ import { ReactionDisplay } from './ReactionDisplay';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import ImageViewer from '../ImageViewer';
+import AudioWaveform from './AudioWaveform';
 
 interface MessageBubbleProps {
   message: ChannelMessage;
@@ -254,11 +255,9 @@ const MessageBubble = ({ message, isCreator, creatorId, onEdit, onDelete, onRepl
                           />
                         )}
                         {message.media_type === 'audio' && (
-                          <audio 
-                            src={message.media_url} 
-                            controls 
-                            className="w-full"
-                            preload="metadata"
+                          <AudioWaveform 
+                            audioUrl={message.media_url} 
+                            isFromCreator={isFromCreator}
                           />
                         )}
                         {message.media_type === 'file' && (
