@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import MediaPreview from './MediaPreview';
+import VoiceRecorder from './VoiceRecorder';
 
 interface MediaFile {
   file: File;
@@ -22,6 +23,8 @@ const MediaInput = ({ newMessage, setNewMessage, onSendMessage, disabled }: Medi
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -97,11 +100,36 @@ const MediaInput = ({ newMessage, setNewMessage, onSendMessage, disabled }: Medi
     setShowEmojiPicker(false);
   };
 
+  const handleSendVoice = (audioFile: File) => {
+    onSendMessage([audioFile]);
+    setShowVoiceRecorder(false);
+    setIsRecording(false);
+  };
+
+  const handleCancelVoice = () => {
+    setShowVoiceRecorder(false);
+    setIsRecording(false);
+  };
+
+  // Show voice recorder UI
+  if (showVoiceRecorder) {
+    return (
+      <div className="bg-background border-t border-border p-4">
+        <VoiceRecorder
+          onSendVoice={handleSendVoice}
+          onCancel={handleCancelVoice}
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
       <MediaPreview mediaFiles={mediaFiles} onRemove={removeMediaFile} />
       
-      <div className="bg-white border-t border-gray-200 p-4">
+      <div className="bg-background border-t border-border p-4">
         <div className="flex items-end space-x-3">
           {/* Media attachment button */}
           <div className="relative">
@@ -109,13 +137,13 @@ const MediaInput = ({ newMessage, setNewMessage, onSendMessage, disabled }: Medi
               variant="ghost"
               size="icon"
               onClick={() => setShowMediaMenu(!showMediaMenu)}
-              className="rounded-full hover:bg-gray-100"
+              className="rounded-full hover:bg-accent"
             >
-              <Paperclip className="w-5 h-5 text-gray-500" />
+              <Paperclip className="w-5 h-5 text-muted-foreground" />
             </Button>
             
             {showMediaMenu && (
-              <div className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 space-y-1">
+              <div className="absolute bottom-12 left-0 bg-popover border border-border rounded-lg shadow-lg p-2 space-y-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -176,7 +204,7 @@ const MediaInput = ({ newMessage, setNewMessage, onSendMessage, disabled }: Medi
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={disabled}
-              className="rounded-full border-gray-300 focus:border-primary pr-20"
+              className="rounded-full border-border focus:border-primary pr-20"
             />
             
             {/* Emoji and voice buttons */}
@@ -185,18 +213,19 @@ const MediaInput = ({ newMessage, setNewMessage, onSendMessage, disabled }: Medi
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="h-6 w-6 p-0 rounded-full hover:bg-gray-100"
+                className="h-6 w-6 p-0 rounded-full hover:bg-accent"
               >
-                <Smile className="w-4 h-4 text-gray-500" />
+                <Smile className="w-4 h-4 text-muted-foreground" />
               </Button>
               
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 rounded-full hover:bg-gray-100"
-                onClick={() => toast.info('Enregistrement vocal bientôt disponible')}
+                className="h-6 w-6 p-0 rounded-full hover:bg-accent"
+                onClick={() => setShowVoiceRecorder(true)}
+                disabled={disabled}
               >
-                <Mic className="w-4 h-4 text-gray-500" />
+                <Mic className="w-4 h-4 text-muted-foreground" />
               </Button>
             </div>
           </div>
@@ -213,13 +242,13 @@ const MediaInput = ({ newMessage, setNewMessage, onSendMessage, disabled }: Medi
 
         {/* Emoji picker */}
         {showEmojiPicker && (
-          <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-32 overflow-y-auto">
+          <div className="mt-3 bg-muted border border-border rounded-lg p-3 max-h-32 overflow-y-auto">
             <div className="grid grid-cols-8 gap-1">
               {emojis.map((emoji, index) => (
                 <button
                   key={index}
                   onClick={() => addEmoji(emoji)}
-                  className="text-lg hover:bg-gray-100 rounded p-1 transition-colors"
+                  className="text-lg hover:bg-accent rounded p-1 transition-colors"
                 >
                   {emoji}
                 </button>
