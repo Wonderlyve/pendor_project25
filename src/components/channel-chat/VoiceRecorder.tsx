@@ -53,22 +53,32 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1,
         }
       });
       
       streamRef.current = stream;
       
       // Set up audio analyser for waveform
-      const audioContext = new AudioContext();
+      const audioContext = new AudioContext({ sampleRate: 48000 });
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
       source.connect(analyser);
       analyserRef.current = analyser;
       
+      // Choose best available codec with high bitrate
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/webm') 
+          ? 'audio/webm' 
+          : 'audio/mp4';
+      
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+        mimeType,
+        audioBitsPerSecond: 128000,
       });
       
       mediaRecorderRef.current = mediaRecorder;
