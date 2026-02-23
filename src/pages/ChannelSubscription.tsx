@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Shield, CreditCard, Smartphone, Code, Check } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Shield, CreditCard, Smartphone, Code, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,12 +23,15 @@ const getCurrencySymbol = (currency: string) => {
 const ChannelSubscription = () => {
   const navigate = useNavigate();
   const { channelId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { channels, subscribeToChannel } = useChannels();
   const [channel, setChannel] = useState<any>(null);
   const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [subscriptionCode, setSubscriptionCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<'payment' | 'subscription'>('payment');
 
   useEffect(() => {
     if (channelId && channels.length > 0) {
@@ -43,7 +46,21 @@ const ChannelSubscription = () => {
     }
   }, [user, navigate]);
 
+  // Handle payment canceled
+  useEffect(() => {
+    if (searchParams.get('payment') === 'canceled') {
+      toast.error('Paiement annulé');
+    }
+  }, [searchParams]);
+
   const paymentMethods = [
+    {
+      id: 'card',
+      name: 'Carte bancaire',
+      icon: CreditCard,
+      color: 'bg-primary',
+      available: true
+    },
     {
       id: 'orange',
       name: 'Orange Money',
@@ -74,12 +91,41 @@ const ChannelSubscription = () => {
     }
   ];
 
+  const handleCardPayment = async () => {
+    if (!channel || !user) return;
+
+    setCardLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-channel-checkout', {
+        body: {
+          channelId: channel.id,
+          channelName: channel.name,
+          price: channel.price,
+          currency: channel.currency,
+          mode: paymentMode,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        // After successful payment, subscribe the user
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error('Erreur lors de l\'initialisation du paiement');
+    } finally {
+      setCardLoading(false);
+    }
+  };
+
   const handleSubscribeWithCode = async () => {
     if (!subscriptionCode.trim()) {
       toast.error('Veuillez entrer un code d\'abonnement');
       return;
     }
-
     if (!channel) {
       toast.error('Canal introuvable');
       return;
@@ -87,7 +133,6 @@ const ChannelSubscription = () => {
 
     setLoading(true);
     try {
-      // Vérifier si le code correspond au code du canal
       if (subscriptionCode.trim() === channel.subscription_code) {
         const success = await subscribeToChannel(channel.id);
         if (success) {
@@ -106,7 +151,7 @@ const ChannelSubscription = () => {
   };
 
   const handlePaymentMethodSelect = (methodId: string) => {
-    if (methodId === 'code') {
+    if (methodId === 'code' || methodId === 'card') {
       setSelectedPayment(methodId);
     } else {
       toast.info('Ce moyen de paiement sera disponible prochainement');
@@ -215,6 +260,72 @@ const ChannelSubscription = () => {
           </CardContent>
         </Card>
 
+        {/* Card Payment Form */}
+        {selectedPayment === 'card' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Paiement par carte</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Vous serez redirigé vers une page de paiement sécurisée Stripe.
+              </p>
+
+              {/* Payment mode selector */}
+              <div className="space-y-2">
+                <Label>Type de paiement</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={paymentMode === 'payment' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPaymentMode('payment')}
+                    className="flex-1"
+                  >
+                    Paiement unique
+                  </Button>
+                  <Button
+                    variant={paymentMode === 'subscription' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPaymentMode('subscription')}
+                    className="flex-1"
+                  >
+                    Abonnement mensuel
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Total</span>
+                  <span className="text-lg font-bold text-primary">
+                    {channel.price} {getCurrencySymbol(channel.currency)}
+                    {paymentMode === 'subscription' && <span className="text-sm font-normal text-muted-foreground">/mois</span>}
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleCardPayment}
+                disabled={cardLoading}
+                className="w-full"
+                size="lg"
+              >
+                {cardLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Redirection...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Payer {channel.price} {getCurrencySymbol(channel.currency)} par carte
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Code Subscription Form */}
         {selectedPayment === 'code' && (
           <Card>
@@ -235,7 +346,7 @@ const ChannelSubscription = () => {
                   Demandez le code au créateur du canal
                 </p>
               </div>
-              <Button 
+              <Button
                 onClick={handleSubscribeWithCode}
                 disabled={loading || !subscriptionCode.trim()}
                 className="w-full"
@@ -254,7 +365,7 @@ const ChannelSubscription = () => {
               <div>
                 <p className="font-medium text-primary">Paiement sécurisé</p>
                 <p className="text-sm text-muted-foreground">
-                  Tous vos paiements sont protégés et sécurisés
+                  Tous vos paiements par carte sont traités par Stripe, leader mondial du paiement en ligne
                 </p>
               </div>
             </div>
