@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft, Search, X, Share2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ const getCurrencySymbol = (currency: string) => {
 
 const Channels = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { channels, loading, createChannel: createChannelHook, subscribeToChannel, deleteChannel: deleteChannelHook, isSubscribed, shareChannel } = useChannels();
   const { getUnreadCountForChannel, markChannelNotificationsAsRead } = useChannelNotifications();
@@ -64,6 +65,23 @@ const Channels = () => {
     };
     fetchUserProfile();
   }, [user]);
+
+  // Handle payment success - auto subscribe after Stripe payment
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    const channelId = searchParams.get('channel');
+    if (paymentStatus === 'success' && channelId && user) {
+      const autoSubscribe = async () => {
+        const success = await subscribeToChannel(channelId);
+        if (success) {
+          toast.success('Paiement réussi ! Vous avez accès au canal.');
+        }
+        // Clean URL params
+        setSearchParams({});
+      };
+      autoSubscribe();
+    }
+  }, [searchParams, user]);
 
   const isPro = userProfile?.badge === 'Pro' || userProfile?.badge === 'Expert';
   const isSpecialUser = user?.email === 'Padmin@pendor.com';

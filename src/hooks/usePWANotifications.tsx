@@ -30,7 +30,7 @@ export const usePWANotifications = () => {
         if ('serviceWorker' in navigator && 'pushManager' in window) {
           try {
             const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
+            const subscription = await (registration as any).pushManager?.getSubscription();
             console.log('Push subscription status:', subscription ? 'Active' : 'Inactive');
           } catch (error) {
             console.log('Push manager not available:', error);
