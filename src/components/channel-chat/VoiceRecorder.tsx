@@ -69,12 +69,16 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
       source.connect(analyser);
       analyserRef.current = analyser;
       
-      // Choose best available codec with high bitrate
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus' 
-        : MediaRecorder.isTypeSupported('audio/webm') 
-          ? 'audio/webm' 
-          : 'audio/mp4';
+      // Prefer AAC codec for better quality and compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp4;codecs=mp4a.40.2')
+        ? 'audio/mp4;codecs=mp4a.40.2'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : MediaRecorder.isTypeSupported('audio/aac')
+            ? 'audio/aac'
+            : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+              ? 'audio/webm;codecs=opus'
+              : 'audio/webm';
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
@@ -168,7 +172,7 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
         });
         
         if (blob.size > 0) {
-          const extension = blob.type.includes('webm') ? 'webm' : 'm4a';
+          const extension = blob.type.includes('mp4') || blob.type.includes('aac') ? 'm4a' : 'webm';
           const file = new File([blob], `voice_message_${Date.now()}.${extension}`, {
             type: blob.type
           });
@@ -185,7 +189,7 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
     
     // If already stopped and have blob
     if (audioBlob) {
-      const extension = audioBlob.type.includes('webm') ? 'webm' : 'm4a';
+      const extension = audioBlob.type.includes('mp4') || audioBlob.type.includes('aac') ? 'm4a' : 'webm';
       const file = new File([audioBlob], `voice_message_${Date.now()}.${extension}`, {
         type: audioBlob.type
       });
