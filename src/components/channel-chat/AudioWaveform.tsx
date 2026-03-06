@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
 
 interface AudioWaveformProps {
@@ -7,20 +7,20 @@ interface AudioWaveformProps {
   isFromCreator?: boolean;
 }
 
+const BAR_COUNT = 40;
+
 const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWaveformProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
+  const [frequencyBars, setFrequencyBars] = useState<number[]>(Array(BAR_COUNT).fill(8));
+  
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
-
-  // Generate random but consistent waveform bars
-  const bars = Array.from({ length: 28 }, (_, i) => {
-    // Use a seeded random based on index for consistency
-    const seed = (i * 13 + 7) % 100;
-    const height = 20 + (seed % 60);
-    return height;
-  });
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -28,14 +28,64 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
+  const initAudioContext = useCallback(() => {
+    if (audioContextRef.current || !audioRef.current) return;
+    
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 128;
+    analyser.smoothingTimeConstant = 0.7;
+    
+    const source = ctx.createMediaElementSource(audioRef.current);
+    source.connect(analyser);
+    analyser.connect(ctx.destination);
+    
+    audioContextRef.current = ctx;
+    analyserRef.current = analyser;
+    sourceRef.current = source;
+  }, []);
+
+  const updateFrequencyBars = useCallback(() => {
+    if (!analyserRef.current || !isPlaying) return;
+    
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+    
+    // Map frequency bins to our bar count
+    const step = Math.floor(dataArray.length / BAR_COUNT);
+    const bars = Array.from({ length: BAR_COUNT }, (_, i) => {
+      // Average nearby bins for smoother visualization
+      const startIdx = i * step;
+      let sum = 0;
+      for (let j = 0; j < step; j++) {
+        sum += dataArray[startIdx + j] || 0;
       }
-      setIsPlaying(!isPlaying);
+      const avg = sum / step;
+      // Map 0-255 to 8-100% height
+      return Math.max(8, (avg / 255) * 100);
+    });
+    
+    setFrequencyBars(bars);
+    animationRef.current = requestAnimationFrame(updateFrequencyBars);
+  }, [isPlaying]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    
+    initAudioContext();
+    
+    if (audioContextRef.current?.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+      animationRef.current = requestAnimationFrame(updateFrequencyBars);
     }
   };
 
@@ -54,6 +104,8 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
   const handleEnded = () => {
     setIsPlaying(false);
     setCurrentTime(0);
+    setFrequencyBars(Array(BAR_COUNT).fill(8));
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -71,15 +123,24 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
 
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      if (audioRef.current) audioRef.current.pause();
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (audioContextRef.current) audioContextRef.current.close();
     };
   }, []);
 
+  // Keep animation loop in sync with isPlaying
+  useEffect(() => {
+    if (isPlaying && analyserRef.current) {
+      animationRef.current = requestAnimationFrame(updateFrequencyBars);
+    }
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isPlaying, updateFrequencyBars]);
+
   return (
-    <div className="flex items-center space-x-3 min-w-[200px] max-w-[280px]">
-      {/* Hidden audio element */}
+    <div className="flex items-center space-x-3 min-w-[220px] max-w-[300px]">
       <audio
         ref={audioRef}
         src={audioUrl}
@@ -87,6 +148,7 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
         preload="metadata"
+        crossOrigin="anonymous"
       />
 
       {/* Play/Pause button */}
@@ -109,20 +171,20 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
       <div className="flex-1 flex flex-col space-y-1">
         <div
           ref={progressRef}
-          className="flex items-center space-x-[2px] h-8 cursor-pointer"
+          className="flex items-center space-x-[1.5px] h-9 cursor-pointer"
           onClick={handleProgressClick}
         >
-          {bars.map((height, i) => {
-            const barProgress = (i / bars.length) * 100;
+          {frequencyBars.map((height, i) => {
+            const barProgress = (i / BAR_COUNT) * 100;
             const isActive = barProgress <= progress;
             
             return (
               <div
                 key={i}
-                className={`w-[3px] rounded-full transition-all duration-150 ${
+                className={`w-[2.5px] rounded-full transition-all duration-75 ${
                   isFromCreator
-                    ? isActive ? 'bg-primary' : 'bg-primary/30'
-                    : isActive ? 'bg-white' : 'bg-white/40'
+                    ? isActive ? 'bg-primary' : 'bg-primary/25'
+                    : isActive ? 'bg-white' : 'bg-white/35'
                 }`}
                 style={{ height: `${height}%` }}
               />
@@ -131,7 +193,7 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
         </div>
 
         {/* Time display */}
-        <div className={`text-xs ${isFromCreator ? 'text-muted-foreground' : 'text-white/70'}`}>
+        <div className={`text-xs font-mono ${isFromCreator ? 'text-muted-foreground' : 'text-white/70'}`}>
           {formatTime(currentTime)} / {formatTime(audioDuration)}
         </div>
       </div>
