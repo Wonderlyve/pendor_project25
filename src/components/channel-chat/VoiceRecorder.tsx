@@ -65,34 +65,42 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
       const audioContext = new AudioContext({ sampleRate: 48000 });
       const source = audioContext.createMediaStreamSource(stream);
       
-      // High-pass filter to remove low-frequency rumble
+      // High-pass filter to remove low-frequency rumble/noise
       const highPass = audioContext.createBiquadFilter();
       highPass.type = 'highpass';
-      highPass.frequency.value = 80;
+      highPass.frequency.value = 120;
       highPass.Q.value = 0.7;
       
       // Low-pass filter to remove harsh high frequencies
       const lowPass = audioContext.createBiquadFilter();
       lowPass.type = 'lowpass';
-      lowPass.frequency.value = 14000;
+      lowPass.frequency.value = 12000;
       lowPass.Q.value = 0.7;
       
-      // Compressor to normalize volume levels
+      // Presence boost around 2-4kHz for voice clarity
+      const presenceBoost = audioContext.createBiquadFilter();
+      presenceBoost.type = 'peaking';
+      presenceBoost.frequency.value = 3000;
+      presenceBoost.gain.value = 6;
+      presenceBoost.Q.value = 1.0;
+      
+      // Compressor: lower threshold to catch quieter speech
       const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.value = -24;
-      compressor.knee.value = 12;
-      compressor.ratio.value = 4;
-      compressor.attack.value = 0.003;
-      compressor.release.value = 0.15;
+      compressor.threshold.value = -40;
+      compressor.knee.value = 10;
+      compressor.ratio.value = 6;
+      compressor.attack.value = 0.002;
+      compressor.release.value = 0.2;
       
-      // Gain boost for clarity
+      // Strong gain boost for audible voice
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 1.4;
+      gainNode.gain.value = 3.0;
       
-      // Chain: source -> highPass -> lowPass -> compressor -> gain -> destination
+      // Chain: source -> highPass -> lowPass -> presenceBoost -> compressor -> gain -> destination
       source.connect(highPass);
       highPass.connect(lowPass);
-      lowPass.connect(compressor);
+      lowPass.connect(presenceBoost);
+      presenceBoost.connect(compressor);
       compressor.connect(gainNode);
       
       // Create a destination for the processed audio
