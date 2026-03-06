@@ -14,6 +14,8 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
   const [frequencyBars, setFrequencyBars] = useState<number[]>(Array(BAR_COUNT).fill(8));
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const SPEEDS = [1, 1.5, 2];
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -192,9 +194,26 @@ const AudioWaveform = ({ audioUrl, duration, isFromCreator = false }: AudioWavef
           })}
         </div>
 
-        {/* Time display */}
-        <div className={`text-xs font-mono ${isFromCreator ? 'text-muted-foreground' : 'text-white/70'}`}>
-          {formatTime(currentTime)} / {formatTime(audioDuration)}
+        {/* Time + Speed */}
+        <div className="flex items-center justify-between">
+          <span className={`text-xs font-mono ${isFromCreator ? 'text-muted-foreground' : 'text-white/70'}`}>
+            {formatTime(currentTime)} / {formatTime(audioDuration)}
+          </span>
+          <button
+            onClick={() => {
+              const nextIdx = (SPEEDS.indexOf(playbackRate) + 1) % SPEEDS.length;
+              const newRate = SPEEDS[nextIdx];
+              setPlaybackRate(newRate);
+              if (audioRef.current) audioRef.current.playbackRate = newRate;
+            }}
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
+              isFromCreator
+                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                : 'bg-white/15 text-white hover:bg-white/25'
+            }`}
+          >
+            x{playbackRate}
+          </button>
         </div>
       </div>
     </div>
