@@ -116,7 +116,7 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
               ? 'audio/webm;codecs=opus'
               : 'audio/webm';
       
-      const mediaRecorder = new MediaRecorder(stream, {
+      const mediaRecorder = new MediaRecorder(dest.stream, {
         mimeType,
         audioBitsPerSecond: 128000,
       });
