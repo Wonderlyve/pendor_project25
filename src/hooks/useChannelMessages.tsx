@@ -276,7 +276,10 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
 
       if (error) throw error;
 
-      await fetchMessages(); // Refresh messages
+      // Update in place
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, content: newContent.trim() } : msg
+      ));
       toast.success('Message modifié avec succès');
       return true;
     } catch (error) {
@@ -301,7 +304,8 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
 
       if (error) throw error;
 
-      await fetchMessages(); // Refresh messages
+      // Remove in place
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
       toast.success('Message supprimé avec succès');
       return true;
     } catch (error) {
