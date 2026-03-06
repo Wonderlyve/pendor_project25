@@ -61,12 +61,48 @@ const VoiceRecorder = ({ onSendVoice, onCancel, isRecording, setIsRecording }: V
       
       streamRef.current = stream;
       
-      // Set up audio analyser for waveform
+      // Apply audio processing for clearer recording
       const audioContext = new AudioContext({ sampleRate: 48000 });
       const source = audioContext.createMediaStreamSource(stream);
+      
+      // High-pass filter to remove low-frequency rumble
+      const highPass = audioContext.createBiquadFilter();
+      highPass.type = 'highpass';
+      highPass.frequency.value = 80;
+      highPass.Q.value = 0.7;
+      
+      // Low-pass filter to remove harsh high frequencies
+      const lowPass = audioContext.createBiquadFilter();
+      lowPass.type = 'lowpass';
+      lowPass.frequency.value = 14000;
+      lowPass.Q.value = 0.7;
+      
+      // Compressor to normalize volume levels
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 12;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.15;
+      
+      // Gain boost for clarity
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 1.4;
+      
+      // Chain: source -> highPass -> lowPass -> compressor -> gain -> destination
+      source.connect(highPass);
+      highPass.connect(lowPass);
+      lowPass.connect(compressor);
+      compressor.connect(gainNode);
+      
+      // Create a destination for the processed audio
+      const dest = audioContext.createMediaStreamDestination();
+      gainNode.connect(dest);
+      
+      // Set up analyser on the processed chain for waveform
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      source.connect(analyser);
+      gainNode.connect(analyser);
       analyserRef.current = analyser;
       
       // Prefer AAC codec for better quality and compatibility
