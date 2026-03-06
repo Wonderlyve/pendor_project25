@@ -85,6 +85,38 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
     }
   };
 
+  const addOptimisticMessage = (messageData: any) => {
+    const optimisticMsg: ChannelMessage = {
+      id: messageData.id || `temp-${Date.now()}`,
+      channel_id: channelId,
+      user_id: user!.id,
+      content: messageData.content,
+      created_at: new Date().toISOString(),
+      username: undefined, // will be filled by profile lookup
+      avatar_url: undefined,
+      media_url: messageData.media_url,
+      media_type: messageData.media_type,
+      media_filename: messageData.media_filename,
+      reply_to_id: messageData.reply_to_id,
+      reply_to_content: messageData.reply_to_content,
+      reply_to_username: messageData.reply_to_username,
+      reply_to_media_type: messageData.reply_to_media_type,
+    };
+
+    // Get profile for display
+    supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('user_id', user!.id)
+      .single()
+      .then(({ data: profile }) => {
+        optimisticMsg.username = profile?.username || 'Utilisateur';
+        optimisticMsg.avatar_url = profile?.avatar_url;
+      });
+
+    return optimisticMsg;
+  };
+
   const sendMessage = async (content: string, mediaFiles?: File[], replyTo?: { id: string; content?: string; username?: string; media_type?: string }) => {
     if (!user) {
       toast.error('Vous devez être connecté pour envoyer des messages');
@@ -101,8 +133,14 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
       return false;
     }
 
+    // Get user profile once for optimistic updates
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('user_id', user.id)
+      .single();
+
     try {
-      // Handle multiple media files by sending multiple messages
       if (mediaFiles && mediaFiles.length > 0) {
         let allUploadsSuccessful = true;
         
@@ -111,7 +149,6 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
             const fileExt = file.name.split('.').pop() || 'bin';
             const fileName = `${channelId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
             
-            // Check if bucket exists, create if not
             const { error: uploadError } = await supabase.storage
               .from('channel-media')
               .upload(fileName, file, {
@@ -121,8 +158,6 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
 
             if (uploadError) {
               console.error('Upload error:', uploadError);
-              
-              // If bucket doesn't exist, try to create it
               if (uploadError.message.includes('bucket')) {
                 toast.error('Bucket de stockage non configuré. Contactez l\'administrateur.');
                 allUploadsSuccessful = false;
@@ -139,23 +174,39 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
                              file.type.startsWith('video/') ? 'video' : 
                              file.type.startsWith('audio/') ? 'audio' : 'file';
 
-            // Insert message with media
-            const { error: insertError } = await supabase
+            const insertData = {
+              channel_id: channelId,
+              user_id: user.id,
+              content: content.trim() || `Fichier: ${file.name}`,
+              media_url: publicUrl,
+              media_type: mediaType,
+              media_filename: file.name,
+              reply_to_id: replyTo?.id || null,
+              reply_to_content: replyTo?.content || null,
+              reply_to_username: replyTo?.username || null,
+              reply_to_media_type: replyTo?.media_type || null
+            };
+
+            const { data: inserted, error: insertError } = await supabase
               .from('channel_messages')
-              .insert({
-                channel_id: channelId,
-                user_id: user.id,
-                content: content.trim() || `Fichier: ${file.name}`, // Include content or filename
-                media_url: publicUrl,
-                media_type: mediaType,
-                media_filename: file.name,
-                reply_to_id: replyTo?.id || null,
-                reply_to_content: replyTo?.content || null,
-                reply_to_username: replyTo?.username || null,
-                reply_to_media_type: replyTo?.media_type || null
-              });
+              .insert(insertData)
+              .select()
+              .single();
 
             if (insertError) throw insertError;
+
+            // Optimistic: add to messages immediately
+            if (inserted) {
+              setMessages(prev => {
+                if (prev.some(m => m.id === inserted.id)) return prev;
+                return [...prev, {
+                  ...inserted,
+                  username: userProfile?.username || 'Utilisateur',
+                  avatar_url: userProfile?.avatar_url,
+                  media_type: inserted.media_type as any,
+                }];
+              });
+            }
             
           } catch (fileError) {
             console.error('Error uploading file:', file.name, fileError);
@@ -164,53 +215,43 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
           }
         }
 
-        // Send text message only if there's content and no media files were processed
-        if (content.trim() && mediaFiles.length === 0) {
-          const { error: textError } = await supabase
-            .from('channel_messages')
-            .insert({
-              channel_id: channelId,
-              user_id: user.id,
-              content: content.trim(),
-              media_url: null,
-              media_type: null,
-              media_filename: null,
-              reply_to_id: replyTo?.id || null,
-              reply_to_content: replyTo?.content || null,
-              reply_to_username: replyTo?.username || null,
-              reply_to_media_type: replyTo?.media_type || null
-            });
-
-          if (textError) {
-            console.error('Error sending text message:', textError);
-            toast.error('Erreur lors de l\'envoi du message texte');
-            allUploadsSuccessful = false;
-          }
-        }
-
-        await fetchMessages(); // Refresh messages
         return allUploadsSuccessful;
         
       } else {
-        // Text-only message
-        const { error } = await supabase
+        const insertData = {
+          channel_id: channelId,
+          user_id: user.id,
+          content: content.trim(),
+          media_url: null,
+          media_type: null,
+          media_filename: null,
+          reply_to_id: replyTo?.id || null,
+          reply_to_content: replyTo?.content || null,
+          reply_to_username: replyTo?.username || null,
+          reply_to_media_type: replyTo?.media_type || null
+        };
+
+        const { data: inserted, error } = await supabase
           .from('channel_messages')
-          .insert({
-            channel_id: channelId,
-            user_id: user.id,
-            content: content.trim(),
-            media_url: null,
-            media_type: null,
-            media_filename: null,
-            reply_to_id: replyTo?.id || null,
-            reply_to_content: replyTo?.content || null,
-            reply_to_username: replyTo?.username || null,
-            reply_to_media_type: replyTo?.media_type || null
-          });
+          .insert(insertData)
+          .select()
+          .single();
 
         if (error) throw error;
 
-        await fetchMessages(); // Refresh messages
+        // Optimistic: add to messages immediately
+        if (inserted) {
+          setMessages(prev => {
+            if (prev.some(m => m.id === inserted.id)) return prev;
+            return [...prev, {
+              ...inserted,
+              username: userProfile?.username || 'Utilisateur',
+              avatar_url: userProfile?.avatar_url,
+              media_type: inserted.media_type as any,
+            }];
+          });
+        }
+
         return true;
       }
     } catch (error) {
@@ -235,7 +276,10 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
 
       if (error) throw error;
 
-      await fetchMessages(); // Refresh messages
+      // Update in place
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, content: newContent.trim() } : msg
+      ));
       toast.success('Message modifié avec succès');
       return true;
     } catch (error) {
@@ -260,7 +304,8 @@ export const useChannelMessages = (channelId: string, creatorId: string) => {
 
       if (error) throw error;
 
-      await fetchMessages(); // Refresh messages
+      // Remove in place
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
       toast.success('Message supprimé avec succès');
       return true;
     } catch (error) {
