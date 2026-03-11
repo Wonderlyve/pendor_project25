@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { X, Upload, Video } from 'lucide-react';
+import { X, Upload, Video } from '@/lib/icons';
 
 interface EditPostModalProps {
   isOpen: boolean;

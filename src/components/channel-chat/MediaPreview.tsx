@@ -1,4 +1,4 @@
-import { X, File, Image, Video, Music } from 'lucide-react';
+import { X, File, Image, Video, Music } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 
 interface MediaFile {

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { X, Upload, Video, Image, Link } from 'lucide-react';
+import { X, Upload, Video, Image, Link } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
