@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Clock } from 'lucide-react';
+import { TrendingUp, Users, Clock } from '@/lib/icons';
 
 interface FeedSelectorProps {
   currentFeed: 'personalized' | 'community' | 'new';

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
-import { UserPlus, UserMinus } from 'lucide-react';
+import { UserPlus, UserMinus } from '@/lib/icons';
 
 interface FollowButtonProps {
   targetUserId: string;

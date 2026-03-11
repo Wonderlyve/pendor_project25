@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Download } from 'lucide-react';
+import { X, Download } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';

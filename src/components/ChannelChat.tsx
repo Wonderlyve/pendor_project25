@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock } from '@/lib/icons';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useChannelMessages, ChannelMessage } from '@/hooks/useChannelMessages';
 import { useVipPronos } from '@/hooks/useVipPronos';

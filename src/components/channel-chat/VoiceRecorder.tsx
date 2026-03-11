@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, Send, X, Trash2 } from 'lucide-react';
+import { Mic, Send, X, Trash2 } from '@/lib/icons';
 import { toast } from 'sonner';
 
 interface VoiceRecorderProps {

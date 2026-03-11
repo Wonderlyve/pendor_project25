@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun, ArrowLeft, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Smartphone, Globe, Moon, Sun, ArrowLeft, LogOut } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';

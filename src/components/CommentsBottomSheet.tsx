@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, MoreVertical, Send, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Send, Trash2 } from '@/lib/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useComments, Comment } from '@/hooks/useComments';

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart, Reply, MoreVertical, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Heart, Reply, MoreVertical, Trash2 } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,8 +37,28 @@ export function CommentItemWithLikes({ comment, level = 0, onReply, onLike, onDe
     }
   };
 
+  const commentRef = useRef<HTMLDivElement>(null);
+  const [isNew, setIsNew] = useState(false);
+
+  useEffect(() => {
+    // Check if this comment was just created (within last 2 seconds)
+    const commentAge = Date.now() - new Date(comment.created_at).getTime();
+    if (commentAge < 2000) {
+      setIsNew(true);
+      const timer = setTimeout(() => setIsNew(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [comment.created_at]);
+
   return (
-    <div className={cn("space-y-2", level > 0 && "ml-6 mt-2 border-l-2 border-border pl-4")}>
+    <div 
+      ref={commentRef}
+      className={cn(
+        "space-y-2 transition-all duration-500",
+        level > 0 && "ml-6 mt-2 border-l-2 border-border pl-4",
+        isNew && "animate-fade-in"
+      )}
+    >
       <div className="flex gap-3">
         <Avatar 
           className="h-8 w-8 flex-shrink-0 cursor-pointer hover:opacity-75" 

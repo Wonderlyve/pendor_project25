@@ -1,4 +1,4 @@
-import { Crown, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Crown, Edit2, Trash2, Check, X } from '@/lib/icons';
 import { ChannelMessage } from '@/hooks/useChannelMessages';
 import { useMessageReactions } from '@/hooks/useMessageReactions';
 import { EmojiPicker } from './EmojiPicker';

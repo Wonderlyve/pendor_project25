@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Loader2 } from 'lucide-react';
+import { Play, Loader2 } from '@/lib/icons';
 
 interface VideoThumbnailProps {
   videoSrc: string;

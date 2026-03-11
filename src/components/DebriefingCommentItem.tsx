@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Reply, MoreVertical, Trash2 } from 'lucide-react';
+import { Heart, Reply, MoreVertical, Trash2 } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';

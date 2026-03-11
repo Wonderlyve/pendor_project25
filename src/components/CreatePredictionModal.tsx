@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { X, Calendar, TrendingUp, Plus, Trash2 } from 'lucide-react';
+import { X, Calendar, TrendingUp, Plus, Trash2 } from '@/lib/icons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Heart, MoreVertical, Trash2, Eye } from 'lucide-react';
+import { Play, Pause, Heart, MoreVertical, Trash2, Eye } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
