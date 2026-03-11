@@ -70,7 +70,7 @@ export function CommentsBottomSheet({ postId, commentsCount, children }: Comment
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
-            Commentaires ({commentsCount})
+            Commentaires ({comments.length})
           </SheetTitle>
         </SheetHeader>
 

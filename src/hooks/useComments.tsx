@@ -113,6 +113,13 @@ export function useComments(postId?: string) {
     }
 
     try {
+      // Fetch current user profile for optimistic display
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url')
+        .eq('user_id', user.id)
+        .single();
+
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -126,13 +133,57 @@ export function useComments(postId?: string) {
 
       if (error) throw error;
 
+      // Optimistic update: add comment to local state immediately
+      const newComment: Comment = {
+        ...data,
+        is_liked: false,
+        profiles: profileData || undefined,
+        replies: []
+      };
+
+      setComments(prev => {
+        if (parentId) {
+          // Add as reply to parent
+          return prev.map(c => {
+            if (c.id === parentId) {
+              return { ...c, replies: [...(c.replies || []), newComment] };
+            }
+            // Check nested replies
+            if (c.replies?.length) {
+              return {
+                ...c,
+                replies: c.replies.map(r =>
+                  r.id === parentId
+                    ? { ...r, replies: [...(r.replies || []), newComment] }
+                    : r
+                )
+              };
+            }
+            return c;
+          });
+        }
+        return [...prev, newComment];
+      });
+
       toast.success('Commentaire ajouté avec succès');
-      // Don't refresh all comments, let real-time handle it
       return data;
     } catch (error: any) {
       console.error('Error adding comment:', error);
       toast.error('Erreur lors de l\'ajout du commentaire');
     }
+  };
+
+  const updateCommentLikeState = (commentId: string, liked: boolean) => {
+    const updateComment = (c: Comment): Comment => {
+      if (c.id === commentId) {
+        return { ...c, is_liked: liked, likes: c.likes + (liked ? 1 : -1) };
+      }
+      if (c.replies?.length) {
+        return { ...c, replies: c.replies.map(updateComment) };
+      }
+      return c;
+    };
+    setComments(prev => prev.map(updateComment));
   };
 
   const likeComment = async (commentId: string) => {
@@ -142,7 +193,6 @@ export function useComments(postId?: string) {
     }
 
     try {
-      // Check if already liked
       const { data: existingLike } = await supabase
         .from('comment_likes')
         .select('id')
@@ -151,27 +201,20 @@ export function useComments(postId?: string) {
         .maybeSingle();
 
       if (existingLike) {
-        // Unlike
+        updateCommentLikeState(commentId, false);
         const { error } = await supabase
           .from('comment_likes')
           .delete()
           .eq('comment_id', commentId)
           .eq('user_id', user.id);
-
         if (error) throw error;
       } else {
-        // Like
+        updateCommentLikeState(commentId, true);
         const { error } = await supabase
           .from('comment_likes')
-          .insert({
-            comment_id: commentId,
-            user_id: user.id
-          });
-
+          .insert({ comment_id: commentId, user_id: user.id });
         if (error) throw error;
       }
-
-      // Don't refresh all comments, just let real-time handle it
     } catch (error: any) {
       console.error('Error liking comment:', error);
       toast.error('Erreur lors du like du commentaire');
@@ -190,8 +233,16 @@ export function useComments(postId?: string) {
 
       if (error) throw error;
 
+      // Optimistic update: remove from local state
+      setComments(prev => {
+        const filtered = prev.filter(c => c.id !== commentId);
+        return filtered.map(c => ({
+          ...c,
+          replies: (c.replies || []).filter(r => r.id !== commentId)
+        }));
+      });
+
       toast.success('Commentaire supprimé');
-      // Don't refresh all comments, let real-time handle it
     } catch (error: any) {
       console.error('Error deleting comment:', error);
       toast.error('Erreur lors de la suppression du commentaire');
@@ -204,41 +255,8 @@ export function useComments(postId?: string) {
     }
   }, [postId, user]);
 
-  // Subscribe to real-time comment updates
-  useEffect(() => {
-    if (!postId) return;
-
-    const channel = supabase
-      .channel(`comments-${postId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comments',
-          filter: `post_id=eq.${postId}`
-        },
-        () => {
-          fetchComments();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comment_likes'
-        },
-        () => {
-          fetchComments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [postId]);
+  // No more real-time subscription that refetches everything
+  // Optimistic updates handle add/delete/like locally
 
   return {
     comments,

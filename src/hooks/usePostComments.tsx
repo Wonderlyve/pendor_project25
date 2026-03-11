@@ -10,15 +10,14 @@ export function usePostComments(postId?: string) {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('posts')
-        .select('comments')
-        .eq('id', postId)
-        .single();
+      const { count, error } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
 
       if (error) throw error;
       
-      setCommentsCount(data?.comments || 0);
+      setCommentsCount(count || 0);
     } catch (error: any) {
       console.error('Error fetching comments count:', error);
     } finally {
@@ -30,25 +29,34 @@ export function usePostComments(postId?: string) {
     fetchCommentsCount();
   }, [fetchCommentsCount]);
 
-  // Subscribe to real-time updates for post comments count
+  // Subscribe to real-time inserts/deletes on comments table for this post
   useEffect(() => {
     if (!postId) return;
 
     const channel = supabase
-      .channel(`post-comments-${postId}`)
+      .channel(`post-comments-count-${postId}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: 'INSERT',
           schema: 'public',
-          table: 'posts',
-          filter: `id=eq.${postId}`
+          table: 'comments',
+          filter: `post_id=eq.${postId}`
         },
-        (payload) => {
-          // Update comments count from posts table update
-          if (payload.new && payload.new.comments !== undefined) {
-            setCommentsCount(payload.new.comments);
-          }
+        () => {
+          setCommentsCount(prev => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'comments',
+          filter: `post_id=eq.${postId}`
+        },
+        () => {
+          setCommentsCount(prev => Math.max(0, prev - 1));
         }
       )
       .subscribe();
