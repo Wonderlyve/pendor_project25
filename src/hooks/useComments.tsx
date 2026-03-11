@@ -228,8 +228,16 @@ export function useComments(postId?: string) {
 
       if (error) throw error;
 
+      // Optimistic update: remove from local state
+      setComments(prev => {
+        const filtered = prev.filter(c => c.id !== commentId);
+        return filtered.map(c => ({
+          ...c,
+          replies: (c.replies || []).filter(r => r.id !== commentId)
+        }));
+      });
+
       toast.success('Commentaire supprimé');
-      // Don't refresh all comments, let real-time handle it
     } catch (error: any) {
       console.error('Error deleting comment:', error);
       toast.error('Erreur lors de la suppression du commentaire');
