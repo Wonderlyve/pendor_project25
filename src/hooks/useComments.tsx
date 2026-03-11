@@ -250,41 +250,8 @@ export function useComments(postId?: string) {
     }
   }, [postId, user]);
 
-  // Subscribe to real-time comment updates
-  useEffect(() => {
-    if (!postId) return;
-
-    const channel = supabase
-      .channel(`comments-${postId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comments',
-          filter: `post_id=eq.${postId}`
-        },
-        () => {
-          fetchComments();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comment_likes'
-        },
-        () => {
-          fetchComments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [postId]);
+  // No more real-time subscription that refetches everything
+  // Optimistic updates handle add/delete/like locally
 
   return {
     comments,
