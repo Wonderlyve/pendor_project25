@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart, Reply, MoreVertical, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Heart, Reply, MoreVertical, Trash2 } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
