@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, ShoppingCart, User, Trophy, History } from "lucide-react";
+import { Car, ShoppingCart, User, Trophy, History } from '@/lib/icons';
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 

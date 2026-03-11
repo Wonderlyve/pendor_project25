@@ -1,4 +1,4 @@
-import { Heart, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2, MessageCircle, ArrowUpRight, Eye } from 'lucide-react';
+import { Heart, Star, MoreVertical, Play, VolumeX, Volume2, Pause, Maximize, Minimize, Edit, Trash2, MessageCircle, ArrowUpRight, Eye } from '@/lib/icons';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';

@@ -1,5 +1,5 @@
 
-import { Home, Video, User, Plus, Crown } from 'lucide-react';
+import { Home, Video, User, Plus, Crown } from '@/lib/icons';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';

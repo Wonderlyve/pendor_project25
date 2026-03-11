@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { X, User, Home, Video, TrendingUp, Settings, HelpCircle, LogOut, Bell, Bookmark, Shield, Info, Upload, Smartphone } from 'lucide-react';
+import { X, User, Home, Video, TrendingUp, Settings, HelpCircle, LogOut, Bell, Bookmark, Shield, Info, Upload, Smartphone } from '@/lib/icons';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
