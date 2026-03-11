@@ -1,6 +1,6 @@
 
 import { useRef, useState } from 'react';
-import { Image, Video, X, Loader2 } from 'lucide-react';
+import { Image, Video, X, Loader2 } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ImageOptimizer } from './ImageOptimizer';

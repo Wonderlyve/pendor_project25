@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { videoPreloader } from '@/optimization/VideoPreloader';
 import { videoCache } from '@/optimization/VideoCache';
-import { Loader2, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Play, Pause, Volume2, VolumeX } from '@/lib/icons';
 
 interface OptimizedVideoProps {
   src: string;
