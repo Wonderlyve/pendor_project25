@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Heart, Calendar, TrendingUp, Star } from 'lucide-react';
+import { Heart, Calendar, TrendingUp, Star } from '@/lib/icons';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';

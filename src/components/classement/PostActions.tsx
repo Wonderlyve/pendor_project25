@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, Flag, MoreHorizontal } from 'lucide-react';
+import { TrendingUp, Flag, MoreHorizontal } from '@/lib/icons';
 import { toast } from 'sonner';
 
 interface PostActionsProps {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Crown, MoreVertical, Plus, Info, Heart, UserMinus, Share, Bell, BellOff, FileText } from 'lucide-react';
+import { ArrowLeft, Users, Crown, MoreVertical, Plus, Info, Heart, UserMinus, Share, Bell, BellOff, FileText } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
