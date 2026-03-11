@@ -173,6 +173,19 @@ export function useComments(postId?: string) {
     }
   };
 
+  const updateCommentLikeState = (commentId: string, liked: boolean) => {
+    const updateComment = (c: Comment): Comment => {
+      if (c.id === commentId) {
+        return { ...c, is_liked: liked, likes: c.likes + (liked ? 1 : -1) };
+      }
+      if (c.replies?.length) {
+        return { ...c, replies: c.replies.map(updateComment) };
+      }
+      return c;
+    };
+    setComments(prev => prev.map(updateComment));
+  };
+
   const likeComment = async (commentId: string) => {
     if (!user) {
       toast.error('Vous devez être connecté pour liker');
@@ -180,7 +193,6 @@ export function useComments(postId?: string) {
     }
 
     try {
-      // Check if already liked
       const { data: existingLike } = await supabase
         .from('comment_likes')
         .select('id')
@@ -189,27 +201,20 @@ export function useComments(postId?: string) {
         .maybeSingle();
 
       if (existingLike) {
-        // Unlike
+        updateCommentLikeState(commentId, false);
         const { error } = await supabase
           .from('comment_likes')
           .delete()
           .eq('comment_id', commentId)
           .eq('user_id', user.id);
-
         if (error) throw error;
       } else {
-        // Like
+        updateCommentLikeState(commentId, true);
         const { error } = await supabase
           .from('comment_likes')
-          .insert({
-            comment_id: commentId,
-            user_id: user.id
-          });
-
+          .insert({ comment_id: commentId, user_id: user.id });
         if (error) throw error;
       }
-
-      // Don't refresh all comments, just let real-time handle it
     } catch (error: any) {
       console.error('Error liking comment:', error);
       toast.error('Erreur lors du like du commentaire');
