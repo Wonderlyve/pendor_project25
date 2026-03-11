@@ -113,6 +113,13 @@ export function useComments(postId?: string) {
     }
 
     try {
+      // Fetch current user profile for optimistic display
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url')
+        .eq('user_id', user.id)
+        .single();
+
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -126,8 +133,39 @@ export function useComments(postId?: string) {
 
       if (error) throw error;
 
+      // Optimistic update: add comment to local state immediately
+      const newComment: Comment = {
+        ...data,
+        is_liked: false,
+        profiles: profileData || undefined,
+        replies: []
+      };
+
+      setComments(prev => {
+        if (parentId) {
+          // Add as reply to parent
+          return prev.map(c => {
+            if (c.id === parentId) {
+              return { ...c, replies: [...(c.replies || []), newComment] };
+            }
+            // Check nested replies
+            if (c.replies?.length) {
+              return {
+                ...c,
+                replies: c.replies.map(r =>
+                  r.id === parentId
+                    ? { ...r, replies: [...(r.replies || []), newComment] }
+                    : r
+                )
+              };
+            }
+            return c;
+          });
+        }
+        return [...prev, newComment];
+      });
+
       toast.success('Commentaire ajouté avec succès');
-      // Don't refresh all comments, let real-time handle it
       return data;
     } catch (error: any) {
       console.error('Error adding comment:', error);
