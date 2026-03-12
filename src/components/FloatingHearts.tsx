@@ -1,4 +1,4 @@
-import { Heart } from "lucide-react";
+import { Heart } from '@/lib/icons';
 
 const FloatingHearts = () => {
   return (

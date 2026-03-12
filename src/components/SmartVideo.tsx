@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Loader2, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Play, Pause, Volume2, VolumeX } from '@/lib/icons';
 import { videoPreloader } from '@/optimization/VideoPreloader';
 import { videoCache } from '@/optimization/VideoCache';
 import VideoThumbnail from './VideoThumbnail';

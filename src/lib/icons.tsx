@@ -68,6 +68,7 @@ import {
   TiLink,
   TiArrowRight,
   TiArrowUp,
+  TiArrowDown,
   TiMinus,
   TiKey,
   TiDocumentText,
@@ -75,6 +76,15 @@ import {
   TiVolumeDown,
   TiPin,
   TiWorld,
+  TiWarning,
+  TiChevronRight,
+  TiChevronLeft,
+  TiInputChecked,
+  TiFlash,
+  TiMediaRecord,
+  TiCreditCard,
+  TiWaves,
+  TiUserOutline,
 } from 'react-icons/ti';
 
 import React from 'react';
@@ -82,7 +92,9 @@ import type { IconBaseProps } from 'react-icons';
 
 // Direct re-exports with Lucide-compatible names
 export const Heart = TiHeart;
+export const HeartOutline = TiHeartOutline;
 export const Star = TiStar;
+export const StarOutline = TiStarOutline;
 export const MoreVertical = TiThMenu;
 export const Play = TiMediaPlay;
 export const VolumeX = TiVolumeMute;
@@ -109,6 +121,7 @@ export const Crown = TiStarburstOutline;
 export const ArrowLeft = TiArrowLeft;
 export const ArrowRight = TiArrowRight;
 export const ArrowUp = TiArrowUp;
+export const ArrowDown = TiArrowDown;
 export const Camera = TiCamera;
 export const Settings = TiCog;
 export const BarChart3 = TiChartBar;
@@ -125,6 +138,7 @@ export const Lock = TiLockClosed;
 export const Send = TiLocationArrow;
 export const Paperclip = TiAttachment;
 export const Image = TiImage;
+export const ImageIcon = TiImage;
 export const Music = TiNotes;
 export const Mic = TiMicrophone;
 export const Check = TiTick;
@@ -144,17 +158,45 @@ export const Flag = TiFlag;
 export const MoreHorizontal = TiThMenu;
 export const FileText = TiDocument;
 export const Share = TiExport;
+export const Share2 = TiExport;
 export const Reply = TiArrowBack;
 export const MapPin = TiLocation;
 export const Link = TiLink;
+export const LinkIcon = TiLink;
 export const Clock = TiTime;
 export const Minus = TiMinus;
 export const Key = TiKey;
 export const File = TiDocument;
 export const Pin = TiPin;
+export const AlertTriangle = TiWarning;
+export const ChevronDown = TiChevronRight; // rotated via CSS when needed
+export const ChevronRight = TiChevronRight;
+export const ChevronLeft = TiChevronLeft;
+export const RefreshCw = TiRefresh;
+export const ExternalLink = TiExport;
+export const CreditCard = TiCreditCard;
+export const Activity = TiWaves;
+export const UserCheck = TiInputChecked;
+export const CheckCircle = TiInputChecked;
+export const Zap = TiFlash;
+export const Medal = TiStarFullOutline;
+export const Loader2 = TiRefresh;
+export const HelpCircle = TiInfoLarge;
+export const Code = TiDocumentText;
+export const Target = TiLocationArrow;
+export const Coins = TiStarburstOutline;
+export const DollarSign = TiStarburstOutline;
 
-// Icons that need custom wrappers (no exact Typicons equivalent)
-// Smile: use a simple emoji-style icon
+// XCircle: Times with circle styling
+export const XCircle = (props: IconBaseProps) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+  </svg>
+);
+
+// Smile: emoji-style icon
 export const Smile = (props: IconBaseProps) => (
   <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
@@ -164,7 +206,7 @@ export const Smile = (props: IconBaseProps) => (
   </svg>
 );
 
-// EyeOff: Typicons doesn't have this, create simple wrapper  
+// EyeOff
 export const EyeOff = (props: IconBaseProps) => (
   <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
@@ -172,7 +214,7 @@ export const EyeOff = (props: IconBaseProps) => (
   </svg>
 );
 
-// BellOff: simple bell with slash
+// BellOff
 export const BellOff = (props: IconBaseProps) => (
   <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -183,11 +225,13 @@ export const BellOff = (props: IconBaseProps) => (
   </svg>
 );
 
-// HelpCircle: use info icon
-export const HelpCircle = TiInfoLarge;
-
-// Loader2: spinning refresh icon
-export const Loader2 = TiRefresh;
+// CheckCheck (double check)
+export const CheckCheck = (props: IconBaseProps) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 6L7 17l-5-5" />
+    <path d="M22 10L11 21" />
+  </svg>
+);
 
 // Navigation icon (compass)
 export { TiCompass as NavigationIcon } from 'react-icons/ti';

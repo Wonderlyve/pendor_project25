@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { LogOut as LogIn } from '@/lib/icons';
 
 interface ProtectedComponentProps {
   children: ReactNode;

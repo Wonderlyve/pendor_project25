@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Share, MoreHorizontal, Plus, Search, Play, Menu, User, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share, MoreHorizontal, Plus, Search, Play, Menu, User, Trash2 } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';

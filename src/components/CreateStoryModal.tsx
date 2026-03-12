@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Camera, Video, Upload, X, AlertTriangle } from 'lucide-react';
+import { Camera, Video, Upload, X, AlertTriangle } from '@/lib/icons';
 import { useStories } from '@/hooks/useStories';
 import { VideoOptimizer } from '@/optimization/VideoOptimizer';
 import { toast } from 'sonner';

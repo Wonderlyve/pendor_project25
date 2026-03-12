@@ -1,5 +1,5 @@
 
-import { Coins, Target } from "lucide-react";
+import { Coins, Target } from '@/lib/icons';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 

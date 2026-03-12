@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Download, ExternalLink } from 'lucide-react';
+import { Download, ExternalLink } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 
 interface UpdatePost {

@@ -1,5 +1,5 @@
 
-import { Trophy, Medal, Crown, TrendingUp, Zap } from "lucide-react";
+import { Trophy, Medal, Crown, TrendingUp, Zap } from '@/lib/icons';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface LeaderboardProps {

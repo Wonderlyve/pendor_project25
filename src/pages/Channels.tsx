@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft, Search, X, Share2 } from 'lucide-react';
+import { Plus, Lock, Users, MessageCircle, Crown, ArrowLeft, Search, X, Share2 } from '@/lib/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

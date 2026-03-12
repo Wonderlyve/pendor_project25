@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { HelpCircle, MessageCircle, Mail, Phone, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { HelpCircle, MessageCircle, Mail, Phone, FileText, ChevronDown, ChevronRight } from '@/lib/icons';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/lib/icons';
 
 interface LoadingModalProps {
   isOpen: boolean;

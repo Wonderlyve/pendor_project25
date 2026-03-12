@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MapPin, User, Car, CreditCard, Clock, Star } from 'lucide-react';
+import { MapPin, User, Car, CreditCard, Clock, Star } from '@/lib/icons';
 
 const Navigation = () => {
   const location = useLocation();

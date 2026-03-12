@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Download, X } from 'lucide-react';
+import { Download, X } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 
 interface AppVersion {

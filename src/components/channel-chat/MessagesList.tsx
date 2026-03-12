@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Lock, ArrowDown } from 'lucide-react';
+import { Lock, ArrowDown } from '@/lib/icons';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { ChannelMessage } from '@/hooks/useChannelMessages';
