@@ -118,6 +118,26 @@
   }
 }
 
+/* Consistent Typicon icon sizing utilities */
+@layer components {
+  /* Standardized icon sizes */
+  .icon-xs { @apply w-3 h-3; }
+  .icon-sm { @apply w-4 h-4; }
+  .icon-md { @apply w-5 h-5; }
+  .icon-lg { @apply w-6 h-6; }
+  .icon-xl { @apply w-8 h-8; }
+
+  /* Icon with consistent vertical alignment */
+  .icon-inline {
+    @apply inline-flex items-center justify-center shrink-0;
+  }
+
+  /* Spinning animation for loader icons */
+  .icon-spin {
+    animation: spin 1s linear infinite;
+  }
+}
+
 @keyframes storyProgress {
   from {
     width: 0%;
