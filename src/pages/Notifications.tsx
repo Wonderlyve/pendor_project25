@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bell, BellOff, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Check, CheckCheck } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

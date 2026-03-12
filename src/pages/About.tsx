@@ -1,5 +1,5 @@
 
-import { ArrowLeft, Trophy, Users, TrendingUp, Star } from 'lucide-react';
+import { ArrowLeft, Trophy, Users, TrendingUp, Star } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

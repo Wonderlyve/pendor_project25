@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Download, FileText, CheckCircle, XCircle, Image as ImageIcon } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, ImageIcon } from '@/lib/icons';
 import { toast } from 'sonner';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';

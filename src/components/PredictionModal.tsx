@@ -1,5 +1,5 @@
 
-import { Calendar, Clock, Trophy } from 'lucide-react';
+import { Calendar, Clock, Trophy } from '@/lib/icons';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useState } from 'react';

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Play, Plus, Users, ArrowLeft } from 'lucide-react';
+import { Play, Plus, Users, ArrowLeft } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

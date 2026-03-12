@@ -1,4 +1,4 @@
-import { ArrowLeft, Users, UserCheck, Activity, TrendingUp, Eye, MessageCircle, Heart, Share2 } from 'lucide-react';
+import { ArrowLeft, Users, UserCheck, Activity, TrendingUp, Eye, MessageCircle, Heart, Share2 } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

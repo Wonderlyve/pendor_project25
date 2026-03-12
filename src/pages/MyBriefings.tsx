@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Eye, Heart, MessageCircle, Play, Trash2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Eye, Heart, MessageCircle, Play, Trash2, ExternalLink } from '@/lib/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

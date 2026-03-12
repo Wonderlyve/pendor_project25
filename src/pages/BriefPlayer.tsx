@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Play, Pause, Share2, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Play, Pause, Share2, MoreVertical } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';

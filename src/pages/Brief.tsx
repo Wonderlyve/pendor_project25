@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Play, Eye, Heart, ArrowLeft, Search, MoreVertical, Trash2 } from 'lucide-react';
+import { Play, Eye, Heart, ArrowLeft, Search, MoreVertical, Trash2 } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
