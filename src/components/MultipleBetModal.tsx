@@ -143,7 +143,7 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md mx-auto max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="flex-shrink-0 px-5 pt-5 pb-4 border-b border-border/40">
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex flex-col items-start gap-2">
             <span className="text-lg font-bold text-foreground">Détails du {betTypeLabel}</span>
             <Badge variant="secondary" className="text-xs font-semibold bg-primary/10 text-primary border-0">
               {matches.length} match{matches.length > 1 ? 's' : ''}
