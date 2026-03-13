@@ -231,9 +231,21 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.1),transparent)]" />
                 <div className="relative">
                   <div className="text-[10px] font-bold mb-2 opacity-80 uppercase tracking-[0.2em]">Code de réservation</div>
-                  <div className="text-3xl font-black tracking-[0.25em] drop-shadow-sm">
-                    {prediction.reservationCode}
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="text-3xl font-black tracking-[0.25em] drop-shadow-sm">
+                      {prediction.reservationCode}
+                    </div>
+                    <button
+                      onClick={handleCopyCode}
+                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 active:scale-90"
+                      title="Copier le code"
+                    >
+                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                    </button>
                   </div>
+                  {copied && (
+                    <div className="text-[10px] mt-2 font-medium opacity-90 animate-fade-in">✓ Code copié !</div>
+                  )}
                 </div>
               </div>
             )}
