@@ -42,6 +42,15 @@ interface MultipleBetModalProps {
 }
 
 const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalProps) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = async () => {
+    if (prediction.reservationCode) {
+      await navigator.clipboard.writeText(prediction.reservationCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
   const normalizeMatch = (match: any, index: number, fallbackData: any) => ({
     id: match.id || `match-${index}`,
     teams:
