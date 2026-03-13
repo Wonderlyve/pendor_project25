@@ -61,6 +61,8 @@ const Dashboard = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nom</TableHead>
+                  <TableHead>Posts</TableHead>
+                  <TableHead>Followers</TableHead>
                   <TableHead>Inscription</TableHead>
                 </TableRow>
               </TableHeader>
@@ -68,7 +70,9 @@ const Dashboard = () => {
                 {recentUsers.map((u) => (
                   <TableRow key={u.user_id}>
                     <TableCell className="font-medium">{u.display_name || u.username || 'Sans nom'}</TableCell>
-                    <TableCell>{new Date(u.created_at).toLocaleDateString('fr-FR')}</TableCell>
+                    <TableCell className="text-xs">{u.postCount}</TableCell>
+                    <TableCell className="text-xs">{u.followerCount}</TableCell>
+                    <TableCell className="text-xs">{new Date(u.created_at).toLocaleDateString('fr-FR')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

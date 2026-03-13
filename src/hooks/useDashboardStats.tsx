@@ -47,7 +47,38 @@ export const useDashboardStats = () => {
         .select('user_id, username, display_name, created_at, avatar_url')
         .order('created_at', { ascending: false })
         .limit(10);
-      return data || [];
+      
+      if (!data || data.length === 0) return [];
+
+      const userIds = data.map(u => u.user_id);
+
+      // Fetch post counts per user
+      const { data: postCounts } = await supabase
+        .from('posts')
+        .select('user_id')
+        .in('user_id', userIds);
+
+      const postCountMap = new Map<string, number>();
+      postCounts?.forEach(p => {
+        postCountMap.set(p.user_id, (postCountMap.get(p.user_id) || 0) + 1);
+      });
+
+      // Fetch follower counts per user
+      const { data: followerCounts } = await supabase
+        .from('follows')
+        .select('following_id')
+        .in('following_id', userIds);
+
+      const followerCountMap = new Map<string, number>();
+      followerCounts?.forEach(f => {
+        followerCountMap.set(f.following_id, (followerCountMap.get(f.following_id) || 0) + 1);
+      });
+
+      return data.map(u => ({
+        ...u,
+        postCount: postCountMap.get(u.user_id) || 0,
+        followerCount: followerCountMap.get(u.user_id) || 0,
+      }));
     },
   });
 
