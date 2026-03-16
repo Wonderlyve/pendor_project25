@@ -76,6 +76,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/about" element={<About />} />
               <Route path="/story" element={<Story />} />
+              <Route path="/post/:postId" element={<SharedPost />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

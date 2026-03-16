@@ -271,7 +271,7 @@ const PredictionCard = ({ prediction, onOpenModal }: PredictionCardProps) => {
   const handleShare = async () => {
     if (!requireAuth()) return;
     
-    const postUrl = `${window.location.origin}/post/${prediction.id}`;
+    const postUrl = `https://pendorappbeta.vercel.app/post/${prediction.id}`;
     
     if (navigator.share) {
       try {
