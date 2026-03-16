@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
+import AdBannerManager from '@/components/dashboard/AdBannerManager';
 
 const Dashboard = () => {
   const navigate = useNavigate();
