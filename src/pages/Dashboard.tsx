@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useEffect } from 'react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 
 const Dashboard = () => {
   const navigate = useNavigate();
