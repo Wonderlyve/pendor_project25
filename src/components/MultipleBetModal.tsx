@@ -43,7 +43,12 @@ interface MultipleBetModalProps {
 
 const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalProps) => {
   const [copied, setCopied] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState('/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png');
 
+  useEffect(() => {
+    const saved = localStorage.getItem('modal_ad_banner_url');
+    if (saved) setBannerUrl(saved);
+  }, []);
   const handleCopyCode = async () => {
     if (prediction.reservationCode) {
       await navigator.clipboard.writeText(prediction.reservationCode);
