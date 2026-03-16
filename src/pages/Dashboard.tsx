@@ -52,6 +52,9 @@ const Dashboard = () => {
           <StatCard icon={<Share2 className="w-6 h-6 text-green-500" />} label="Partages" value={stats.totalShares} loading={isLoading} />
         </div>
 
+        {/* Charts */}
+        <DashboardCharts />
+
         {/* Recent Users */}
         <Card className="p-4">
           <h3 className="text-lg font-semibold text-foreground mb-3">Utilisateurs récents</h3>
