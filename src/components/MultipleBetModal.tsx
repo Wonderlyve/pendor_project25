@@ -145,8 +145,8 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
             {/* Bannière */}
             <div className="relative overflow-hidden rounded-2xl shadow-md animate-fade-in">
               <img
-                src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png"
-                alt="Winner.bet Application"
+                src={bannerUrl}
+                alt="Publicité"
                 className="w-full h-auto"
               />
             </div>
