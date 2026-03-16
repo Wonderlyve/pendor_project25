@@ -2,9 +2,18 @@
 import { Calendar, Clock, Trophy } from '@/lib/icons';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import MultipleBetModal from '@/components/MultipleBetModal';
+
+const useAdBanner = () => {
+  const [bannerUrl, setBannerUrl] = useState('/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png');
+  useEffect(() => {
+    const saved = localStorage.getItem('modal_ad_banner_url');
+    if (saved) setBannerUrl(saved);
+  }, []);
+  return bannerUrl;
+};
 
 interface PredictionModalProps {
   prediction: {
@@ -40,7 +49,7 @@ interface PredictionModalProps {
 
 const PredictionModal = ({ prediction, onClose }: PredictionModalProps) => {
   const [showMultipleBetModal, setShowMultipleBetModal] = useState(false);
-
+  const bannerUrl = useAdBanner();
   const isMultipleBet = prediction.betType === 'combine' || prediction.betType === 'multiple' || (prediction.matches && prediction.matches.length > 1);
   const isLoto = prediction.betType === 'loto' || prediction.sport === 'Loto';
 
@@ -52,8 +61,8 @@ const PredictionModal = ({ prediction, onClose }: PredictionModalProps) => {
           {/* Bannière publicitaire */}
           <div className="relative">
             <img 
-              src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png" 
-              alt="Winner.bet Application"
+              src={bannerUrl} 
+              alt="Publicité"
               className="w-full h-auto rounded-lg"
             />
           </div>
@@ -163,8 +172,8 @@ const PredictionModal = ({ prediction, onClose }: PredictionModalProps) => {
           {/* Bannière publicitaire */}
           <div className="relative">
             <img 
-              src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png" 
-              alt="Winner.bet Application"
+              src={bannerUrl} 
+              alt="Publicité"
               className="w-full h-auto rounded-lg"
             />
           </div>

@@ -31,6 +31,7 @@ import UpdateChecker from "./components/UpdateChecker";
 import NotFound from "./pages/NotFound";
 import Story from "./pages/Story";
 import SmartFeed from "./pages/SmartFeed";
+import SharedPost from "./pages/SharedPost";
 
 // Create QueryClient with proper configuration
 const queryClient = new QueryClient({
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/about" element={<About />} />
               <Route path="/story" element={<Story />} />
+              <Route path="/post/:postId" element={<SharedPost />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Copy, Check } from 'lucide-react';
 
 interface Match {
@@ -43,7 +43,12 @@ interface MultipleBetModalProps {
 
 const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalProps) => {
   const [copied, setCopied] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState('/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png');
 
+  useEffect(() => {
+    const saved = localStorage.getItem('modal_ad_banner_url');
+    if (saved) setBannerUrl(saved);
+  }, []);
   const handleCopyCode = async () => {
     if (prediction.reservationCode) {
       await navigator.clipboard.writeText(prediction.reservationCode);
@@ -140,8 +145,8 @@ const MultipleBetModal = ({ open, onOpenChange, prediction }: MultipleBetModalPr
             {/* Bannière */}
             <div className="relative overflow-hidden rounded-2xl shadow-md animate-fade-in">
               <img
-                src="/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png"
-                alt="Winner.bet Application"
+                src={bannerUrl}
+                alt="Publicité"
                 className="w-full h-auto"
               />
             </div>
