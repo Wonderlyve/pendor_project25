@@ -49,7 +49,7 @@ interface PredictionModalProps {
 
 const PredictionModal = ({ prediction, onClose }: PredictionModalProps) => {
   const [showMultipleBetModal, setShowMultipleBetModal] = useState(false);
-
+  const bannerUrl = useAdBanner();
   const isMultipleBet = prediction.betType === 'combine' || prediction.betType === 'multiple' || (prediction.matches && prediction.matches.length > 1);
   const isLoto = prediction.betType === 'loto' || prediction.sport === 'Loto';
 
