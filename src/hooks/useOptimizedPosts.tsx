@@ -361,10 +361,8 @@ export const useOptimizedPosts = () => {
     }
   };
 
-  // Écouter les nouveaux posts en temps réel - Simplifié
+  // Écouter les nouveaux posts en temps réel
   useEffect(() => {
-    if (!lastPostTimestamp) return;
-
     // Nettoyer l'ancien canal s'il existe
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
@@ -372,7 +370,7 @@ export const useOptimizedPosts = () => {
     }
 
     const channel = supabase
-      .channel('posts-updates')
+      .channel('posts-realtime')
       .on(
         'postgres_changes',
         {
@@ -380,9 +378,66 @@ export const useOptimizedPosts = () => {
           schema: 'public',
           table: 'posts'
         },
-        () => {
-          // Simplement actualiser la liste quand un nouveau post est détecté
-          refreshPostsIfNeeded();
+        async (payload) => {
+          // Fetch the full post with profile data
+          const { data: newPost } = await supabase
+            .from('posts')
+            .select(`
+              *,
+              profiles:user_id (
+                username,
+                display_name,
+                avatar_url
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (newPost) {
+            const transformed = {
+              ...newPost,
+              username: (newPost as any).profiles?.username,
+              display_name: (newPost as any).profiles?.display_name,
+              avatar_url: (newPost as any).profiles?.avatar_url,
+              like_count: newPost.likes,
+              is_liked: false,
+            } as Post;
+
+            setPosts(prev => {
+              // Avoid duplicates
+              if (prev.some(p => p.id === transformed.id)) return prev;
+              return [transformed, ...prev];
+            });
+            setLastPostTimestamp(newPost.created_at);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'posts'
+        },
+        (payload) => {
+          setPosts(prev =>
+            prev.map(post =>
+              post.id === payload.new.id
+                ? { ...post, ...payload.new }
+                : post
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'posts'
+        },
+        (payload) => {
+          setPosts(prev => prev.filter(post => post.id !== payload.old.id));
         }
       )
       .subscribe();
@@ -395,7 +450,7 @@ export const useOptimizedPosts = () => {
         channelRef.current = null;
       }
     };
-  }, [lastPostTimestamp, refreshPostsIfNeeded]);
+  }, []);
 
   // Vérification périodique pour les nouveaux posts (fallback)
   useEffect(() => {

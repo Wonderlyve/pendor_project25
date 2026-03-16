@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useEffect } from 'react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -50,6 +51,9 @@ const Dashboard = () => {
           <StatCard icon={<MessageCircle className="w-6 h-6 text-blue-500" />} label="Commentaires" value={stats.totalComments} loading={isLoading} />
           <StatCard icon={<Share2 className="w-6 h-6 text-green-500" />} label="Partages" value={stats.totalShares} loading={isLoading} />
         </div>
+
+        {/* Charts */}
+        <DashboardCharts />
 
         {/* Recent Users */}
         <Card className="p-4">
