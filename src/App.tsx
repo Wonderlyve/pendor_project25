@@ -31,6 +31,7 @@ import UpdateChecker from "./components/UpdateChecker";
 import NotFound from "./pages/NotFound";
 import Story from "./pages/Story";
 import SmartFeed from "./pages/SmartFeed";
+import SharedPost from "./pages/SharedPost";
 
 // Create QueryClient with proper configuration
 const queryClient = new QueryClient({
