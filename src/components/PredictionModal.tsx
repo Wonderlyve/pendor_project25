@@ -2,9 +2,18 @@
 import { Calendar, Clock, Trophy } from '@/lib/icons';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import MultipleBetModal from '@/components/MultipleBetModal';
+
+const useAdBanner = () => {
+  const [bannerUrl, setBannerUrl] = useState('/lovable-uploads/546931fd-e8a2-4958-9150-8ad8c4308659.png');
+  useEffect(() => {
+    const saved = localStorage.getItem('modal_ad_banner_url');
+    if (saved) setBannerUrl(saved);
+  }, []);
+  return bannerUrl;
+};
 
 interface PredictionModalProps {
   prediction: {
