@@ -592,6 +592,56 @@ export type Database = {
         }
         Relationships: []
       }
+      mobile_money_payments: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          channel_id: string
+          created_at: string
+          currency: string
+          id: string
+          phone_number: string
+          provider: string
+          status: string
+          user_id: string
+          validated_at: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          channel_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          phone_number: string
+          provider?: string
+          status?: string
+          user_id: string
+          validated_at?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          channel_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          phone_number?: string
+          provider?: string
+          status?: string
+          user_id?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobile_money_payments_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           channel_id: string | null

@@ -9,6 +9,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 import AdBannerManager from '@/components/dashboard/AdBannerManager';
+import MobilePaymentsManager from '@/components/dashboard/MobilePaymentsManager';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -55,6 +56,9 @@ const Dashboard = () => {
 
         {/* Ad Banner Management */}
         <AdBannerManager />
+
+        {/* Mobile Money Payments */}
+        <MobilePaymentsManager />
 
         {/* Charts */}
         <DashboardCharts />

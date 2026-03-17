@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useChannels } from '@/hooks/useChannels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import MobileMoneyPayment from '@/components/MobileMoneyPayment';
 
 const getCurrencySymbol = (currency: string) => {
   switch (currency) {
@@ -62,25 +63,11 @@ const ChannelSubscription = () => {
       available: true
     },
     {
-      id: 'orange',
-      name: 'Orange Money',
+      id: 'mobile_money',
+      name: 'Mobile Money',
       icon: Smartphone,
       color: 'bg-orange-500',
-      available: false
-    },
-    {
-      id: 'mpesa',
-      name: 'M-Pesa',
-      icon: Smartphone,
-      color: 'bg-green-600',
-      available: false
-    },
-    {
-      id: 'airtel',
-      name: 'Airtel Money',
-      icon: Smartphone,
-      color: 'bg-red-500',
-      available: false
+      available: true
     },
     {
       id: 'code',
@@ -151,11 +138,7 @@ const ChannelSubscription = () => {
   };
 
   const handlePaymentMethodSelect = (methodId: string) => {
-    if (methodId === 'code' || methodId === 'card') {
-      setSelectedPayment(methodId);
-    } else {
-      toast.info('Ce moyen de paiement sera disponible prochainement');
-    }
+    setSelectedPayment(methodId);
   };
 
   if (!channel) {
@@ -355,6 +338,17 @@ const ChannelSubscription = () => {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Mobile Money Payment Form */}
+        {selectedPayment === 'mobile_money' && channel && (
+          <MobileMoneyPayment
+            channelId={channel.id}
+            channelName={channel.name}
+            price={channel.price}
+            currency={channel.currency}
+            onSuccess={() => navigate('/channels')}
+          />
         )}
 
         {/* Security Notice */}
