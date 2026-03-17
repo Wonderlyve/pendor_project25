@@ -63,25 +63,11 @@ const ChannelSubscription = () => {
       available: true
     },
     {
-      id: 'orange',
-      name: 'Orange Money',
+      id: 'mobile_money',
+      name: 'Mobile Money',
       icon: Smartphone,
       color: 'bg-orange-500',
-      available: false
-    },
-    {
-      id: 'mpesa',
-      name: 'M-Pesa',
-      icon: Smartphone,
-      color: 'bg-green-600',
-      available: false
-    },
-    {
-      id: 'airtel',
-      name: 'Airtel Money',
-      icon: Smartphone,
-      color: 'bg-red-500',
-      available: false
+      available: true
     },
     {
       id: 'code',
