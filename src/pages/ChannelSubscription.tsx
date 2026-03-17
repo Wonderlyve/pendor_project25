@@ -138,11 +138,7 @@ const ChannelSubscription = () => {
   };
 
   const handlePaymentMethodSelect = (methodId: string) => {
-    if (methodId === 'code' || methodId === 'card') {
-      setSelectedPayment(methodId);
-    } else {
-      toast.info('Ce moyen de paiement sera disponible prochainement');
-    }
+    setSelectedPayment(methodId);
   };
 
   if (!channel) {
