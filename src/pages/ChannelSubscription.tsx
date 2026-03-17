@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useChannels } from '@/hooks/useChannels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import MobileMoneyPayment from '@/components/MobileMoneyPayment';
 
 const getCurrencySymbol = (currency: string) => {
   switch (currency) {
