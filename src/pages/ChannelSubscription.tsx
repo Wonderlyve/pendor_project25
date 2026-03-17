@@ -340,6 +340,17 @@ const ChannelSubscription = () => {
           </Card>
         )}
 
+        {/* Mobile Money Payment Form */}
+        {selectedPayment === 'mobile_money' && channel && (
+          <MobileMoneyPayment
+            channelId={channel.id}
+            channelName={channel.name}
+            price={channel.price}
+            currency={channel.currency}
+            onSuccess={() => navigate('/channels')}
+          />
+        )}
+
         {/* Security Notice */}
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">

@@ -57,6 +57,9 @@ const Dashboard = () => {
         {/* Ad Banner Management */}
         <AdBannerManager />
 
+        {/* Mobile Money Payments */}
+        <MobilePaymentsManager />
+
         {/* Charts */}
         <DashboardCharts />
 
